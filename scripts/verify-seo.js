@@ -2,6 +2,8 @@ import fs from 'fs';
 import path from 'path';
 import { JSDOM } from 'jsdom';
 import { hasLastUpdatedDate, localizedPageProblems, sitemapIsNoindexed, sitemapLocations, sitemapUrlsMissingLastmod, pagesMissingMarkdownTwin } from './localizedSeoChecks.mjs';
+import { ratedPageProblems, ratedPageTest } from './ratedPages.mjs';
+import { TOOL_PAGES } from '../src/lib/app/toolIds.ts';
 
 const distDir = path.join(process.cwd(), 'dist');
 
@@ -41,8 +43,9 @@ const contentPageSlugs = new Set(
     .map((file) => file.replace(/\.yaml$/, '')),
 );
 
-/** SEO-58/61: the rating sits on the home page, Redact and Merge, in any language, and nowhere else. */
-const RATED_PAGE = /(^|\/)dist\/((?:[a-z]{2}\/)?(?:index|merge\/index)|redact\/index)\.html$/;
+/** SEO-63: the rating sits on the home page and every tool page, in any language, and nowhere else. */
+const isRatedPage = ratedPageTest(TOOL_PAGES.map((page) => page.slug));
+const ratingByPage = new Map();
 
 for (const file of htmlFiles) {
   const relPath = path.relative(process.cwd(), file);
@@ -147,8 +150,8 @@ for (const file of htmlFiles) {
   // 5b. SEO-46/58: aggregateRating is never required, but when a page carries one it must be a real
   // one: PDkef's, at least 10 votes, a value in 1..5, and the visible badge must show the same numbers.
   const agg = softwareAppData && softwareAppData.aggregateRating;
+  ratingByPage.set(relPath, Boolean(agg));
   if (agg) {
-    if (!RATED_PAGE.test(relPath)) error('aggregateRating on a page other than home, Redact or Merge');
     const value = Number(agg.ratingValue);
     const count = Number(agg.ratingCount);
     if (softwareAppData.name !== 'PDkef') error(`aggregateRating rates "${softwareAppData.name}", not PDkef`);
@@ -202,6 +205,11 @@ for (const file of htmlFiles) {
   if (contentSlugMatch && contentPageSlugs.has(contentSlugMatch[1]) && !hasLastUpdatedDate(document)) {
     error('Missing "Last updated" <time datetime> - a shallow git clone cannot date this page (src/site-lib/gitLastModified.js)');
   }
+}
+
+for (const problem of ratedPageProblems(ratingByPage, isRatedPage)) {
+  console.error(`[ERROR] ${problem}`);
+  hasError = true;
 }
 
 // LOC-02 guards 3-4 over every localized page, now that every page's

@@ -1,5 +1,5 @@
 ---
-// SEO-58: PDkef's rating as a board, on the home page and Redact. The stars are baked in at build time; beside them
+// SEO-58: PDkef's rating as a board, on the home page and every tool page. The stars are baked in at build time; beside them
 // pin up approved notes and recent votes, which mostly carry no words.
 import PinnedNotes from '../site-lib/PinnedNotes.tsx';
 import { ratingText } from '../site-lib/ratingAggregate';
@@ -54,19 +54,6 @@ const FIVE = [0, 1, 2, 3, 4];
     margin: 0 auto;
     padding-block: clamp(4rem, 8vw, 6.5rem);
   }
-  .card {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    width: min(1080px, 100%);
-    padding-inline: 2.5rem;
-    background: var(--color-bg);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg);
-  }
-  @media (max-width: 1080px) { .card { width: auto; margin-inline: 1.5rem; } }
-  @media (max-width: 640px) { .card { padding-inline: 1.5rem; } }
-
   .panel { max-width: 34rem; margin-inline: auto; text-align: center; }
   .panel h2 { margin: 0 0 1rem; color: var(--color-text); text-wrap: balance; }
   .intro { margin: 0 0 2rem; color: var(--color-muted); }
@@ -90,16 +77,5 @@ const FIVE = [0, 1, 2, 3, 4];
     }
     .board:has(ul) .panel { margin: 0; text-align: start; }
     .board:has(ul) .row { justify-content: flex-start; }
-  }
-  /* A card of the home stack is one screen tall on a wide screen, like its neighbours. */
-  @media (min-width: 768px) {
-    .card { min-height: calc(100vh - 6rem); padding-block: 2.5rem; }
-  }
-  /* On the laptop stack the card is the band between the home bar and the footer, so the three rows of papers
-     share what is left of it after the card's own padding, border and row gaps (about 7.5rem). */
-  @media (min-width: 1024px) {
-    .card {
-      --board-note-h: clamp(8.5rem, calc((100svh - var(--home-nav-height, 3.5rem) - var(--home-footer-height, 4rem) - 2rem - 7.5rem) / 3), 11rem);
-    }
   }
 </style>

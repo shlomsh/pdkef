@@ -19,12 +19,13 @@ import ToolExamplesCard from '../components/ToolExamplesCard.astro';
 import ToolFaqCard from '../components/ToolFaqCard.astro';
 import RelatedGuides from '../components/RelatedGuides.astro';
 import ToolCrossLinks from '../components/ToolCrossLinks.astro';
+import RatingBoard from '../components/RatingBoard.astro';
 import Footer from '../components/Footer.astro';
 import OfflineProof from '../components/OfflineProof.astro';
 import { documentationShellMessages, type DocumentationShellMessages } from '../i18n/documentationMessages';
 import { getLocalizedToolContext, getPublishedEditionPaths } from '../i18n/localizedTools';
 import { toolFaqHeading } from '../i18n/faqHeading';
-import { EDITOR_LAYOUT_SLUGS, FILE_LIST_RESTORE_SLUGS, layoutOf } from '#lib/app/toolIds.ts';
+import { EDITOR_LAYOUT_SLUGS, FILE_LIST_RESTORE_SLUGS, layoutOf, TOOL_PAGES } from '#lib/app/toolIds.ts';
 import { registerToolPageStyles } from '../components/inlineStyles';
 import { appRating } from '../site-lib/ratingAggregate';
 import '../styles/toolPage.css';
@@ -58,8 +59,6 @@ interface Props {
    * catalogue yet (see LOCALIZED_TOOL_ISLANDS in src/i18n/localizedTools.ts) -
    * the Sign/Redact "editor stays English" pilot decision, generalized. */
   toolControlsEnglish?: boolean;
-  /** SEO-58/61: the page fills the `rating` slot with the board, so it carries the rating markup too. */
-  rated?: boolean;
 }
 
 const {
@@ -73,7 +72,6 @@ const {
   messages = documentationShellMessages.en!,
   previewNotice,
   toolControlsEnglish = false,
-  rated = false,
 }: Props = Astro.props;
 
 // The nine English pages pass neither `alternates` nor `variants`, and they
@@ -88,12 +86,12 @@ const variants = Astro.props.variants ?? resolved.variants;
 // Sign and Redact are the editors. They share the desktop first screen of the page-grid tools (HERO-05),
 // but only on an empty desktop stage (see `data-editor` below).
 // SEO-46: a real aggregate from the build-time read, or null (offline build, store down, under the minimum).
-// SEO-58/61: only a page that shows the board (Redact, Merge) carries the rating.
-// A prop and not `Astro.slots.has`: a slot forwarded by LocalizedToolLayout counts as filled on every localized page.
-const rating = rated ? await appRating() : null;
+// SEO-63: every tool page shows the board below and carries the app's rating in its markup.
+const rating = await appRating();
 // English-only like the languages card: the figures' captions are English.
 const showExamples = Boolean(tool.examples) && locale === 'en';
 if (showExamples) registerToolPageStyles(Astro.csp, tool);
+const toolId = TOOL_PAGES.find((page) => page.slug === tool.slug)?.id;
 const { editorLayout: isEditor, unlimitedNote } = layoutOf(tool.slug);
 // The pre-paint script below, as text, so the page-family slugs come from the registry (src/lib/app/toolIds.ts)
 // and the text is still the same on every tool page: one hash covers it (astro.config.mjs).
@@ -247,7 +245,7 @@ if (video) Astro.csp?.insertDirective(`frame-src ${new URL(video.embed).origin}`
       once the card itself has a reviewed translation. */}
   {tool.languages && locale === 'en' && <ToolLanguagesCard languages={tool.languages} />}
 
-  <slot name="rating" />
+  <RatingBoard rating={rating} tool={toolId} locale={locale} messages={messages} />
 
   <ToolAboutCard
     icon={tool.icon}

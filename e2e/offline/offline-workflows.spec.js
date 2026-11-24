@@ -212,7 +212,7 @@ test.describe('offline workflows (SIGN-07)', () => {
     await context.setOffline(true);
     try {
       await page.goto('/compress/');
-      await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+      await page.locator('[data-tool-page] astro-island[client="load"]:not([ssr])').first().waitFor();
       await expect(page.locator('astro-island input[type="file"]')).toBeAttached();
 
       // Never visited, and the home page was never opened: the navigation fails, the browser shows its own offline page.
