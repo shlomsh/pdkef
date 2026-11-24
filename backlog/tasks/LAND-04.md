@@ -274,5 +274,8 @@ count). The rule is off on `landmines-all` meanwhile.
   moved rows keep their bodies in jsdom or Node, and a fresh review found nothing missing. Seven assertions of the shape
   `expect(a?.b(...)).not.toBeNull()`, which pass when `a` is missing, are strict now. Doubles 857 to 858 (the Drive
   popup, which jsdom has not).
+- Sign and Highlight trimmed (2026-11-25): 18 browser tests to 15. The two re-export tests move to Node unchanged, the
+  Highlight undo test to jsdom on the shipped pdf.js. The 15 kept need Chromium: the modal dialog, rendered widths,
+  canvas pixels and codecs, module workers. Doubles stay 858. Remaining modules together: 84 browser tests to 24.
 - Found on the way: RED-75 (preview documents never freed on pdf.js 6.5), RED-76 (one very long line
   overflows the text preview).
