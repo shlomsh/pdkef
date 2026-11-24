@@ -237,5 +237,11 @@ count). The rule is off on `landmines-all` meanwhile.
   against old and new: one loss (focus back to the tile on Escape), closed. Kept in Chromium: failure rows, every row
   that opens the viewer (jsdom has no `showModal`), the phone grid, pixels, worker, camera. Guarded by neither suite:
   about 40 island lines (j6 logs), among them `useHoldUpdate` and `navigate`. Doubles 889, unchanged.
+- Security trimmed (2026-11-24): 54 browser tests down to 2 (the preview's pixels, and the swap to the unlocked page);
+  the branch's browser layer is 323. The real island runs in jsdom on the shipped pdf.js and pdf-lib, with no product change:
+  `PdfSecurityTool.test`, `.finish.test`, `.preview.test` and `PagePreview.test`. A fresh review found no lost assertion
+  and one vacuous one (Share), fixed. The island's mutations were run against old and new: one loss (the "Checking file"
+  announcement), asserted. Guarded by neither suite: about 40 island and action lines, among them focus after a wrong
+  password, `useHoldUpdate` and the phone bar's `mode`. Doubles 889 to 875.
 - Found on the way: RED-75 (preview documents never freed on pdf.js 6.5), RED-76 (one very long line
   overflows the text preview).
