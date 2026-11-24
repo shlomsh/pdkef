@@ -1,0 +1,36 @@
+export interface RecordedBeacon {
+  url: string;
+  blob: Blob;
+}
+
+export interface BeaconRecorder {
+  calls: RecordedBeacon[];
+  urls(): string[];
+  bodies(): Promise<unknown[]>;
+  restore(): void;
+}
+
+const NONE = Symbol('absent');
+
+export function installBeaconRecorder({ returns = true }: { returns?: boolean } = {}): BeaconRecorder {
+  const calls: RecordedBeacon[] = [];
+  const previous = Object.getOwnPropertyDescriptor(navigator, 'sendBeacon') ?? NONE;
+  // forced: jsdom has no sendBeacon.
+  Object.defineProperty(navigator, 'sendBeacon', {
+    configurable: true,
+    writable: true,
+    value: (url: string | URL, data?: BodyInit | null): boolean => {
+      calls.push({ url: String(url), blob: data as Blob });
+      return returns;
+    },
+  });
+  return {
+    calls,
+    urls: () => calls.map((call) => call.url),
+    bodies: () => Promise.all(calls.map(async (call) => JSON.parse(await call.blob.text()) as unknown)),
+    restore() {
+      if (previous === NONE) Reflect.deleteProperty(navigator, 'sendBeacon');
+      else Object.defineProperty(navigator, 'sendBeacon', previous);
+    },
+  };
+}

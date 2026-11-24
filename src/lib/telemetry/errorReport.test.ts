@@ -1,4 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { installBeaconRecorder, type BeaconRecorder } from '../../test/support/beaconRecorder.ts';
 import {
   ACTIONS,
   MAX_ACTIONS,
@@ -7,6 +8,9 @@ import {
   parseErrorReport,
   readBuildCommit,
   readPageContext,
+  reportError,
+  resetErrorReportingForTests,
+  setReportingEnabledForTests,
   toDropRecord,
   dropCause,
   toErrorReport,
@@ -356,6 +360,23 @@ describe('toDropRecord (DEBT-44)', () => {
     expect(toDropRecord('drafts', 's', 'save_draft', 'abc1234')?.build).toBe('abc1234');
     expect('build' in (toDropRecord('drafts', 's', 'save_draft') as object)).toBe(false);
     expect(toDropRecord('drafts', 's', 'has space')).toBeNull();
+  });
+});
+
+describe('reportError drop records, with the engine\'s own DOMException (DEBT-44)', () => {
+  let beacons: BeaconRecorder;
+  afterEach(() => {
+    beacons.restore();
+    setReportingEnabledForTests(false);
+    resetErrorReportingForTests();
+  });
+  it('sends a drop record for an Error with no built frame', async () => {
+    beacons = installBeaconRecorder();
+    setReportingEnabledForTests(true);
+    const e = new DOMException('x', 'NotReadableError');
+    e.stack = 'NotReadableError: x\n    at f (chrome-extension://abc/i.js:1:2)';
+    reportError('redact', e, 'export');
+    expect(await beacons.bodies()).toMatchObject([{ kind: 'dropped', reason: 'no_frame', type: 'DOMException', name: 'NotReadableError' }]);
   });
 });
 

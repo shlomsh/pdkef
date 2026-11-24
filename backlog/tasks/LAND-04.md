@@ -264,5 +264,10 @@ count). The rule is off on `landmines-all` meanwhile.
   canvas; the second browser test brings them back. 178 mutations against old and new: the new lower tests catch 105,
   and of the 73 they missed the old suite catches three, all caught by the kept browser tests. Guarded by neither: 69.
   Doubles 862 to 859; the canvas stub is a double the rule does not see.
+- Telemetry trimmed (2026-11-25): 27 browser tests down to 3 (one report and one maintenance event as the browser posts
+  them, and a report with its sink count in order). The rest record beacons in jsdom (`beaconRecorder.ts`), or under
+  Node where a real `DOMException` is an `Error`. Every row fails on an assertion under its own mutation. A fresh review
+  found one negative row with no live control, fixed. "Sends one defect once" never reached the rule it named (the
+  step key stopped it first); it does now. Doubles 859 to 857.
 - Found on the way: RED-75 (preview documents never freed on pdf.js 6.5), RED-76 (one very long line
   overflows the text preview).
