@@ -46,6 +46,9 @@ inside the same `act`, because the stale result reaches the component a few prom
 such a rewrite by deleting the product guard: the test must fail. Example: DEBT-18 in
 `src/tools/split/PdfSplitTool.browser.test.tsx`. A product timer gets fake timers scoped to that one test.
 
+Keep the browser layer small (test pyramid): a browser test is only for what Node and jsdom cannot show, on a narrow
+subject, never a tool's whole island suite. Rule and evidence: `docs/landmines/no-test-doubles.md`.
+
 A browser test never calls `page.viewport`: a resize can leave Chromium with no idle time, and every later canvas encode
 takes 1s (LAND-04). A desktop-width file goes in `DESKTOP_BROWSER_TESTS` (`vitest.config.js`); one that needs touch or a camera is
 named `*.camera.browser.test.*` (`CAMERA_BROWSER_TESTS`, Scan only); a test that must resize is a Playwright spec. Awaiting

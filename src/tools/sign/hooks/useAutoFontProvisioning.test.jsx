@@ -21,6 +21,7 @@ describe('useAutoFontProvisioning', () => {
       container.remove();
       container = null;
     }
+    // forced: a test page is always online, so the offline branch has no real input
     Object.defineProperty(navigator, 'onLine', { configurable: true, value: originalOnline });
   });
 
@@ -31,20 +32,20 @@ describe('useAutoFontProvisioning', () => {
   }
 
   it('provisions the resolved (rendered) family for a non-default font in use', () => {
-    const spy = vi.spyOn(fontOfflinePacks, 'provisionFontPack').mockResolvedValue(true);
+    const spy = vi.spyOn(fontOfflinePacks, 'provisionFontPack');
     mount([{ type: 'text', text: 'שלומי', fontFamily: 'Caveat' }]);
     expect(spy).toHaveBeenCalledWith('Gveret Levin');
     expect(spy).not.toHaveBeenCalledWith('Caveat');
   });
 
   it('never provisions the precached default family', () => {
-    const spy = vi.spyOn(fontOfflinePacks, 'provisionFontPack').mockResolvedValue(true);
+    const spy = vi.spyOn(fontOfflinePacks, 'provisionFontPack');
     mount([{ type: 'text', text: 'שלום', fontFamily: 'Arimo' }]);
     expect(spy).not.toHaveBeenCalled();
   });
 
   it('ignores non-text elements and text elements with no text yet', () => {
-    const spy = vi.spyOn(fontOfflinePacks, 'provisionFontPack').mockResolvedValue(true);
+    const spy = vi.spyOn(fontOfflinePacks, 'provisionFontPack');
     mount([
       { type: 'whiteout' },
       { type: 'text', text: '', fontFamily: 'Caveat' },
@@ -53,7 +54,8 @@ describe('useAutoFontProvisioning', () => {
   });
 
   it('does not re-provision the same family on a later render', () => {
-    const spy = vi.spyOn(fontOfflinePacks, 'provisionFontPack').mockResolvedValue(true);
+    // forced: a test page has no service worker, so the real call fails and would be retried; success needs a canned answer
+    const spy = vi.spyOn(fontOfflinePacks, 'provisionFontPack').mockResolvedValueOnce(true);
     mount([{ type: 'text', text: 'שלומי', fontFamily: 'Caveat' }]);
     expect(spy).toHaveBeenCalledTimes(1);
     act(() => { render(<Harness elements={[{ type: 'text', text: 'שלומי!', fontFamily: 'Caveat' }]} />, container); });
@@ -61,16 +63,17 @@ describe('useAutoFontProvisioning', () => {
   });
 
   it('does not attempt to provision while offline', () => {
+    // forced: a test page is always online, so the offline branch has no real input
     Object.defineProperty(navigator, 'onLine', { configurable: true, value: false });
-    const spy = vi.spyOn(fontOfflinePacks, 'provisionFontPack').mockResolvedValue(true);
+    const spy = vi.spyOn(fontOfflinePacks, 'provisionFontPack');
     mount([{ type: 'text', text: 'שלומי', fontFamily: 'Caveat' }]);
     expect(spy).not.toHaveBeenCalled();
   });
 
   it('retries on a later render if the previous attempt failed', async () => {
-    const spy = vi.spyOn(fontOfflinePacks, 'provisionFontPack').mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce(true);
+    const spy = vi.spyOn(fontOfflinePacks, 'provisionFontPack');
     mount([{ type: 'text', text: 'שלומי', fontFamily: 'Caveat' }]);
-    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+    await act(async () => { await expect(spy.mock.results[0].value).rejects.toThrow(); });
     act(() => { render(<Harness elements={[{ type: 'text', text: 'שלומי!', fontFamily: 'Caveat' }]} />, container); });
     expect(spy).toHaveBeenCalledTimes(2);
   });

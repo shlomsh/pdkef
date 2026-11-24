@@ -44,8 +44,26 @@ does not count. Each replaced site must end in one of these, and the brief and t
    (`onUnhandledRequest: 'error'`, which `strict-msw` then guards).
 5. **Real browser.** An API jsdom does not have (`matchMedia`, `BroadcastChannel`, `Worker`, camera,
    canvas pixels, `navigator.*`) runs in Vitest browser mode against real Chromium, with no stub.
+   Only a narrow subject goes there (see "The browser layer stays small"); a tool's island suite never does.
 
 A site that fits none of these is reported to the lead, not bent to fit.
+
+## The browser layer stays small
+
+Shlomi's call, 2026-11-23, for every tool and module: browser tests are the slowest and heaviest layer,
+so they follow the test pyramid. Waves 6 and on had moved whole island suites to Chromium. On Linux (run
+45261132549) those were 26 files, 623 tests and 294 s of the browser step's 351 s; the 24 narrow files
+were 265 tests and 19 s.
+
+- A browser test is for what Node and jsdom cannot show: pixels, layout, real pdf.js rendering, a worker,
+  the camera, touch. Its subject is a hook, a lib module or a component, or a few flows of one tool.
+- An island suite is trimmed test by test. A behaviour goes down to the reducer, hook, lib or component
+  that owns it, on real pdf-lib and `pdfjs-dist/legacy`; it stays in Chromium only if no lower layer can
+  show it. The fake pdf.js island harness does not come back.
+- **A browser test is removed only when a named lower test, or an existing e2e spec, fails with an
+  assertion under the same product mutation.** One with no lower home stays, or goes on a list for
+  Shlomi. Several browser tests may merge into one that keeps every assertion.
+- A double a lower test needs stays visible, on the allow list. The count is reported per tool.
 
 ## Waves, best value first
 
@@ -85,7 +103,8 @@ A site that fits none of these is reported to the lead, not bent to fit.
 Each wave: a site list per file, small parallel briefs on disjoint files, and a fresh review that
 checks each rewrite against the five endings.
 
-- **Coverage holds.** A file keeps every test name it had. A test that forced a failure and can no
+- **Coverage holds.** A file keeps every test name it had, except under the browser-layer rule above,
+  which keeps every assertion. A test that forced a failure and can no
   longer is reported, not deleted or softened.
 - **Proof.** Every rewritten "must not happen" test is mutation-proven: break the product guard in a
   scratch worktree, the test must fail with an assertion; if it does not, run the old test under the

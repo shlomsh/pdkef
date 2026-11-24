@@ -1,4 +1,3 @@
-// @ts-nocheck - island test with loose DOM helpers
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi } from 'vitest';
 import PdfScanTool from './PdfScanTool.tsx';
@@ -13,15 +12,15 @@ import { photoOfPage, useScanSuite } from '../../test/support/scanTool.browser.t
 
 vi.mock('./lib/scanPipeline.ts', { spy: true });
 vi.mock('./hooks/useCamera.ts', { spy: true });
-const realPipeline = await vi.importActual('./lib/scanPipeline.ts');
+const realPipeline = await vi.importActual<typeof import('./lib/scanPipeline.ts')>('./lib/scanPipeline.ts');
 
 answerNetwork();
 
 describe('PdfScanTool', () => {
   const suite = useScanSuite({ Tool: PdfScanTool, installToolHarness: installBrowserToolHarness, pipeline: { spy: pipeline, real: realPipeline } });
   const { s, step, mount, startScanning, tableTiles, click, pagesMade, pick, byText, openPage, viewer } = suite;
-  const camera = () => s.container.querySelector('dialog[aria-label="Start scanning"]');
-  const cameraButton = (label) => camera()?.querySelector(`button[aria-label="${label}"]`);
+  const camera = () => s.container.querySelector<HTMLDialogElement>('dialog[aria-label="Start scanning"]');
+  const cameraButton = (label: string) => camera()?.querySelector<HTMLElement>(`button[aria-label="${label}"]`);
   const cameraLive = () => until(() => cameraButton('Take this page') != null);
   const doneButton = () => [...camera().querySelectorAll('button')].find((b) => b.textContent === 'Done');
   const stack = () => camera().querySelector('[data-stack]');
@@ -34,8 +33,8 @@ describe('PdfScanTool', () => {
   };
   const cameraPaused = () => vi.mocked(useCamera).mock.calls.at(-1)[0].paused;
   const streamLive = () => {
-    const video = camera().querySelector('video');
-    return video.srcObject.getVideoTracks()[0].readyState === 'live' && !video.paused;
+    const video = camera().querySelector<HTMLVideoElement>('video');
+    return (video.srcObject as MediaStream).getVideoTracks()[0].readyState === 'live' && !video.paused;
   };
 
   describe('the live camera', () => {

@@ -1,4 +1,3 @@
-// @ts-nocheck - island test with loose DOM helpers
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi } from 'vitest';
 import Sortable from 'sortablejs';
@@ -11,17 +10,17 @@ import { until } from '../../test/support/until.js';
 import { brokenPhoto, photoOfPage, useScanSuite } from '../../test/support/scanTool.browser.tsx';
 
 vi.mock('./lib/scanPipeline.ts', { spy: true });
-const realPipeline = await vi.importActual('./lib/scanPipeline.ts');
+const realPipeline = await vi.importActual<typeof import('./lib/scanPipeline.ts')>('./lib/scanPipeline.ts');
 
 answerNetwork();
 
-const heic = (name) => new File(['x'], name, { type: 'image/heic' });
+const heic = (name: string) => new File(['x'], name, { type: 'image/heic' });
 
 describe('PdfScanTool', () => {
   const suite = useScanSuite({ Tool: PdfScanTool, installToolHarness: installBrowserToolHarness, pipeline: { spy: pipeline, real: realPipeline } });
   const {
-    s, mount, pick, pagesMade, pdfReady, openPage, adjustCorners, openCorners, done, press, byText, inViewer, pressInViewer, all, one,
-    tableTiles, onTable, handles, heading, checked, choose, radioGroup, currentPaper, startScanning, click, step, idle,
+    s, mount, pick, pagesMade, pdfReady, openPage, adjustCorners, done, press, byText, pressInViewer, all, one,
+    tableTiles, onTable, handles, heading, checked, choose, currentPaper, startScanning, click, step, idle,
   } = suite;
   const tileLabels = () => tableTiles().map((el) => el.getAttribute('aria-label'));
   const text = () => s.container.textContent;
@@ -29,7 +28,8 @@ describe('PdfScanTool', () => {
   it('offers Start scanning on the empty state as an equal of Choose photos, wired to the rear camera', () => {
     mount();
     const take = startScanning();
-    const choose = all('label').find((l) => l.textContent.trim() === 'Choose photos');
+    const choose = all('label').find((l) => l.textContent?.trim() === 'Choose photos');
+    if (!choose) throw new Error('Expected Choose photos');
     expect(take.className.split(' ')).toContain(choose.className);
     const input = one('input[capture]');
     expect(input.getAttribute('capture')).toBe('environment');
@@ -40,7 +40,7 @@ describe('PdfScanTool', () => {
     mount();
     await pick([await photoOfPage('a.jpg'), await photoOfPage('b.jpg'), heic('c.heic')]);
     await pagesMade(2);
-    expect(tileLabels().map((l) => l.split(',')[0])).toEqual(['Page 1 of 2', 'Page 2 of 2']);
+    expect(tileLabels().map((l) => (l as string).split(',')[0])).toEqual(['Page 1 of 2', 'Page 2 of 2']);
     expect(text()).toContain('c.heic was skipped');
     expect(onTable()).toBe(true);
     expect(handles()).toHaveLength(0);
@@ -91,7 +91,7 @@ describe('PdfScanTool', () => {
     await pagesMade(1);
     await pdfReady();
     // forced: a size limit that cannot be met, the real build runs and only metTarget is overridden
-    step('buildScanPdf').mockImplementationOnce(async (...args) => {
+    step('buildScanPdf').mockImplementationOnce(async (...args: Parameters<typeof realPipeline.buildScanPdf>) => {
       const built = await realPipeline.buildScanPdf(...args);
       return { ...built, metTarget: false };
     });
@@ -102,9 +102,9 @@ describe('PdfScanTool', () => {
 
   it('names a page that could not be read, and holds Download back until it is removed', async () => {
     // forced: processing fails, however often it is tried, for b.jpg whose photo was read well
-    step('processPage').mockImplementation(async (file, ...rest) => {
-      if (file.name === 'b.jpg') throw new Error('decode failed');
-      return realPipeline.processPage(file, ...rest);
+    step('processPage').mockImplementation(async (...args: Parameters<typeof realPipeline.processPage>) => {
+      if ((args[0] as File).name === 'b.jpg') throw new Error('decode failed');
+      return realPipeline.processPage(...args);
     });
     mount();
     await pick([await photoOfPage('a.jpg'), await photoOfPage('b.jpg')]);
@@ -221,7 +221,7 @@ describe('PdfScanTool', () => {
     await pick([await photoOfPage('a.jpg')]);
     await pagesMade(1);
     const nameEl = () => s.container.querySelector('h2 [contenteditable]');
-    const rename = async (value) => {
+    const rename = async (value: string) => {
       await act(async () => { nameEl().dispatchEvent(new MouseEvent('mousedown', { bubbles: true })); });
       await act(async () => { nameEl().textContent = value; });
       await act(async () => { nameEl().dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })); });

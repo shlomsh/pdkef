@@ -1,4 +1,3 @@
-// @ts-nocheck - island test with loose DOM helpers
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi } from 'vitest';
 import PdfScanTool from './PdfScanTool.tsx';
@@ -7,11 +6,12 @@ import { installBrowserToolHarness } from '../../test/harness/browserToolHarness
 import { answerNetwork } from '../../test/support/network.browser.ts';
 import { until } from '../../test/support/until.js';
 import { cssPercent, drawnCorners, photoOfNothing, photoOfPage, useScanSuite } from '../../test/support/scanTool.browser.tsx';
+import type { Point } from '#lib/pageEnhance/quad.ts';
 import { rotateQuad } from '#lib/pageEnhance/quad.ts';
 import { turnedQuad } from './lib/quad.ts';
 
 vi.mock('./lib/scanPipeline.ts', { spy: true });
-const realPipeline = await vi.importActual('./lib/scanPipeline.ts');
+const realPipeline = await vi.importActual<typeof import('./lib/scanPipeline.ts')>('./lib/scanPipeline.ts');
 
 answerNetwork();
 
@@ -19,21 +19,28 @@ describe('PdfScanTool', () => {
   const suite = useScanSuite({ Tool: PdfScanTool, installToolHarness: installBrowserToolHarness, pipeline: { spy: pipeline, real: realPipeline } });
   const { s, mount, pick, pagesMade, openPage, adjustCorners, openCorners, useCorners, handles, answered, holdNext, step, idle } = suite;
 
-  const largePhoto = async (name) => {
+  const caption = () => {
+    const found = suite.currentPaper().closest('figure')?.querySelector('figcaption');
+    if (!found) throw new Error('Expected a caption');
+    return found.textContent;
+  };
+  const largePhoto = async (name: string) => {
     const canvas = document.createElement('canvas');
     canvas.width = 2400;
     canvas.height = 3200;
     const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Expected a 2d context');
     ctx.fillStyle = '#2b2118';
     ctx.fillRect(0, 0, 2400, 3200);
     ctx.fillStyle = '#f2efe6';
     ctx.fillRect(250, 300, 1900, 2600);
     ctx.fillStyle = '#222222';
     for (let i = 0; i < 22; i += 1) ctx.fillRect(400, 500 + i * 100, 1500 - (i % 5) * 120, 30);
-    const blob = await new Promise((resolve) => { canvas.toBlob(resolve, 'image/jpeg', 0.95); });
+    const blob = await new Promise<Blob | null>((resolve) => { canvas.toBlob(resolve, 'image/jpeg', 0.95); });
+    if (!blob) throw new Error('Expected a blob');
     return new File([blob], name, { type: 'image/jpeg' });
   };
-  const sameBytes = async (a, b) => {
+  const sameBytes = async (a: Blob, b: Blob) => {
     const [x, y] = await Promise.all([a.arrayBuffer(), b.arrayBuffer()]);
     return x.byteLength === y.byteLength && new Uint8Array(x).every((v, i) => v === new Uint8Array(y)[i]);
   };
@@ -97,11 +104,11 @@ describe('PdfScanTool', () => {
     act(() => { suite.radioGroup('Page size').querySelectorAll('[role="radio"]')[1].click(); });
     expect(suite.currentPaper().hasAttribute('data-exact')).toBe(false);
     expect(suite.currentPaper().hasAttribute('data-updating')).toBe(true);
-    expect(suite.currentPaper().closest('figure').querySelector('figcaption').textContent).toContain('Updating');
+    expect(caption()).toContain('Updating');
     await held.started;
     expect(suite.currentPaper().hasAttribute('data-exact')).toBe(false);
     expect(suite.currentPaper().hasAttribute('data-updating')).toBe(true);
-    expect(suite.currentPaper().closest('figure').querySelector('figcaption').textContent).toContain('Updating');
+    expect(caption()).toContain('Updating');
     expect(suite.currentPaper().querySelector('img')).not.toBeNull();
     await held.runToEnd();
     await until(() => suite.currentPaper().hasAttribute('data-exact'));
@@ -120,7 +127,7 @@ describe('PdfScanTool', () => {
 
   it('finds the page on request from the corners view', async () => {
     // forced: the first look found no page
-    step('inspectPhoto').mockImplementationOnce(async (...args) => ({ ...(await realPipeline.inspectPhoto(...args)), quad: null }));
+    step('inspectPhoto').mockImplementationOnce(async (...args: Parameters<typeof realPipeline.inspectPhoto>) => ({ ...(await realPipeline.inspectPhoto(...args)), quad: null }));
     mount();
     await pick([await photoOfPage('a.jpg')]);
     await pagesMade(1);
@@ -161,9 +168,10 @@ describe('PdfScanTool', () => {
     await pick([photo]);
     await pagesMade(1);
     await openCorners(1);
-    const img = s.container.querySelector('[data-corner-frame] img');
+    const img = s.container.querySelector<HTMLImageElement>('[data-corner-frame] img');
     const { preview, quad } = await answered('inspectPhoto', 'a.jpg');
     const shown = await s.harness.blobForUrl(img.src);
+    if (!shown) throw new Error('Expected the shown photo');
     expect(await sameBytes(shown, preview)).toBe(true);
     expect(await sameBytes(shown, photo)).toBe(false);
     const seen = new Image();
@@ -205,7 +213,7 @@ describe('PdfScanTool', () => {
     await act(async () => { handles()[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })); });
     await useCorners();
     await held.started;
-    const moved = quad.map((p, i) => (i === 3 ? { x: p.x, y: p.y - 0.005 } : p));
+    const moved = quad.map((p: Point, i: number) => (i === 3 ? { x: p.x, y: p.y - 0.005 } : p));
     const sent = step('processPage').mock.calls.at(-1)[1];
     rotateQuad(moved, 1).forEach((p, i) => {
       expect(sent[i].x).toBeCloseTo(p.x, 10);

@@ -16,6 +16,7 @@ import type { CombRegion, FieldRegion } from '../lib/combPlacement.ts';
 import type { EditorElement, TextDirection, TextElement } from '#editor/model/editorModel.ts';
 import type { DocumentStyle } from '#editor/model/documentStyle.ts';
 import type { FormFieldRegions } from './useFormFieldRegions.ts';
+import { elementsReducer, initialElementsState, type ElementsAction, type ElementsState } from '#editor/model/elementsReducer.ts';
 
 const comb = (pageIndex: number, left: number, top: number, width = 15, cells = 9): CombRegion => (
   { pageIndex, left, top, width, height: 0.84, cells }
@@ -254,33 +255,33 @@ describe('useFieldNavigation – landing on a field that already has a box', () 
 describe('useFieldNavigation – walking forward across renders', () => {
   it('advances from the field just created to the next one, the way PdfWorkspace re-renders it', () => {
     const formRegions: FormFieldRegions = { detection: 'done', combs: [rowRight, rowLeft], checkboxes: [], cells: [], pageDirections: ['rtl'] };
-    let elements: EditorElement[] = [];
-    let activeElementId: string | null = null;
-    const dispatch = vi.fn((action: { type: string; payload: unknown }) => {
-      if (action.type === 'ADD_ELEMENT') elements = [...elements, action.payload as EditorElement];
-      if (action.type === 'SET_ACTIVE_ELEMENT_ID') activeElementId = action.payload as string | null;
-    });
+    let state: ElementsState = initialElementsState;
+    // The real reducer applies each dispatch; SET_CARRIED is Sign's own state and changes nothing here.
+    const dispatch = (action: ElementsAction | { type: 'SET_CARRIED'; payload: Partial<DocumentStyle> }) => {
+      if (action.type !== 'SET_CARRIED') state = elementsReducer(state, action);
+    };
     const logAction = vi.fn();
     const setAnnouncement = vi.fn();
+    const render = () => useFieldNavigation({ elements: state.elements, activeElementId: state.activeElementId, dispatch, formRegions, logAction, setAnnouncement });
 
-    const first = useFieldNavigation({ elements, activeElementId, dispatch, formRegions, logAction, setAnnouncement });
+    const first = render();
     expect(first.hasPrevious).toBe(true); // nothing selected: Previous starts at the last field
     first.goToNext();
-    expect(elements).toHaveLength(1);
-    expect(elements[0]).toMatchObject({ left: 70 });
-    expect(activeElementId).toBe(elements[0].id);
+    expect(state.elements).toHaveLength(1);
+    expect(state.elements[0]).toMatchObject({ left: 70 });
+    expect(state.activeElementId).toBe(state.elements[0].id);
 
-    const second = useFieldNavigation({ elements, activeElementId, dispatch, formRegions, logAction, setAnnouncement });
+    const second = render();
     expect(second.hasNext).toBe(true);
     expect(second.hasPrevious).toBe(false);
     second.goToNext();
-    expect(elements).toHaveLength(2);
-    expect(elements[1]).toMatchObject({ left: 20 });
+    expect(state.elements).toHaveLength(2);
+    expect(state.elements[1]).toMatchObject({ left: 20 });
 
-    const third = useFieldNavigation({ elements, activeElementId, dispatch, formRegions, logAction, setAnnouncement });
+    const third = render();
     expect(third.hasNext).toBe(false);
     third.goToNext();
-    expect(elements).toHaveLength(2); // no third field to advance to - no-op
+    expect(state.elements).toHaveLength(2); // no third field to advance to - no-op
   });
 });
 

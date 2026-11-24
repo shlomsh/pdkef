@@ -3,10 +3,22 @@ import { seededRandom } from '../seededRandom.test-helper.ts';
 
 /** @testSeam The measures of the default test picture, in pixels. */
 export const W = 800;
+/** @testSeam */
 export const H = 1040;
 
 /** @testSeam Ink laid on a white sheet of `w` by `h` (the default picture's size when left out). */
 export type Paint = (data: Uint8ClampedArray, w?: number, h?: number) => void;
+
+/** A letter is its outline, two strokes down and one across its top, not a solid block: printed letters, Hebrew and
+ * Latin alike, carry more ink in the top half of their row. */
+function letter(data: Uint8ClampedArray, w: number, left: number, top: number, width: number, base: number) {
+  for (let y = top; y < base; y += 1) {
+    for (let px = left; px < left + width; px += 1) {
+      const edge = px - left < 2 || left + width - px <= 2 || y - top < 2;
+      if (edge) data[y * w + px] = 30;
+    }
+  }
+}
 
 /** @testSeam A page of `rows` text rows across, from 12% to 88% of the height: letters 0.5-1% wide with a
  * hairline between them, words 2-9 letters apart by 1-2%, each row ending raggedly. */
@@ -23,14 +35,7 @@ export function textRows(rows: number, seed: number, x0 = 0.1, x1 = 0.9): Paint 
         for (let k = 0; k < letters && x < end * w; k += 1) {
           const lw = Math.round(w * (0.005 + rnd() * 0.005));
           const top = base - Math.round(h * (rnd() < 0.3 ? 0.016 : 0.011));
-          // A letter is its outline, two strokes down and one across its top, not a solid block: printed
-          // letters, Hebrew and Latin alike, carry more ink in the top half of their row.
-          for (let y = top; y < base; y += 1) {
-            for (let px = Math.round(x); px < Math.round(x) + lw; px += 1) {
-              const edge = px - Math.round(x) < 2 || Math.round(x) + lw - px <= 2 || y - top < 2;
-              if (edge) data[y * w + px] = 30;
-            }
-          }
+          letter(data, w, Math.round(x), top, lw, base);
           x += lw + 2;
         }
         x += w * (0.01 + rnd() * 0.01);

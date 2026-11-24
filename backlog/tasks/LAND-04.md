@@ -189,5 +189,15 @@ count). The rule is off on `landmines-all` meanwhile.
   made outside `act`; it does now (never under fake timers), and `restore()` turns reporting off before
   it waits. Each has a test that failed first. Kept, forced: a camera with zoom, no
   `OffscreenCanvas` or module worker, a camera refusal, `Viewfinder`'s live camera, corners view callbacks.
+- Scan on Linux (run 45261132549): browser tests, units, typecheck and build green. `checks` failed on
+  four guards Scan broke, all fixed: the size record, an unused export, `canUseCamera` untested (two
+  one-line browser tests now), and `@ts-nocheck` (seven Scan files typed). `e2e (4)` failed on QUAL-56's
+  known flake.
+- Browser tests follow the test pyramid (Shlomi, 2026-11-23, for every tool and module 2026-11-24). The
+  rule and its evidence are in `docs/landmines/no-test-doubles.md`, "The browser layer stays small". The
+  Sign wave stops short of Chromium: the island suite and its doubles stay in jsdom, and Sign's hook and
+  lib tests run real bytes there. Three new browser tests: the page colour around a whiteout, a rotated
+  text's width, an oversized signature image. 914 doubles. Next: trim the island suites of the earlier
+  waves tool by tool, Compress first, then a count limit in CI.
 - Found on the way: RED-75 (preview documents never freed on pdf.js 6.5), RED-76 (one very long line
   overflows the text preview).

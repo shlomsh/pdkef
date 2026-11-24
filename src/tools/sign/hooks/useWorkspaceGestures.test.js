@@ -11,16 +11,11 @@
  * constructing synthetic event objects with getBoundingClientRect stubs so the
  * coordinate math resolves predictably.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import useWorkspaceGestures from './useWorkspaceGestures.js';
 import { DEFAULT_MARK_WIDTH_PCT } from '#editor/model/signGeometry.js';
 import { formatDate, toIsoDateString } from '#editor/text/dateFormat.ts';
 import { startGesture } from '#lib/gestures/controller.ts';
-import { samplePageColor } from '../lib/whiteoutPageColor.ts';
-
-// The real sampler runs: no page is mounted here, so it answers null. jsdom cannot read pixels, so the
-// tests that need a page colour force that one answer.
-vi.mock('../lib/whiteoutPageColor.ts', { spy: true });
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -551,16 +546,10 @@ describe('useWorkspaceGestures – detected free-text cell snapping', () => {
 
 describe('useWorkspaceGestures – drag-drawn shape remembered settings', () => {
   const overlay = makeOverlay();
-  let listeners;
 
-  beforeEach(() => {
-    // handleOverlayPointerDown attaches window listeners — clean up after each test.
-    listeners = {};
-    vi.spyOn(window, 'addEventListener').mockImplementation((type, listener) => {
-      listeners[type] = listener;
-    });
-    vi.spyOn(window, 'removeEventListener').mockImplementation(() => {});
-  });
+  afterEach(() => { window.dispatchEvent(new Event('blur')); });
+  const move = (clientX, clientY) => window.dispatchEvent(new MouseEvent('mousemove', { clientX, clientY }));
+  const release = () => window.dispatchEvent(new MouseEvent('mouseup'));
 
   it.each(['rectangle', 'ellipse'])(
     '%s inherits initialColor from last remembered color',
@@ -605,46 +594,23 @@ describe('useWorkspaceGestures – drag-drawn shape remembered settings', () => 
     });
   });
 
-  describe('whiteout takes the page colour', () => {
-    const drawWhiteout = (hookOverrides = {}) => {
-      const hook = makeHook({ selectedTool: 'whiteout', ...hookOverrides });
-      hook.handleOverlayPointerDown(makeMouseDownEvent(100, 100, overlay), 0);
-      listeners.mousemove(makeMouseDownEvent(300, 400, overlay));
-      listeners.mouseup();
-      return hook;
-    };
-    const committed = (dispatch) => dispatch.mock.calls.map(([a]) => a).find((a) => a.type === 'UPDATE_ELEMENT');
+  it('whiteout falls back to the carried whiteout colour when the page cannot be read, still auto', () => {
+    const { dispatch, handleOverlayPointerDown } = makeHook({ selectedTool: 'whiteout', initialWhiteoutColor: '#eeeeee' });
+    handleOverlayPointerDown(makeMouseDownEvent(100, 100, overlay), 0);
+    move(300, 400);
+    release();
+    const update = dispatch.mock.calls.map(([a]) => a).find((a) => a.type === 'UPDATE_ELEMENT');
+    expect(update.payload.changes).toMatchObject({ color: '#eeeeee', colorMode: 'auto' });
+  });
 
-    it('commits colorMode auto with the colour sampled around the final box', () => {
-      samplePageColor.mockReturnValueOnce('#f4ecd8');
-      const logAction = vi.fn();
-      const { dispatch } = drawWhiteout({ logAction });
-      expect(samplePageColor).toHaveBeenLastCalledWith(0, { left: 10, top: 10, width: 20, height: 30 });
-      expect(committed(dispatch).payload.changes).toMatchObject({ color: '#f4ecd8', colorMode: 'auto' });
-      // the history snapshot agrees with the committed element
-      expect(logAction.mock.calls.at(-1)[4][0].element).toMatchObject({ color: '#f4ecd8', colorMode: 'auto' });
-    });
-
-    it('falls back to the carried whiteout colour when the page cannot be read, still auto', () => {
-      const { dispatch } = drawWhiteout({ initialWhiteoutColor: '#eeeeee' });
-      expect(committed(dispatch).payload.changes).toMatchObject({ color: '#eeeeee', colorMode: 'auto' });
-    });
-
-    it('never carries the sampled colour', () => {
-      samplePageColor.mockReturnValueOnce('#f4ecd8');
-      const { dispatch } = drawWhiteout();
-      expect(dispatch.mock.calls.some(([a]) => a.type === 'SET_CARRIED' || a.type === 'SET_APP_STYLE')).toBe(false);
-    });
-
-    it('does not sample for other drag tools', () => {
-      samplePageColor.mockClear();
-      const { dispatch, handleOverlayPointerDown } = makeHook({ selectedTool: 'rectangle' });
-      handleOverlayPointerDown(makeMouseDownEvent(100, 100, overlay), 0);
-      listeners.mousemove(makeMouseDownEvent(300, 400, overlay));
-      listeners.mouseup();
-      expect(samplePageColor).not.toHaveBeenCalled();
-      expect(committed(dispatch).payload.changes.colorMode).toBeUndefined();
-    });
+  it('other drag tools never take the page colour', () => {
+    const { dispatch, handleOverlayPointerDown } = makeHook({ selectedTool: 'rectangle' });
+    handleOverlayPointerDown(makeMouseDownEvent(100, 100, overlay), 0);
+    move(300, 400);
+    release();
+    const update = dispatch.mock.calls.map(([a]) => a).find((a) => a.type === 'UPDATE_ELEMENT');
+    expect(update.payload.changes).not.toHaveProperty('color');
+    expect(update.payload.changes).not.toHaveProperty('colorMode');
   });
 
   it('uses the default blue (#1463ff) for shapes when no initialColor is provided', () => {
@@ -667,12 +633,12 @@ describe('useWorkspaceGestures – drag-drawn shape remembered settings', () => 
     const { dispatch, handleOverlayPointerDown } = makeHook({ selectedTool: 'rectangle' });
     handleOverlayPointerDown(makeMouseDownEvent(100, 100, overlay), 0);
 
-    listeners.mousemove(makeMouseDownEvent(300, 400, overlay));
-    listeners.mousemove(makeMouseDownEvent(400, 500, overlay));
+    move(300, 400);
+    move(400, 500);
 
     expect(dispatch.mock.calls.filter(([action]) => action.type === 'UPDATE_ELEMENT')).toHaveLength(0);
 
-    listeners.mouseup();
+    release();
 
     const updates = dispatch.mock.calls.filter(([action]) => action.type === 'UPDATE_ELEMENT');
     expect(updates).toHaveLength(1);
@@ -716,12 +682,16 @@ describe('useWorkspaceGestures – coordinate placement', () => {
   });
 
   it('no-ops handleOverlayPointerDown for point-placement tools (text)', () => {
-    vi.spyOn(window, 'addEventListener').mockImplementation(() => {});
-    const overlay = makeOverlay();
-    const { dispatch, handleOverlayPointerDown } = makeHook({ selectedTool: 'text' });
-    handleOverlayPointerDown(makeMouseDownEvent(500, 500, overlay), 0);
-    expect(dispatch).not.toHaveBeenCalled();
-    window.addEventListener.mockRestore();
+    const add = vi.spyOn(window, 'addEventListener');
+    try {
+      const overlay = makeOverlay();
+      const { dispatch, handleOverlayPointerDown } = makeHook({ selectedTool: 'text' });
+      handleOverlayPointerDown(makeMouseDownEvent(500, 500, overlay), 0);
+      expect(dispatch).not.toHaveBeenCalled();
+      expect(add.mock.calls.some(([type]) => type === 'mousemove')).toBe(false);
+    } finally {
+      add.mockRestore();
+    }
   });
 });
 

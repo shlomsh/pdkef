@@ -7,34 +7,26 @@ import {
 } from './fontOfflinePacks.js';
 
 const originalServiceWorker = navigator.serviceWorker;
-const OriginalMessageChannel = globalThis.MessageChannel;
 
 function installWorker(replyFor) {
-  class FakeMessageChannel {
-    constructor() {
-      this.port1 = { onmessage: null, close: vi.fn() };
-      this.port2 = {
-        postMessage: (data) => queueMicrotask(() => this.port1.onmessage?.({ data })),
-      };
-    }
-  }
   const worker = {
+    // forced: no page in a test is controlled by the real service worker
     postMessage: vi.fn((message, [replyPort]) => replyPort.postMessage(replyFor(message))),
   };
+  // forced: no page in a test is controlled by the real service worker
   Object.defineProperty(navigator, 'serviceWorker', {
     configurable: true,
     value: { controller: worker },
   });
-  globalThis.MessageChannel = FakeMessageChannel;
   return worker;
 }
 
 afterEach(() => {
+  // forced: no page in a test is controlled by the real service worker
   Object.defineProperty(navigator, 'serviceWorker', {
     configurable: true,
     value: originalServiceWorker,
   });
-  globalThis.MessageChannel = OriginalMessageChannel;
 });
 
 describe('offline font packs', () => {

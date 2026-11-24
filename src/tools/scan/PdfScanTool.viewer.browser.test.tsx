@@ -1,4 +1,3 @@
-// @ts-nocheck - island test with loose DOM helpers
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi } from 'vitest';
 import { userEvent } from 'vitest/browser';
@@ -10,7 +9,7 @@ import { until } from '../../test/support/until.js';
 import { photoOfPage, useScanSuite } from '../../test/support/scanTool.browser.tsx';
 
 vi.mock('./lib/scanPipeline.ts', { spy: true });
-const realPipeline = await vi.importActual('./lib/scanPipeline.ts');
+const realPipeline = await vi.importActual<typeof import('./lib/scanPipeline.ts')>('./lib/scanPipeline.ts');
 
 answerNetwork();
 
@@ -19,8 +18,8 @@ describe('PdfScanTool', () => {
   const { s, mount, pick, pagesMade, openPage, adjustCorners, useCorners, tableTiles, viewer, heading, byText, inViewer, radioGroup } = suite;
 
   describe('the page in the viewer on desktop (SCAN-51)', () => {
-    const key = (name, target = document.body) => act(async () => { target.dispatchEvent(new KeyboardEvent('keydown', { key: name, bubbles: true, cancelable: true })); });
-    const step = (label) => viewer().querySelector(`button[aria-label="${label}"]`);
+    const key = (name: string, target: EventTarget = document.body) => act(async () => { target.dispatchEvent(new KeyboardEvent('keydown', { key: name, bubbles: true, cancelable: true })); });
+    const step = (label: string) => viewer().querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`);
     const openThree = async () => {
       mount();
       await pick([await photoOfPage('a.jpg'), await photoOfPage('b.jpg'), await photoOfPage('c.jpg')]);

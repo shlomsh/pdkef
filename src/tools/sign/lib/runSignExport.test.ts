@@ -1,15 +1,14 @@
 // @vitest-environment jsdom
 import { h, render } from 'preact';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { describe, expect, it, vi } from 'vitest';
 import { englishSignMessages } from '../messages';
 import { useLatestRun, type LatestRun } from '#lib/hooks/useLatestRun.ts';
 import { PDFDocument } from '@cantoo/pdf-lib';
-import { signPdf } from './sign.js';
 import { describeSignFailure, runSignExport, type RunSignExportDeps } from './runSignExport.ts';
 
-// The real signer runs on a real one-page PDF; only the tests that need it to fail force a rejection.
-vi.mock('./sign.js', { spy: true });
-
+// The real signer runs on real bytes: a real one-page PDF, garbage that makes it reject, or a real protected file.
 const t = englishSignMessages;
 
 async function realPdfBytes(): Promise<ArrayBuffer> {
@@ -18,6 +17,11 @@ async function realPdfBytes(): Promise<ArrayBuffer> {
   const bytes = await doc.save();
   return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
 }
+const garbageBytes = (): ArrayBuffer => new TextEncoder().encode('not a pdf').buffer as ArrayBuffer;
+const encryptedBytes = (): ArrayBuffer => {
+  const buffer = readFileSync(resolve(__dirname, '../../../lib/__fixtures__/encrypted/needs-password.pdf'));
+  return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength) as ArrayBuffer;
+};
 const isPdfBlob = async (blob: Blob) => new TextDecoder().decode(await blob.arrayBuffer()).startsWith('%PDF-');
 
 /** The real useLatestRun, rendered once; its ticket's `settle` is spied through so a test can see it. */
@@ -51,11 +55,6 @@ async function setup() {
 }
 
 describe('runSignExport', () => {
-  beforeEach(() => {
-    vi.mocked(signPdf).mockReset();
-    vi.spyOn(console, 'error').mockImplementation(() => {});
-  });
-
   it('saves under the typed name, not the source-derived one', async () => {
     const { deps } = await setup();
     const onSigned = vi.fn();
@@ -76,9 +75,8 @@ describe('runSignExport', () => {
 
   it('stays out of the signing UI for a speculative run, and says nothing when it fails', async () => {
     const { deps, lifecycleDispatch, activeExportSpeculativeRef } = await setup();
-    vi.mocked(signPdf).mockRejectedValue(new Error('boom'));
     const onSigned = vi.fn();
-    await runSignExport(deps, onSigned, { speculative: true });
+    await runSignExport({ ...deps, fileBytes: garbageBytes() }, onSigned, { speculative: true });
     expect(activeExportSpeculativeRef.current).toBe(true);
     expect(lifecycleDispatch).not.toHaveBeenCalled();
     expect(onSigned).not.toHaveBeenCalled();
@@ -96,17 +94,14 @@ describe('runSignExport', () => {
 
   it('turns a failure into the recoverable error state, and a protected file into the unlock state', async () => {
     const { deps, lifecycleDispatch } = await setup();
-    vi.mocked(signPdf).mockRejectedValueOnce(new Error('plain failure'));
-    await runSignExport(deps, vi.fn());
+    await runSignExport({ ...deps, fileBytes: garbageBytes() }, vi.fn());
     expect(lifecycleDispatch).toHaveBeenLastCalledWith({
       type: 'EXPORT_FAILED',
       detail: t.exportGenericFailure,
       announcement: `${t.signingStoppedLabel} ${t.exportGenericFailure}`,
     });
 
-    const encrypted = Object.assign(new Error('x'), { name: 'EncryptedPDFError' });
-    vi.mocked(signPdf).mockRejectedValueOnce(encrypted);
-    await runSignExport(deps, vi.fn());
+    await runSignExport({ ...deps, fileBytes: encryptedBytes() }, vi.fn());
     expect(lifecycleDispatch).toHaveBeenLastCalledWith({ type: 'EXPORT_NEEDS_UNLOCK', announcement: t.protectedOwnerOnlyTitle });
   });
 });

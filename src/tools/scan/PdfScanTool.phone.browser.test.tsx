@@ -1,4 +1,3 @@
-// @ts-nocheck - island test with loose DOM helpers
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi } from 'vitest';
 import Sortable from 'sortablejs';
@@ -14,7 +13,7 @@ import { photoOfPage, useScanSuite } from '../../test/support/scanTool.browser.t
 
 vi.mock('./lib/scanPipeline.ts', { spy: true });
 vi.mock('./lib/flattenAnimation.ts', { spy: true });
-const realPipeline = await vi.importActual('./lib/scanPipeline.ts');
+const realPipeline = await vi.importActual<typeof import('./lib/scanPipeline.ts')>('./lib/scanPipeline.ts');
 
 answerNetwork();
 

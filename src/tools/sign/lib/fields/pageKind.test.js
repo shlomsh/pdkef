@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { PDFDocument } from '@cantoo/pdf-lib';
+import { PDFDocument, PDFName } from '@cantoo/pdf-lib';
 import { classifyPageKind, firstPageKind } from './pageKind.js';
 import * as pdfObjects from '#editor/adapters/pdf/pdfObjects.js';
 
@@ -65,12 +65,12 @@ describe('firstPageKind', () => {
 
   it('reads a probe that throws as "not there" instead of throwing into detection', async () => {
     const doc = await PDFDocument.create();
-    doc.addPage();
-    const spy = vi.spyOn(pdfObjects, 'extractPageObjects').mockImplementation(() => { throw new Error('bad stream'); });
-    try {
-      expect(firstPageKind(doc, [[]])).toBe('none');
-    } finally {
-      spy.mockRestore();
-    }
+    const page = doc.addPage();
+    const undecodable = doc.context.stream(new Uint8Array([1, 2, 3, 4, 5, 6]), { Filter: 'FlateDecode' });
+    page.node.set(PDFName.of('Contents'), doc.context.register(undecodable));
+    const spy = vi.spyOn(pdfObjects, 'extractPageObjects');
+    expect(firstPageKind(doc, [[]])).toBe('none');
+    expect(spy.mock.results[0].type).toBe('throw');
+    spy.mockRestore();
   });
 });

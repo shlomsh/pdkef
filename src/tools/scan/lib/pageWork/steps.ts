@@ -208,9 +208,9 @@ function bendOf(src: RgbaImage, quad: Quad, inset: number, width: number, height
   }
 }
 
-/** @testSeam The pure middle of processing a page: the photo's pixels flattened to its corners and its bend, then
+/** The pure middle of processing a page: the photo's pixels flattened to its corners and its bend, then
  * given its look. */
-export function flattenPixels(src: RgbaImage, quad: Quad, filter: ScanFilter, paperEdges: boolean, traced?: EdgeCurves | null): { image: RgbaImage; bentPx: number; measureError: unknown } {
+function flattenPixels(src: RgbaImage, quad: Quad, filter: ScanFilter, paperEdges: boolean, traced?: EdgeCurves | null): { image: RgbaImage; bentPx: number; measureError: unknown } {
   const inset = paperEdges ? EDGE_INSET : 0;
   const quadPx = scaleQuad(insetQuad(quad, inset), src.width, src.height);
   const aspect = pageAspect(quadPx, src.width, src.height);

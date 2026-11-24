@@ -1,12 +1,10 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
-  MAX_SAVED_SIGNATURE_ENCODED_BYTES,
   MAX_SAVED_SIGNATURE_PIXELS,
   TYPED_SIGNATURE_MAX_FONT_PX,
   TYPED_SIGNATURE_MIN_FONT_PX,
   constrainSignatureDimensions,
   dataUrlEncodedBytes,
-  encodeSignatureCanvas,
   typedSignatureFontPx,
 } from './signatureImagePolicy.ts';
 
@@ -24,28 +22,6 @@ describe('saved signature image policy', () => {
 
   it('treats a string that is not a data URL as over every byte cap', () => {
     expect(dataUrlEncodedBytes('AAAA')).toBe(Number.POSITIVE_INFINITY);
-  });
-
-  it('re-encodes an oversized upload until both measured caps hold', () => {
-    const originalContext = HTMLCanvasElement.prototype.getContext;
-    const originalToDataUrl = HTMLCanvasElement.prototype.toDataURL;
-    HTMLCanvasElement.prototype.getContext = vi.fn(() => ({ drawImage: vi.fn() })) as unknown as typeof HTMLCanvasElement.prototype.getContext;
-    HTMLCanvasElement.prototype.toDataURL = vi.fn(function (this: HTMLCanvasElement) {
-      // Simulate an entropy-heavy PNG whose real encoded size follows pixels.
-      return `data:image/png;base64,${'A'.repeat(this.width * this.height * 2)}`;
-    });
-    try {
-      const canvas = document.createElement('canvas');
-      canvas.width = 2400;
-      canvas.height = 1800;
-      const encoded = encodeSignatureCanvas(canvas);
-      expect(encoded.width * encoded.height).toBeLessThanOrEqual(MAX_SAVED_SIGNATURE_PIXELS);
-      expect(dataUrlEncodedBytes(encoded.dataUrl)).toBeLessThanOrEqual(MAX_SAVED_SIGNATURE_ENCODED_BYTES);
-      expect(encoded.downsampled).toBe(true);
-    } finally {
-      HTMLCanvasElement.prototype.getContext = originalContext;
-      HTMLCanvasElement.prototype.toDataURL = originalToDataUrl;
-    }
   });
 });
 

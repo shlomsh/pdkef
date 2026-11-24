@@ -1,10 +1,11 @@
-// @ts-nocheck - island test with loose DOM helpers
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi } from 'vitest';
 import PdfScanTool from './PdfScanTool.tsx';
 import * as pipeline from './lib/scanPipeline.ts';
 import { rotateQuad } from '#lib/pageEnhance/quad.ts';
 import { turnedPins } from './lib/quad.ts';
+import type { Pins } from './lib/edges/follow.ts';
+import type { Quad } from '#lib/pageEnhance/quad.ts';
 import { loadDraft, readRecentFiles, saveDraft } from '#lib/drafts/draftStore.ts';
 import { installBrowserToolHarness } from '../../test/harness/browserToolHarness.ts';
 import { answerNetwork } from '../../test/support/network.browser.ts';
@@ -13,13 +14,19 @@ import { until } from '../../test/support/until.js';
 import { photoOfPage, useScanSuite } from '../../test/support/scanTool.browser.tsx';
 
 vi.mock('./lib/scanPipeline.ts', { spy: true });
-const realPipeline = await vi.importActual('./lib/scanPipeline.ts');
+const realPipeline = await vi.importActual<typeof import('./lib/scanPipeline.ts')>('./lib/scanPipeline.ts');
 
 answerNetwork();
 
 describe('PdfScanTool', () => {
   const suite = useScanSuite({ Tool: PdfScanTool, installToolHarness: installBrowserToolHarness, pipeline: { spy: pipeline, real: realPipeline } });
-  const { s, mount, unmount, pick, pagesMade, pdfReady, openPage, tableTiles, byText, inViewer, radioGroup, checked, choose, step } = suite;
+  const { s, mount, unmount, pick, pagesMade, pdfReady, openPage, tableTiles, byText, inViewer, checked, choose, step } = suite;
+  type SavedPage = Record<string, unknown>;
+  const savedDraft = async () => {
+    const record = await loadDraft('scan-to-pdf');
+    if (!record) throw new Error('Expected a saved draft');
+    return record as typeof record & { pages: SavedPage[] };
+  };
 
   describe('remembering the scan (SCAN-18)', () => {
     const remount = async () => {
@@ -42,7 +49,8 @@ describe('PdfScanTool', () => {
       await choose('Look', 'Original');
       await choose('Page size', 'A4');
       await saved();
-      const record = await loadDraft('scan-to-pdf');
+      const record = await savedDraft();
+      if (!record.files) throw new Error('Expected saved files');
       expect(record.files.map((f) => f.fileName)).toEqual(['a.jpg', 'b.jpg']);
       expect(record.pages.map((p) => p.filter)).toEqual(['document', 'original']);
       expect(record.pageSize).toBe('a4');
@@ -61,14 +69,14 @@ describe('PdfScanTool', () => {
     });
 
     describe('pins', () => {
-      const QUAD = [{ x: 0.1, y: 0.1 }, { x: 0.9, y: 0.1 }, { x: 0.9, y: 0.9 }, { x: 0.1, y: 0.9 }];
-      const PINS = [[{ k: 7, at: { x: 0.5, y: 0.12 } }], [], [], []];
-      const reopenWith = async (turns) => {
+      const QUAD: Quad = [{ x: 0.1, y: 0.1 }, { x: 0.9, y: 0.1 }, { x: 0.9, y: 0.9 }, { x: 0.1, y: 0.9 }];
+      const PINS: Pins = [[{ k: 7, at: { x: 0.5, y: 0.12 } }], [], [], []];
+      const reopenWith = async (turns: number) => {
         mount();
         await pick([await photoOfPage('a.jpg')]);
         await pagesMade(1);
         await saved();
-        const record = await loadDraft('scan-to-pdf');
+        const record = await savedDraft();
         await saveDraft('scan-to-pdf', {
           files: record.files, fileName: record.fileName, pageSize: record.pageSize, limit: record.limit, name: record.name,
           defaultFilter: record.defaultFilter, pageCount: 1, schemaVersion: record.schemaVersion,

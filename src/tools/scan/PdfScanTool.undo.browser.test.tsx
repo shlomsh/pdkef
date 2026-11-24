@@ -1,4 +1,3 @@
-// @ts-nocheck - island test with loose DOM helpers
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import PdfScanTool from './PdfScanTool.tsx';
@@ -9,7 +8,7 @@ import { until } from '../../test/support/until.js';
 import { photoOfPage, useScanSuite } from '../../test/support/scanTool.browser.tsx';
 
 vi.mock('./lib/scanPipeline.ts', { spy: true });
-const realPipeline = await vi.importActual('./lib/scanPipeline.ts');
+const realPipeline = await vi.importActual<typeof import('./lib/scanPipeline.ts')>('./lib/scanPipeline.ts');
 
 answerNetwork();
 
@@ -18,16 +17,16 @@ describe('PdfScanTool', () => {
   const { s, mount, pick, pagesMade, pdfReady, openPage, tableTiles, byText, inViewer, onTable, one, step } = suite;
 
   describe('Remove and Undo (SCAN-51)', () => {
-    const labelled = (label) => s.container.querySelector(`button[aria-label="${label}"]`);
-    const clickLabel = (label) => act(async () => { labelled(label).click(); });
+    const labelled = (label: string) => s.container.querySelector(`button[aria-label="${label}"]`);
+    const clickLabel = (label: string) => act(async () => { labelled(label).click(); });
     const chip = () => s.container.querySelector('[data-undo-chip]');
     const undo = () => act(async () => { chip().querySelector('button').click(); });
     const thumbs = () => tableTiles().map((tile) => tile.querySelector('img')?.getAttribute('src'));
     const tileLabels = () => tableTiles().map((el) => el.getAttribute('aria-label'));
     const headingText = () => s.container.querySelector('[data-page-heading]')?.textContent;
-    const keyOn = (el, key, more = {}) => act(async () => { el.dispatchEvent(new KeyboardEvent('keydown', { key, ...more, bubbles: true, cancelable: true })); });
-    const advance = (ms) => act(async () => { await vi.advanceTimersByTimeAsync(ms); });
-    let revoked;
+    const keyOn = (el: EventTarget, key: string, more = {}) => act(async () => { el.dispatchEvent(new KeyboardEvent('keydown', { key, ...more, bubbles: true, cancelable: true })); });
+    const advance = (ms: number) => act(async () => { await vi.advanceTimersByTimeAsync(ms); });
+    let revoked: ReturnType<typeof vi.spyOn>;
     beforeEach(() => { revoked = vi.spyOn(URL, 'revokeObjectURL'); });
     const three = async () => {
       mount();
@@ -69,7 +68,7 @@ describe('PdfScanTool', () => {
       await advance(200);
       expect(revoked).toHaveBeenCalledWith(gone);
       expect(chip()).toBeNull();
-      await expect(fetch(gone)).rejects.toThrow();
+      await expect(fetch(gone as string)).rejects.toThrow();
     });
 
     it('Undo in the viewer shows the restored page, and the chip lives inside the dialog', async () => {

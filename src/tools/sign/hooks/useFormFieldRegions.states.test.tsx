@@ -1,6 +1,7 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { PDFDocument } from '@cantoo/pdf-lib';
 import type { FormFieldRegions } from './useFormFieldRegions.ts';
 
 /**
@@ -28,17 +29,15 @@ describe('useFormFieldRegions detection state', () => {
   beforeEach(() => {
     container = document.createElement('div');
     document.body.appendChild(container);
-    // The failure is meant to be loud in the console and nowhere else; this
-    // keeps the suite's output readable without weakening that.
-    warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    warn = vi.spyOn(console, 'warn');
   });
 
   afterEach(() => {
     act(() => render(null, container));
     container.remove();
     warn.mockRestore();
-    vi.doUnmock('@cantoo/pdf-lib');
     vi.doUnmock('../lib/fields/formWidgets.js');
+    vi.doUnmock('#lib/telemetry/errorReport.ts');
     vi.resetModules();
   });
 
@@ -46,6 +45,12 @@ describe('useFormFieldRegions detection state', () => {
   const pdfDocument = {
     getPage: async () => ({ getTextContent: async () => ({ items: [] }) }),
   } as never;
+
+  const garbageBytes = () => new TextEncoder().encode('not a pdf').buffer as ArrayBuffer;
+  const zeroPageBytes = async () => {
+    const saved = await (await PDFDocument.create()).save({ addDefaultPage: false });
+    return saved.buffer.slice(saved.byteOffset, saved.byteOffset + saved.byteLength) as ArrayBuffer;
+  };
 
   async function detect(
     inputs: [ArrayBuffer | null, number, unknown] = [new ArrayBuffer(8), 1, pdfDocument],
@@ -117,6 +122,7 @@ describe('useFormFieldRegions detection state', () => {
   // and identically on every reload.
   it('says the detector never loaded when its own chunks fail to import', async () => {
     vi.resetModules();
+    // forced: a stale cached shell asks for a chunk name a deploy replaced, and no file in the repo can make a module import reject
     vi.doMock('../lib/fields/formWidgets.js', () => {
       throw new TypeError('Importing a module script failed.');
     });
@@ -130,41 +136,34 @@ describe('useFormFieldRegions detection state', () => {
 
   it('says the walk failed when the detector loaded and then threw', async () => {
     vi.resetModules();
-    vi.doMock('@cantoo/pdf-lib', () => ({
-      PDFDocument: { load: async () => { throw new TypeError('p.findLast is not a function'); } },
-    }));
 
-    const regions = await detect();
+    const regions = await detect([garbageBytes(), 1, pdfDocument]);
     expect(regions.detection).toBe('failed');
     // The throw is kept for the caller to classify and sanitise, and for the
     // console. It is never rendered.
-    expect(regions.detectionError).toBeInstanceOf(TypeError);
+    const error = regions.detectionError as Error;
+    expect(error).toBeInstanceOf(Error);
+    expect(error.constructor.name).toBe('MissingPDFHeaderError');
+    expect(error.message).toMatch(/^Failed to parse PDF document/);
     expect(String(warn.mock.calls[0][0])).toContain('did not complete');
   });
 
   it('reports a detector that loaded and then threw, and not one that never loaded', async () => {
-    const reportError = vi.fn();
-    const theError = new TypeError('p.findLast is not a function');
     vi.resetModules();
-    vi.doMock('#lib/telemetry/errorReport.ts', () => ({ reportError }));
-    vi.doMock('@cantoo/pdf-lib', () => ({
-      PDFDocument: { load: async () => { throw theError; } },
-    }));
+    vi.doMock('#lib/telemetry/errorReport.ts', { spy: true });
+    const errorReport = await import('#lib/telemetry/errorReport.ts');
 
-    await detect();
-    expect(reportError).toHaveBeenCalledWith('sign_form_detection', theError, 'detect_fields');
-    vi.doUnmock('#lib/telemetry/errorReport.ts');
+    const regions = await detect([garbageBytes(), 1, pdfDocument]);
+    expect(errorReport.reportError).toHaveBeenCalledWith('sign_form_detection', regions.detectionError, 'detect_fields');
+    expect((regions.detectionError as Error).message).toMatch(/^Failed to parse PDF document/);
   });
 
   // An honest zero: the run finished, and this document has nothing in it the
   // detector recognises. No error is carried, because there was none.
   it('says the walk finished when it ran and found nothing', async () => {
     vi.resetModules();
-    vi.doMock('@cantoo/pdf-lib', () => ({
-      PDFDocument: { load: async () => ({ getPageCount: () => 0 }) },
-    }));
 
-    const regions = await detect();
+    const regions = await detect([await zeroPageBytes(), 1, pdfDocument]);
     expect(regions.detection).toBe('done');
     expect(regions.detectionError).toBeUndefined();
     expect(warn).not.toHaveBeenCalled();
@@ -190,11 +189,8 @@ describe('useFormFieldRegions detection state', () => {
   // pages has nothing on it, which is the 'none' answer rather than a gap.
   it('carries a page kind once the walk is done', async () => {
     vi.resetModules();
-    vi.doMock('@cantoo/pdf-lib', () => ({
-      PDFDocument: { load: async () => ({ getPageCount: () => 0 }) },
-    }));
 
-    const regions = await detect();
+    const regions = await detect([await zeroPageBytes(), 1, pdfDocument]);
     expect(regions.detection).toBe('done');
     expect(['text', 'vector', 'image', 'none']).toContain(regions.pageKind);
   });

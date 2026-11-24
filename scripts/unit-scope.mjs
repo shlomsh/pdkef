@@ -103,6 +103,7 @@ export const WIDEN_RULES = [
     match: (f) => f.startsWith('src/lib/__fixtures__/'),
     tests: [
       'src/tools/redact/lib/redact.test.js',
+      'src/tools/sign/lib/runSignExport.test.ts',
       'src/tools/sign/lib/sign.test.js',
       'src/tools/compress/lib/compress.test.js',
       'src/tools/edit-pages/lib/editPages.test.js',
