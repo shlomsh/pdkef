@@ -42,7 +42,7 @@ describe('SortMenu', () => {
   it('hides the visible label when asked, keeping the aria-label', () => {
     mount('custom', vi.fn(), true);
     expect(container?.textContent).not.toContain('Order');
-    expect(container?.querySelector('button[aria-label="Sort images: Your order"]')).not.toBeNull();
+    expect(container?.querySelector('button[aria-label="Sort images: Your order"]')).toBeInstanceOf(HTMLElement);
   });
 
   it('opens a listbox and reports the chosen value', () => {

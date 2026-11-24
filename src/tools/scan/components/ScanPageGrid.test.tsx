@@ -36,7 +36,7 @@ describe('ScanPageGrid', () => {
     expect(tile.tabIndex).toBe(0);
     expect(items.map((li) => li.querySelector('[data-badge]')?.textContent)).toEqual(['1', '2', '3']);
     expect(container.querySelector('[data-add-pages]')?.textContent).toContain('Add pages');
-    expect(container.querySelector('ul')?.lastElementChild?.querySelector('[data-add-pages]')).not.toBeNull();
+    expect(container.querySelector('ul')?.lastElementChild?.querySelector('[data-add-pages]')).toBeInstanceOf(HTMLElement);
   });
 
   it('opens a page on tap, Enter and Space, and hands other keys to the reorder handler', () => {

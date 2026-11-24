@@ -269,5 +269,10 @@ count). The rule is off on `landmines-all` meanwhile.
   Node where a real `DOMException` is an `Error`. Every row fails on an assertion under its own mutation. A fresh review
   found one negative row with no live control, fixed. "Sends one defect once" never reached the rule it named (the
   step key stopped it first); it does now. Doubles 859 to 857.
+- Shell and test support trimmed (2026-11-25): Save to Drive 15 browser tests to 1 (closing the real Drive tab), the
+  page-grid tools' shared cases 9 to 3 (the Replace dialog), the signed-marks round trip 15 to 2 (the text rows). The
+  moved rows keep their bodies in jsdom or Node, and a fresh review found nothing missing. Seven assertions of the shape
+  `expect(a?.b(...)).not.toBeNull()`, which pass when `a` is missing, are strict now. Doubles 857 to 858 (the Drive
+  popup, which jsdom has not).
 - Found on the way: RED-75 (preview documents never freed on pdf.js 6.5), RED-76 (one very long line
   overflows the text preview).

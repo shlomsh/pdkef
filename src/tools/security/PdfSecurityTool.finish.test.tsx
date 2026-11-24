@@ -245,7 +245,7 @@ describe('PdfSecurityTool finish', () => {
     it('the unlock finish offers Redact and Sign hand-offs in the shared finish row', async () => {
       await unlockedDone({ navigate: vi.fn() });
       const row = s.buttonByText('Redact')?.parentElement;
-      expect(row?.getAttribute('data-count')).not.toBeNull();
+      expect(row?.getAttribute('data-count')).toBeTypeOf('string');
       expect(Array.from(row?.querySelectorAll('button') ?? []).map((button) => button.textContent?.trim())).toContain('Sign');
       expect(hasContinueButton()).toBe(false);
     });

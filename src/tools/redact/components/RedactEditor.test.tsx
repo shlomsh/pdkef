@@ -88,7 +88,7 @@ describe('Redact editor page column', () => {
       const m = mount({ numPages: 2, elements: [box('a', 0)] });
       const card = m.root.querySelector('[data-editor-page-card]');
 
-      expect(card?.querySelector('[data-editor-page-header] button[title="Clear every box on this page"]')).not.toBeNull();
+      expect(card?.querySelector('[data-editor-page-header] button[title="Clear every box on this page"]')).toBeInstanceOf(HTMLElement);
       expect(card?.querySelector('[data-editor-clear-page-trigger]')).toBeNull();
     });
 
@@ -96,7 +96,7 @@ describe('Redact editor page column', () => {
       const m = mount({ numPages: 2, elements: [box('a', 0, { repeatGroupId: 'g' }), box('b', 1, { repeatGroupId: 'g' })] });
       const card = m.root.querySelector('[data-editor-page-card]');
 
-      expect(card?.querySelector('[data-editor-clear-page-trigger]')).not.toBeNull();
+      expect(card?.querySelector('[data-editor-clear-page-trigger]')).toBeInstanceOf(HTMLElement);
     });
   });
   describe('the selected box toolbar acts on the document', () => {

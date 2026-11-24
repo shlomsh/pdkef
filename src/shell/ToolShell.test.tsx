@@ -57,7 +57,7 @@ describe('ToolShell editor variant', () => {
   it('puts the aside last in the identity row', () => {
     mount(true, { statusBeside: true, aside: <a href="#f" data-aside-link>Feedback</a> });
     const row = container.querySelector('[data-file-identity]')!;
-    expect(row.lastElementChild?.querySelector('[data-aside-link]')).not.toBeNull();
+    expect(row.lastElementChild?.querySelector('[data-aside-link]')).toBeInstanceOf(HTMLElement);
     mount(true);
     expect(container.querySelector('[data-shell-aside]')).toBeNull();
   });

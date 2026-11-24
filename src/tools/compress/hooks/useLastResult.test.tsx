@@ -49,7 +49,7 @@ describe('useLastResult', () => {
     expect(last?.blob).toBe(prepared.blob);
     expect(last?.meta).toEqual({ name: 'a' });
     expect(last?.url).toBe(prepared.url);
-    expect(last?.url).not.toBeNull();
+    expect(last?.url).toBeTypeOf('string');
   });
 
   it('keeps showing the last result, with a link of its own, while the next one builds', async () => {
