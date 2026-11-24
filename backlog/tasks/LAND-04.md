@@ -257,5 +257,12 @@ count). The rule is off on `landmines-all` meanwhile.
   stale-load test fails with the product guard deleted. 169 island mutations against old and new: the new tests catch
   100, and of the 69 they missed the old suite catches two, both now asserted (hand-offs disabled during a build, no
   Share without file sharing). Guarded by neither: the other 67. Doubles 866 to 862.
+- To Image trimmed (2026-11-25): 32 browser tests down to 2 (the document let go with real PNG files saved and shared;
+  JPG and one tall image built on the real canvas). The real island and converter run in jsdom on a stub canvas
+  (`stubCanvas.ts`), with no product change: `PdfToImageTool.test`, `.build.test` and `.files.test`. The forced held and
+  failing conversions are real file reads now. A fresh review found that JPG and the tall image had lost their real
+  canvas; the second browser test brings them back. 178 mutations against old and new: the new lower tests catch 105,
+  and of the 73 they missed the old suite catches three, all caught by the kept browser tests. Guarded by neither: 69.
+  Doubles 862 to 859; the canvas stub is a double the rule does not see.
 - Found on the way: RED-75 (preview documents never freed on pdf.js 6.5), RED-76 (one very long line
   overflows the text preview).
