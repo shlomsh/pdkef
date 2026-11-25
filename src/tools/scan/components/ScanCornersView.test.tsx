@@ -161,7 +161,7 @@ describe('ScanCornersView', () => {
 
     // Protects: with Fine-tune edges off the border is neither requested nor drawn, so the editor shows plain straight lines.
     it('with fine off asks for no trace and shows none, and the toggle is not pressed', async () => {
-      // Forced: onTrace is always traceCorners in production, so it stays a visible double
+      // Forced: onTrace is always traceCorners, which needs a decoded photo and jsdom decodes none
       const onTrace = vi.fn().mockResolvedValue(SIDES);
       mount(page(Q1, 0, null, false), onTrace);
       await flush();
@@ -174,7 +174,7 @@ describe('ScanCornersView', () => {
 
     // Protects: with Fine-tune edges on the trace is requested for the page's quad and pins.
     it('with fine on asks for the trace and the toggle is pressed', async () => {
-      // Forced: onTrace is always traceCorners in production, so it stays a visible double
+      // Forced: onTrace is always traceCorners, which needs a decoded photo and jsdom decodes none
       const onTrace = vi.fn().mockResolvedValue(SIDES);
       mount(page(Q1), onTrace);
       await flush();
@@ -183,7 +183,7 @@ describe('ScanCornersView', () => {
     });
 
     it('asks for the trace of the page\'s own quad on mount and draws 64 points', async () => {
-      // Forced: onTrace is always traceCorners in production, so it stays a visible double
+      // Forced: onTrace is always traceCorners, which needs a decoded photo and jsdom decodes none
       const onTrace = vi.fn().mockResolvedValue(SIDES);
       mount(page(Q1), onTrace);
       expect(onTrace).toHaveBeenCalledWith(1, Q1, null);
@@ -192,7 +192,7 @@ describe('ScanCornersView', () => {
     });
 
     it('draws the first point turned with the page', async () => {
-      // Forced: onTrace is always traceCorners in production, so it stays a visible double
+      // Forced: onTrace is always traceCorners, which needs a decoded photo and jsdom decodes none
       mount(page(Q1, 1), vi.fn().mockResolvedValue(SIDES));
       await flush();
       const p = turnedPoint(Q1[0], 1);
@@ -201,7 +201,7 @@ describe('ScanCornersView', () => {
 
     it('drops an answer for an older quad that arrives after the quad changed', async () => {
       let late!: (s: Sides | null) => void;
-      // Forced: onTrace is always traceCorners in production, so it stays a visible double (held, then answered)
+      // Forced: onTrace is always traceCorners, which needs a decoded photo and jsdom decodes none (held, then answered)
       const onTrace = vi.fn()
         .mockImplementationOnce(() => new Promise<Sides | null>((r) => { late = r; }))
         .mockResolvedValue(null);
@@ -215,7 +215,7 @@ describe('ScanCornersView', () => {
     });
 
     it('passes no trace when the answer is null', async () => {
-      // Forced: onTrace is always traceCorners in production, so it stays a visible double
+      // Forced: onTrace is always traceCorners, which needs a decoded photo and jsdom decodes none
       mount(page(Q1), vi.fn().mockResolvedValue(null));
       await flush();
       expect(traceD()).toBeNull();
@@ -223,7 +223,7 @@ describe('ScanCornersView', () => {
 
     it('asks again with the pins after a pin changes, and shows no outline for the previous pins, because a pin set is its own trace', async () => {
       let late!: (s: Sides | null) => void;
-      // Forced: onTrace is always traceCorners in production, so it stays a visible double (held, then answered)
+      // Forced: onTrace is always traceCorners, which needs a decoded photo and jsdom decodes none (held, then answered)
       const onTrace = vi.fn()
         .mockImplementationOnce(() => new Promise<Sides | null>((r) => { late = r; }))
         .mockResolvedValue(null);

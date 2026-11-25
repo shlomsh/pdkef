@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('#lib/drafts/draftStore.ts', { spy: true });
 
 import { clearCurrentEntry, deleteDraft, loadDraft, readCurrentEntryId, saveDraft } from '#lib/drafts/draftStore.ts';
+import { holdDraftStore } from '#lib/drafts/heldStore.test-helper.ts';
 import { englishShellMessages as sm } from '#shell/shellMessages.ts';
 import { drainPromises } from '../../../test/support/drainPromises.ts';
 import { waitUntil } from '../../../test/support/waitUntil.ts';
@@ -153,11 +154,19 @@ describe('useScanDraft', () => {
 
   it('does not save before the restore check settles', async () => {
     await seedScan();
-    vi.mocked(loadDraft).mockReturnValueOnce(new Promise(() => {})); // forced: a read that never answers, which the real store does not produce
-    await show([page('a.jpg')]);
+    const store = await holdDraftStore();
+    work.pages = [page('a.jpg')];
+    await show(work.pages);
     await advance(1000);
     await noSaveStarted();
+    expect(loadDraft).toHaveBeenCalledTimes(1);
     expect(saveDraft).not.toHaveBeenCalled();
+    // Once the read answers, the same page is saved.
+    await store.release();
+    await restoreChecked();
+    await advance(700);
+    await savedLine();
+    expect(saveDraft).toHaveBeenCalledTimes(1);
   });
 
   it('does not rewrite a restored draft until something changes', async () => {
