@@ -17,7 +17,7 @@ HarfBuzz on every bundled font, with no string that matched before getting worse
 
 **Outcome.** The downloaded PDF shapes text as the editor does, through upstream `fontkit` at an exact version.
 
-## What landed on the branch (2026-11-25)
+## What landed on main (2026-11-25, `12a6aa30c` to `25f953a18`, then `4998bb8b7`)
 
 - `fontkit` 3.0.0 exact through `src/tools/sign/lib/fontkitEngine.ts` (core, TrueType, five shapers). The patch,
   `@pdf-lib/fontkit` and `regenerator-runtime` are gone. 3.0.1 had not shipped, so `fontkit.d.ts` carries the types.
@@ -38,10 +38,15 @@ HarfBuzz on every bundled font, with no string that matched before getting worse
 - Text readback: pdf.js reads stray control characters in Bengali and decomposed sara am in Thai; `pdftotext` reads
   what was typed, same as before. Kept as is.
 
-**Done when:** CI is green on Linux including the render baseline, an export of the Thai and Bengali strings
-read on a real iPhone looks right, one cold `astro dev` load of `/sign/` works, and the manual Vercel deploy is done
-(`patches/` changed). A render drift on CI means looking at the picture, then `update-export-render-baseline`; locally
-0 of 39 cases drifted between the engines.
+- CI green on Linux on both pushes, all font guards and the render baseline included, no baseline recapture. The first
+  needed one rerun, for a 5s timeout in `useMergeTool.lifecycle.test.tsx`, not an export test.
+- The manual Vercel deploy turned out unnecessary: the automatic one was Ready and the live `shared/sign-vendor.js` was
+  byte-identical to the local build.
+- Cold `astro dev` (`4998bb8b7`): it failed before this work too, because Astro's dependency scan read a test helper that
+  imports `@napi-rs/canvas`. `astro.config.mjs` keeps test files out of the scan, `scripts/dev-scan-entries.test.mjs`
+  guards it, and 20 pages (every tool page among them) hydrate from a cleared cache.
+
+**Done when:** an export of the Thai and Bengali strings, read on a real iPhone, looks right. That is the one item left.
 
 Measured: `sign-vendor.js` 268,018 to 71,041 brotli, `/sign/` install 1,424,609 to 1,225,065.
 
