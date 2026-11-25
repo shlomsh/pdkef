@@ -312,13 +312,18 @@ describe('saveDraft / loadDraft / deleteDraft / cacheRecentFile (IndexedDB, fake
   });
 
   it('reports a saveDraft failure to the error reporter under "drafts"', async () => {
-    const boom = new Error('boom');
-    // forced: IndexedDB that throws when opened
-    vi.spyOn(indexedDB, 'open').mockImplementation(() => { throw boom; });
+    // The database moves to version 2 first, so the product's open at version 1 fails with a real VersionError.
+    await new Promise((resolve, reject) => {
+      const request = indexedDB.open('pdf-toolkit-workspace', 2);
+      request.onupgradeneeded = () => { request.result.createObjectStore('workspace', { keyPath: 'tool' }); };
+      request.onsuccess = () => { request.result.close(); resolve(); };
+      request.onerror = () => reject(request.error);
+    });
     const report = vi.spyOn(errorReport, 'reportError');
     const quiet = vi.spyOn(console, 'error');
     expect(await saveDraft('sign', { fileBytes: bytesOf('%PDF-1.4 x') })).toBe(false);
-    expect(report).toHaveBeenCalledWith('drafts', boom, 'save_draft');
+    expect(report).toHaveBeenCalledWith('drafts', expect.objectContaining({ name: 'VersionError' }), 'save_draft');
+    expect(report.mock.calls[0][1]).toBeInstanceOf(DOMException);
     report.mockRestore();
     quiet.mockRestore();
   });
@@ -785,6 +790,7 @@ describe('storage persistence request', () => {
 
   it('asks the browser to keep this origin on the first successful save, and only asks once', async () => {
     const persist = vi.fn(() => Promise.resolve(true));
+    // Forced: jsdom has no navigator.storage, a browser that grants persist()
     vi.stubGlobal('navigator', { ...globalThis.navigator, storage: { persist } });
 
     vi.resetModules();
@@ -798,6 +804,7 @@ describe('storage persistence request', () => {
 
   it('does not ask on a plain read-only open - loadDraft, cacheRecentFile - only ever on saveDraft', async () => {
     const persist = vi.fn(() => Promise.resolve(true));
+    // Forced: jsdom has no navigator.storage, a browser that grants persist()
     vi.stubGlobal('navigator', { ...globalThis.navigator, storage: { persist } });
 
     vi.resetModules();
@@ -815,8 +822,8 @@ describe('storage persistence request', () => {
   });
 
   it('still saves when the browser has no Storage API at all', async () => {
-    // forced: a browser with no Storage API
-    vi.stubGlobal('navigator', { ...globalThis.navigator, storage: undefined });
+    // jsdom has no Storage API, which is the case under test
+    expect(navigator.storage).toBeUndefined();
 
     vi.resetModules();
     const mod = await import('./draftStore.ts');
@@ -866,8 +873,8 @@ describe('isStoragePersisted', () => {
   });
 
   it('resolves \'unknown\' when there is no Storage API at all', async () => {
-    // forced: a browser with no Storage API
-    vi.stubGlobal('navigator', { ...globalThis.navigator, storage: undefined });
+    // jsdom has no Storage API, which is the case under test
+    expect(navigator.storage).toBeUndefined();
     expect(await isStoragePersisted()).toBe('unknown');
   });
 

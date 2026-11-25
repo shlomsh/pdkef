@@ -16,6 +16,15 @@ const signalOf = (tool: string) => {
 const save = (tool: string, name: string, work: unknown[] = []) =>
   saveDraft(tool, { fileName: `${name}.pdf`, fileType: 'application/pdf', fileBytes: bytesOf(`%PDF-1.4 ${name}`), elements: work });
 
+const upgradeWorkspaceDb = () => new Promise<void>((resolve, reject) => {
+  const request = indexedDB.open('pdf-toolkit-workspace', 2);
+  request.onupgradeneeded = () => {
+    if (!request.result.objectStoreNames.contains('workspace')) request.result.createObjectStore('workspace', { keyPath: 'tool' });
+  };
+  request.onsuccess = () => { request.result.close(); resolve(); };
+  request.onerror = () => reject(request.error);
+});
+
 describe('toolsPointingAt (pure)', () => {
   it('names each tool whose pointer is one of the ids, a stray id included', () => {
     expect(toolsPointingAt(new Set(['a', 'ghost']), [['sign', 'a'], ['merge', 'ghost'], ['split', 'b']])).toEqual(['sign', 'merge']);
@@ -92,15 +101,17 @@ describe('removeRecentEntry (fake-indexeddb)', () => {
   it('changes nothing when the store fails', async () => {
     await save('sign', 'one', [{ id: 's1' }]);
     const id = readCurrentEntryId('sign') as string;
-    const boom = new Error('boom');
-    vi.spyOn(indexedDB, 'open').mockImplementation(() => { throw boom; });
+    // The database moves to version 2 behind the product's back, so its open at version 1 fails for real.
+    await upgradeWorkspaceDb();
     const report = vi.spyOn(errorReport, 'reportError');
     const quiet = vi.spyOn(console, 'error');
 
     expect(await removeRecentEntry(id)).toBe(false);
 
-    expect(report).toHaveBeenCalledWith('drafts', boom, 'remove_recent_entry');
-    expect(quiet).toHaveBeenCalledWith('draftStore.remove_recent_entry failed:', boom);
+    expect(report).toHaveBeenCalledWith('drafts', expect.objectContaining({ name: 'VersionError' }), 'remove_recent_entry');
+    const failure = report.mock.calls[0][1];
+    expect(failure).toBeInstanceOf(DOMException);
+    expect(quiet).toHaveBeenCalledWith('draftStore.remove_recent_entry failed:', failure);
     expect(readRecentFiles().map((e) => e.id)).toEqual([id]);
     expect(readCurrentEntryId('sign')).toBe(id);
     expect(signalOf('sign')?.kind).toBe('saved');

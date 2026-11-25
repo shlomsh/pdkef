@@ -29,6 +29,7 @@ describe('an open tab whose file was removed', () => {
     indexedDB = new IDBFactory();
     reload.mockClear();
     forgetTabEntry();
+    // Forced: jsdom cannot reload a page
     vi.stubGlobal('location', { ...window.location, reload });
   });
   afterEach(() => vi.unstubAllGlobals());
@@ -78,11 +79,13 @@ describe('an open tab whose file was removed', () => {
   });
 
   it('knows its entry before the first write lands, so a failed write still counts', async () => {
-    const put = vi.spyOn(IDBObjectStore.prototype, 'put').mockImplementation(() => { throw new Error('quota'); });
+    // A function in `elements` is refused by structured clone: put() throws a real DataCloneError, which aborts the transaction (AbortError).
     const logged = vi.spyOn(console, 'error');
-    expect(await saveDraft('sign', record('unsaved'))).toBe(false);
+    const unclonable = { ...record('unsaved'), elements: [() => {}] as unknown[] };
+    expect(await saveDraft('sign', unclonable)).toBe(false);
     expect(logged).toHaveBeenCalledWith('draftStore.saveDraft failed:', expect.any(DOMException));
-    put.mockRestore();
+    expect(logged.mock.calls.find((c) => c[0] === 'draftStore.saveDraft failed:')![1]).toHaveProperty('name', 'AbortError');
+    logged.mockRestore();
     const id = await sourceIdForBytes(record('unsaved').fileBytes);
     peerRemoved([id!]);
     expect(reload).toHaveBeenCalledTimes(1);
