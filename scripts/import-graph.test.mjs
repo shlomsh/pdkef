@@ -191,7 +191,7 @@ describe('importSpecifiers and importGlobPatterns skip passes whose trigger is a
   });
   it('a comment between import and ( still gives the call, and a computed one still throws', () => {
     expect(importSpecifiers("const m = import /* why */ ('./a.js', {});", 'src/x.js')).toEqual(['./a.js']);
-    expect(() => importSpecifiers('const m = import // why\n(name);', 'src/x.js')).toThrow(/computed import at src\/x\.js:1/);
+    expect(() => importSpecifiers('const m = import // why\n(name);', 'x.js')).toThrow(/computed import at x\.js:1/);
   });
   it('import( inside a comment, or a bare import word, adds nothing', () => {
     expect(importSpecifiers('// import(x)\n/* import (y) */\nconst important = 1; // import', 'src/x.js')).toEqual([]);
@@ -204,6 +204,6 @@ describe('importSpecifiers and importGlobPatterns skip passes whose trigger is a
     expect(importGlobPatterns("import { a } from './a.js';\nconst g = import.meta;", 'src/x.js')).toEqual([]);
     expect(importGlobPatterns("const g = import.meta.glob ( './d/*.ts' );", 'src/x.js')).toEqual(['./d/*.ts']);
     expect(importGlobPatterns("// import.meta.glob('./d/*.ts')\nconst a = 1;", 'src/x.js')).toEqual([]);
-    expect(() => importGlobPatterns('const g = import.meta.glob(pattern);', 'src/x.js')).toThrow(/computed import at src\/x\.js:1/);
+    expect(() => importGlobPatterns('const g = import.meta.' + 'glob(pattern);', 'src/x.js')).toThrow(/computed import at src\/x\.js:1/);
   });
 });
