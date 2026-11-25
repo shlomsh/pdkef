@@ -37,14 +37,15 @@ const readsEnded = () => act(async () => {
 });
 const runIdle = async () => { await startIdle(); await readsEnded(); };
 
-// Two book pages on every sheet of a three-page scan: each page is one picture of a sheet, with a spine in the middle.
-const W = 800;
-const H = 500;
+// A one-page scan of two book pages: the page is one picture of a sheet, with a spine in the middle. The sheet is short, so
+// the real read stays quick: it paints at the reader's 1000 px, one image pixel to one canvas pixel.
+const W = 1000;
+const H = 150;
 function spreadPixels(): Uint8ClampedArray {
-  const left = leaning(W, H, -3.5, 0, 360);
-  const right = leaning(W, H, 2.5, 440, W);
+  const left = leaning(W, H, -3.5, 0, 450);
+  const right = leaning(W, H, 2.5, 550, W);
   const data = left.data.map((v, i) => Math.min(v, right.data[i]));
-  for (let y = 0; y < H; y += 1) for (let x = 399; x < 402; x += 1) data.fill(0, (y * W + x) * 4, (y * W + x) * 4 + 3);
+  for (let y = 0; y < H; y += 1) for (let x = 499; x < 502; x += 1) data.fill(0, (y * W + x) * 4, (y * W + x) * 4 + 3);
   return new Uint8ClampedArray(data);
 }
 let scanBytes: Uint8Array;
@@ -59,7 +60,7 @@ beforeAll(async () => {
   ctx.putImageData(picture, 0, 0);
   const pdf = await PDFDocument.create();
   const image = await pdf.embedPng(Buffer.from(canvas.toDataURL('image/png').split(',')[1], 'base64'));
-  for (let i = 0; i < 3; i += 1) pdf.addPage([600, 375]).drawImage(image, { x: 0, y: 0, width: 600, height: 375 });
+  pdf.addPage([800, 120]).drawImage(image, { x: 0, y: 0, width: 800, height: 120 });
   scanBytes = await pdf.save();
   const plain = await PDFDocument.create();
   plain.addPage([600, 375]);

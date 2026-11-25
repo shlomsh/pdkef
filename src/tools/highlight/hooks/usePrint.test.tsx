@@ -46,8 +46,7 @@ beforeEach(() => {
   vi.mocked(reportError).mockClear();
   vi.mocked(reportToolLifecycleEvent).mockClear();
   resetUsageEventsForTests();
-  // Forced: jsdom has no window.print, so the print call is a recorder.
-  window.print = vi.fn();
+  vi.spyOn(window, 'print'); // jsdom's own, which prints nothing
   container = document.createElement('div');
   document.body.appendChild(container);
   act(() => render(<Probe />, container!));
@@ -57,6 +56,7 @@ afterEach(() => {
   act(() => render(null, container!));
   container!.remove();
   container = null;
+  vi.mocked(window.print).mockRestore();
   vi.useRealTimers();
 });
 

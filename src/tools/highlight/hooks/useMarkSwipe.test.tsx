@@ -380,7 +380,7 @@ describe('useMarkSwipe off the text', () => {
 
   it('one touch press that marks reads once and the gesture gets that reader', () => {
     const reader = readerOf(true);
-    // Forced: the one production reader wraps createSwipeReader, which reads canvas pixels the test page does not paint.
+    // Forced: production always passes a thin wrapper of createSwipeReader, so the reader is a collaborator and its double stays visible.
     const factory = vi.fn(() => reader);
     readerAt = factory;
     mount(); pressTouch();
