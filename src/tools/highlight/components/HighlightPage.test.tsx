@@ -244,6 +244,7 @@ describe('HighlightPage rest toolbar', () => {
     mount([passage]);
     await waitUntil(() => expect(container.querySelector('[data-element-id]')).not.toBeNull());
     const wrapper = container.querySelector<HTMLElement>('[data-element-id]')!;
+    // Forced: jsdom has no layout, so the mark's rect is given.
     vi.spyOn(wrapper, 'getBoundingClientRect').mockReturnValue({ left: 100, top: 200, width: 400, height: 50 } as DOMRect);
     const down = new MouseEvent('pointerdown', { bubbles: true, button: 0 });
     Object.defineProperty(down, 'pointerType', { value: 'mouse' });
@@ -374,6 +375,7 @@ describe('HighlightPage rest toolbar', () => {
 
 function stubPointer(coarse: boolean) {
   const original = window.matchMedia;
+  // Forced: jsdom evaluates no media query; a test says which pointer this device has.
   window.matchMedia = ((query: string) => ({ ...original(query), matches: query.includes('coarse') ? coarse : true })) as typeof window.matchMedia;
   return () => { window.matchMedia = original; };
 }
@@ -568,7 +570,7 @@ describe('HighlightPage click marks on a digital page (R10 to R12)', () => {
 
   it('a double-click whose press laid ink undoes that ink first, then adds the word, so there is never a second mark', async () => {
     await mountText();
-    // Forced: a real swipe lays ink only from page pixels jsdom cannot paint, and its release would take empty ink away again.
+    // Forced: dispatch is a recorder here, so a real swipe's element is never drawn and its release would take the ink away again.
     vi.mocked(startHighlightSwipe).mockImplementationOnce(() => {});
     // The press of the second click lays ink before its click arrives.
     const down = new MouseEvent('pointerdown', { bubbles: true, cancelable: true, button: 0, clientX: WORD.x, clientY: WORD.y });
@@ -619,6 +621,7 @@ describe('HighlightPage sweep (R13)', () => {
 
   function markByClick(strings: string[], reduced = false) {
     const original = window.matchMedia;
+    // Forced: jsdom evaluates no media query; a test says whether motion is reduced.
     window.matchMedia = ((query: string) => ({ ...original(query), matches: query.includes('reduce') ? reduced : false })) as typeof window.matchMedia;
     restore = () => { window.matchMedia = original; };
     const doc = textPage(strings);
