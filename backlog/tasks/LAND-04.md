@@ -362,3 +362,6 @@ count). The rule is off meanwhile.
   persistence run the shipped pdf.js on real PDFs, text export draws real fonts on a real page, and a destroyed document throws
   pdf.js's own error. A fresh review ran 95 mutations: 1 lost to the moved no-storage copy, still caught by its sibling, and 31 never caught by either
   version.
+- Fonts and test support (2026-11-25): 501 sites down to 490 in 157 files. Bundled fonts are fetched for real and answered by MSW from
+  public/fonts (jsdom gives a relative URL its origin, so the old reason was wrong), and the Redact check paints jsdom's canvas.
+  A fresh review ran 39 mutations: no coverage lost.
