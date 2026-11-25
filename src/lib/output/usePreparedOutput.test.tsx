@@ -2,7 +2,7 @@ import { Blob as NodeBlob } from 'node:buffer';
 import { URL as NodeURL } from 'node:url';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import { describe, expect, it, vi, beforeEach, afterEach, type MockInstance } from 'vitest';
 import { usePreparedOutput, type PreparedOutput } from './usePreparedOutput.ts';
 
 type Input = Parameters<typeof usePreparedOutput>[0];
@@ -20,8 +20,8 @@ function Harness({ apiRef, input }: { apiRef: Api; input: Input }) {
 
 describe('usePreparedOutput', () => {
   // Node's own blob URLs: jsdom has no URL.createObjectURL, and Node's takes a node:buffer Blob.
-  let create: ReturnType<typeof vi.spyOn>;
-  let revoke: ReturnType<typeof vi.spyOn>;
+  let create: MockInstance<typeof URL.createObjectURL>;
+  let revoke: MockInstance<typeof URL.revokeObjectURL>;
   let root: HTMLDivElement;
   let api: Api;
   const out = (): PreparedOutput => {
@@ -30,7 +30,7 @@ describe('usePreparedOutput', () => {
   };
   beforeEach(() => {
     vi.useFakeTimers();
-    URL.createObjectURL = NodeURL.createObjectURL;
+    URL.createObjectURL = NodeURL.createObjectURL as unknown as typeof URL.createObjectURL;
     URL.revokeObjectURL = NodeURL.revokeObjectURL;
     create = vi.spyOn(URL, 'createObjectURL');
     revoke = vi.spyOn(URL, 'revokeObjectURL');

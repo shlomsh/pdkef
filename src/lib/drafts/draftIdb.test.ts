@@ -1,3 +1,4 @@
+import { IDBFactory } from 'fake-indexeddb';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../telemetry/errorReport.ts', { spy: true });
@@ -20,12 +21,12 @@ describe('draftIdb', () => {
     expect(reportError).toHaveBeenCalledWith('drafts', error, 'step');
   });
 
-  // Last in the file: importing fake-indexeddb/auto installs a real indexedDB for the rest of it.
-  it('detects whether IndexedDB exists', async () => {
+  // Last in the file: it leaves an IndexedDB behind.
+  it('detects whether IndexedDB exists', () => {
     // Live control: Node really has no IndexedDB until the real implementation is loaded.
     expect(typeof indexedDB).toBe('undefined');
     expect(hasIndexedDB()).toBe(false);
-    await import('fake-indexeddb/auto');
+    globalThis.indexedDB = new IDBFactory();
     expect(typeof indexedDB).toBe('object');
     expect(hasIndexedDB()).toBe(true);
   });
