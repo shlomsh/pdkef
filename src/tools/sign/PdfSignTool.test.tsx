@@ -12,6 +12,9 @@ import { widthPercentToHeightPercent, pxToPercent, pxDeltaToPercent } from '#edi
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { waitUntil } from '../../test/support/waitUntil.ts';
 import { recentActions } from '#lib/telemetry/actionTrail.ts';
+import { PDFDocument } from '@cantoo/pdf-lib';
+import '../../test/support/realPdfjs.ts';
+import { hideEncryption } from '../../test/support/hideEncryption.ts';
 
 // Spies signPdf and exposes calledTimes(n): a promise that resolves from inside the spy once it has
 // run n times, so tests wait on the call itself instead of polling the spy against a deadline.
@@ -20,6 +23,7 @@ type SignArgs = Parameters<typeof signModule.signPdf>;
 function spySignPdf(impl: (call: number, ...args: SignArgs) => Promise<Blob>) {
   let calls = 0;
   const waiters: { n: number; resolve: () => void }[] = [];
+  // Forced: each test makes the export fail, wait or answer on cue, which the real signer has no hook for
   const sign = vi.spyOn(signModule, 'signPdf').mockImplementation(((...args: SignArgs) => {
     calls += 1;
     for (const w of waiters) if (w.n <= calls) w.resolve();
@@ -39,6 +43,7 @@ declare const __dirname: string;
 vi.mock('./hooks/useFormFieldRegions.ts', { spy: true });
 async function forceFormRegions(over: Record<string, unknown>) {
   const actual = await vi.importActual<typeof import('./hooks/useFormFieldRegions.ts')>('./hooks/useFormFieldRegions.ts');
+  // Forced: a real finished walk always names a kind, so the omits case cannot come from one
   vi.mocked(useFormFieldRegions).mockImplementation((...args) => ({ ...actual.default(...args), ...over }));
 }
 
@@ -69,8 +74,15 @@ function findButton(root: ParentNode, label: string): HTMLButtonElement {
   );
 }
 
+// A real two-page Letter PDF, opened by the real pdf.js (realPdfjs.ts).
+const twoPageLetter = await (async () => {
+  const doc = await PDFDocument.create();
+  doc.addPage([612, 792]);
+  doc.addPage([612, 792]);
+  return doc.save();
+})();
 function makePdfFile(name: string) {
-  return new File(['%PDF-1.4'], name, { type: 'application/pdf' });
+  return new File([twoPageLetter], name, { type: 'application/pdf' });
 }
 
 // signPdf fetches bundled fonts from same-origin `/fonts/<name>.ttf` at runtime
@@ -79,6 +91,7 @@ function makePdfFile(name: string) {
 // same approach as sign.test.js's mockFontFetch.
 function mockFontFetch(): () => void {
   const originalFetch = globalThis.fetch;
+  // Forced: same-origin font fetches have no origin in Node, so no MSW handler can answer them; the real files are served off disk
   globalThis.fetch = vi.fn(async (url: RequestInfo | URL) => {
     const match = /\/fonts\/(.+)$/.exec(String(url));
     if (!match) return originalFetch ? originalFetch(url) : Promise.reject(new Error('unexpected fetch'));
@@ -91,25 +104,6 @@ function mockFontFetch(): () => void {
   });
   return () => { globalThis.fetch = originalFetch; };
 }
-
-// Mock getDocument because we don't want to load actual pdf.js workers in jsdom environment
-vi.mock('pdfjs-dist', () => {
-  return {
-    GlobalWorkerOptions: {
-      workerSrc: ''
-    },
-    getDocument: vi.fn(() => ({
-      promise: Promise.resolve({
-        numPages: 2,
-        getPermissions: vi.fn(async () => null),
-        getPage: vi.fn(() => Promise.resolve({
-          getViewport: () => ({ width: 612, height: 792 }),
-          render: () => ({ promise: Promise.resolve() })
-        }))
-      })
-    }))
-  };
-});
 
 describe('PdfSignTool UI flow', () => {
   let container = document.createElement('div');
@@ -271,8 +265,10 @@ describe('PdfSignTool UI flow', () => {
     act(() => { render(<PdfSignTool />, container); });
 
     const input = await picker(container);
+    // pdf.js opens it as a plain file while pdf-lib meets the encryption, so the walk really fails.
+    const walkFails = new File([hideEncryption(new Uint8Array(fs.readFileSync(`${__dirname}/../../lib/__fixtures__/encrypted/owner-only.pdf`)))], 'form.pdf', { type: 'application/pdf' });
     await act(async () => {
-      setInputFiles(input, [makePdfFile('form.pdf')]);
+      setInputFiles(input, [walkFails]);
     });
     await loaded(container);
 
@@ -326,9 +322,9 @@ describe('PdfSignTool UI flow', () => {
       if (call === 1) throw makeError();
       return signedBlob;
     });
-    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'error');
     vi.spyOn(HTMLAnchorElement.prototype, 'click');
-    const createUrl = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:signed-test');
+    const createUrl = vi.spyOn(URL, 'createObjectURL');
 
     try {
       container = document.createElement('div');
@@ -396,7 +392,7 @@ describe('PdfSignTool UI flow', () => {
     const { sign, calledTimes } = spySignPdf(() => new Promise<Blob>((resolve) => {
       resolveExport = resolve;
     }));
-    const createUrl = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:stale-export');
+    const createUrl = vi.spyOn(URL, 'createObjectURL');
 
     container = document.createElement('div');
     document.body.appendChild(container);
@@ -446,7 +442,7 @@ describe('PdfSignTool UI flow', () => {
       return signedBlob;
     });
     vi.spyOn(HTMLAnchorElement.prototype, 'click');
-    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:signed-test');
+    vi.spyOn(URL, 'createObjectURL');
 
     container = document.createElement('div');
     document.body.appendChild(container);
@@ -838,12 +834,15 @@ describe('PdfSignTool UI flow', () => {
     // Stub URL methods
     let savedBlob: Blob | null = null;
     const blobSaved = Promise.withResolvers<void>();
-    const originalCreateObjectURL = window.URL.createObjectURL;
-    window.URL.createObjectURL = vi.fn((blob) => {
-      savedBlob = blob;
+    const createUrl = vi.spyOn(URL, 'createObjectURL');
+    // The download is a real clicked anchor: its click says the signed blob reached createObjectURL.
+    const onDownloadClick = (event: Event) => {
+      if ((event.target as HTMLElement).tagName !== 'A') return;
+      event.preventDefault(); // jsdom would try to navigate to the blob: url
+      savedBlob = createUrl.mock.calls[0][0] as Blob;
       blobSaved.resolve();
-      return 'blob:signed-pdf-url';
-    });
+    };
+    document.addEventListener('click', onDownloadClick, true);
     
     container = document.createElement('div');
     document.body.appendChild(container);
@@ -928,7 +927,7 @@ describe('PdfSignTool UI flow', () => {
     expect(extractedText).toContain('John Doe');
     
     await loadingTask.destroy();
-    window.URL.createObjectURL = originalCreateObjectURL;
+    document.removeEventListener('click', onDownloadClick, true);
   });
 
   it('prepares and shares a valid signed PDF from the real num-1.pdf fixture', async () => {
@@ -1251,18 +1250,8 @@ describe('PdfSignTool UI flow', () => {
   });
 
   it('updates font selection and enables Save button when typing a signature', async () => {
-    // Safely mock canvas context to prevent the live-preview useEffect from throwing
-    const originalGetContext = Object.getOwnPropertyDescriptor(HTMLCanvasElement.prototype, 'getContext');
-    const contextStub = {
-      scale: vi.fn(), clearRect: vi.fn(), fillText: vi.fn(), 
-      measureText: vi.fn(() => ({ width: 100 }) as TextMetrics)
-    } as unknown as CanvasRenderingContext2D;
-    Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', {
-      configurable: true,
-      value: vi.fn(() => contextStub),
-    });
-
-    try {
+    // jsdom's real 2D canvas serves the signature live preview.
+    {
       container = document.createElement('div');
       document.body.appendChild(container);
       act(() => {
@@ -1320,9 +1309,6 @@ describe('PdfSignTool UI flow', () => {
       // Save button should now be enabled
       expect(saveSigBtn.disabled).toBe(false);
 
-    } finally {
-      if (originalGetContext) Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', originalGetContext);
-      else Reflect.deleteProperty(HTMLCanvasElement.prototype, 'getContext');
     }
   });
 

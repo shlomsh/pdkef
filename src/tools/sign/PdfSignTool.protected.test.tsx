@@ -9,6 +9,7 @@ import { installToolHarness, type ToolHarness } from '../../test/harness/toolHar
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { waitUntil } from '../../test/support/waitUntil.ts';
 import '../../test/support/realPdfjs.ts';
+import { openNewerStore } from '#lib/drafts/newerStore.test-helper.ts';
 
 declare const __dirname: string;
 
@@ -86,6 +87,7 @@ describe('a protected PDF in Sign (ENC-07)', () => {
     await pick(fixture('owner-only.pdf'));
     await stateShown();
     const location = { href: '/sign/' };
+    // Forced: no navigation in jsdom, so location is replaced to see where the button sends the page
     vi.stubGlobal('location', location);
     await act(async () => { unlockButton().click(); });
     await waitUntil(() => location.href === '/unlock/');
@@ -96,11 +98,11 @@ describe('a protected PDF in Sign (ENC-07)', () => {
   });
 
   it('a failed save says so quietly and leaves the button usable', async () => {
-    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'error');
+    // A database already at a newer version refuses the product's open, so the file cannot be parked.
+    await openNewerStore();
     await pick(fixture('needs-password.pdf'));
     await stateShown();
-    // A browser with no usable IndexedDB (a locked-down window) cannot park the file.
-    vi.stubGlobal('indexedDB', undefined);
     await act(async () => { unlockButton().click(); });
     await waitUntil(() => (state()?.textContent ?? '').includes("Couldn't open Unlock with this file. Open Unlock and choose it there."));
     expect(unlockButton().disabled).toBe(false);

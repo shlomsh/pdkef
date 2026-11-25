@@ -284,6 +284,7 @@ describe('sign.js signPdf', () => {
 
   it('refuses an unavailable selected family instead of silently exporting Latin text in Arimo', async () => {
     const normalFontFetch = global.fetch;
+    // Forced: same-origin font fetches have no origin in Node, so no MSW handler can answer a 503
     global.fetch = vi.fn(async (url) => (
       String(url).includes('Pacifico-Regular.ttf')
         ? { ok: false, status: 503, arrayBuffer: async () => new ArrayBuffer(0) }

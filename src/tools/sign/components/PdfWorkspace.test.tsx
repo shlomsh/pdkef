@@ -225,8 +225,7 @@ function mountStatefulWorkspace(options: StatefulWorkspaceOptions): HTMLDivEleme
   return mount(<StatefulWorkspace {...options} />);
 }
 
-// The real sampler runs (null when the page canvas has no readable pixels, as in jsdom); the two tests
-// that need a page colour force that one answer.
+// The real sampler runs; the two tests that need a page colour paint a real canvas for it to read.
 vi.mock('../lib/whiteoutPageColor.ts', { spy: true });
 
 describe('PdfWorkspace Component', () => {
@@ -704,6 +703,16 @@ describe('PdfWorkspace Component', () => {
       return stateRef;
     };
     const click = (selector: string) => act(() => { required(host!.querySelector<HTMLElement>(selector), selector).click(); });
+    // The page's own canvas (a real jsdom canvas), filled with the page colour the real sampler then reads.
+    const paintPage = (color: string) => {
+      const canvas = required(host!.querySelector<HTMLCanvasElement>('[data-sign-page-surface="0"] canvas'), 'the page canvas');
+      canvas.width = 600;
+      canvas.height = 800;
+      const context = canvas.getContext('2d');
+      if (!context) throw new Error('Expected a 2d context');
+      context.fillStyle = color;
+      context.fillRect(0, 0, 600, 800);
+    };
 
     it('marks each page surface with its index, for the page sampler and the eyedropper', () => {
       host = mountWorkspace({ state: testState() });
@@ -711,8 +720,8 @@ describe('PdfWorkspace Component', () => {
     });
 
     it('Auto restores following the page: the sampled colour joins the same single history entry, nothing is carried', () => {
-      vi.mocked(samplePageColor).mockReturnValue('#f0e0d0');
       const stateRef = mountActive(whiteout());
+      paintPage('#f0e0d0');
       click('[data-whiteout-color-auto]');
       expect(stateRef.current.elements[0]).toMatchObject({ colorMode: 'auto', color: '#f0e0d0' });
       expect(stateRef.current.actionHistory).toHaveLength(1);
@@ -729,8 +738,8 @@ describe('PdfWorkspace Component', () => {
     });
 
     it('Duplicate of an auto whiteout samples the page at the copy\'s spot; a custom copy keeps its colour', () => {
-      vi.mocked(samplePageColor).mockReturnValue('#aabbcc');
       let stateRef = mountActive(whiteout({ colorMode: 'auto', color: '#ffffff' }));
+      paintPage('#aabbcc');
       click('button[title="Duplicate"]');
       expect(stateRef.current.elements[1]).toMatchObject({ colorMode: 'auto', color: '#aabbcc', left: 14, top: 14 });
       act(() => render(null, host!)); host!.remove(); host = null;
@@ -1124,6 +1133,7 @@ describe('PdfWorkspace Component', () => {
       // sheet SNG-17 added - see DraggableWrapper.interaction.test.tsx's own
       // matchMedia override for why the blanket setup stub needs this.
       const query = { matches: false, media: '(pointer: coarse)', addEventListener: () => {}, removeEventListener: () => {} };
+      // Forced: jsdom has no pointer media; the setup's matchMedia answers every query the same
       Object.defineProperty(window, 'matchMedia', { value: vi.fn(() => query), configurable: true, writable: true });
 
       const stateRef: { current: SignToolState } = { current: testState() };
@@ -1166,6 +1176,7 @@ describe('PdfWorkspace Component', () => {
       expect(reverted.fontFamily).toBe('Arimo');
       expect(reverted.top).toBe(initialTop);
 
+      // Forced: puts jsdom back to no matchMedia, as the test found it
       delete (window as any).matchMedia;
     });
   });

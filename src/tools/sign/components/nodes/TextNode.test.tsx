@@ -793,10 +793,12 @@ describe('TextNode on a detected cell, and its closed placeholder', () => {
 
   function installPointer(coarse: boolean) {
     const query = { matches: coarse, media: '(pointer: coarse)', addEventListener: () => {}, removeEventListener: () => {} };
+    // Forced: jsdom has no pointer media; the setup's matchMedia answers every query the same, so a mouse needs this
     Object.defineProperty(window, 'matchMedia', { value: vi.fn(() => query), configurable: true, writable: true });
   }
 
   afterEach(() => {
+    // Forced: puts the setup's matchMedia back
     Object.defineProperty(window, 'matchMedia', { value: originalMatchMedia, configurable: true, writable: true });
     if (host.isConnected) {
       act(() => render(null, host));

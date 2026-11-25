@@ -14,11 +14,6 @@ import styles from './fill/fill.module.css';
 import type { FillSlot, TextFillProps } from '../lib/fill/fillTypes.ts';
 import type { TextElement } from '#editor/model/editorModel.ts';
 
-vi.mock('@floating-ui/react', async () => {
-  const actual = await vi.importActual('@floating-ui/react');
-  return { ...actual, autoUpdate: vi.fn().mockReturnValue(() => {}) };
-});
-
 function requireElement<T extends Element>(parent: ParentNode, selector: string): T {
   const element = parent.querySelector<T>(selector);
   if (!element) throw new Error(`Expected ${selector} to be rendered`);

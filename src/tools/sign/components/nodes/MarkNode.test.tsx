@@ -1,6 +1,6 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import MarkNode from './MarkNode.tsx';
 import type { MarkElement } from '#editor/model/editorModel.ts';
 import type { NodeResizeStart } from '#editor-ui/nodeProps.ts';
@@ -37,6 +37,7 @@ describe('MarkNode', () => {
   let host = document.createElement('div');
 
   afterEach(() => {
+    vi.restoreAllMocks();
     if (host.isConnected) {
       act(() => render(null, host));
       host.remove();
@@ -67,23 +68,15 @@ describe('MarkNode', () => {
   });
 
   it('stops observing its size when it unmounts', () => {
-    const originalObserver = globalThis.ResizeObserver;
-    const disconnected: Element[] = [];
-    const observed: Element[] = [];
-    globalThis.ResizeObserver = class {
-      observe(node: Element) { observed.push(node); }
-      unobserve() {}
-      disconnect() { disconnected.push(...observed); }
-    } as unknown as typeof ResizeObserver;
-    try {
-      host = mount(markElement({ mark: 'x' }));
-      expect(observed).toHaveLength(1);
-      expect(disconnected).toHaveLength(0);
-      act(() => render(null, host));
-      expect(disconnected).toEqual(observed);
-    } finally {
-      globalThis.ResizeObserver = originalObserver;
-    }
+    // The environment's own ResizeObserver runs; the spies only watch its calls.
+    const observe = vi.spyOn(globalThis.ResizeObserver.prototype, 'observe');
+    const disconnect = vi.spyOn(globalThis.ResizeObserver.prototype, 'disconnect');
+    host = mount(markElement({ mark: 'x' }));
+    expect(observe).toHaveBeenCalledTimes(1);
+    expect(disconnect).not.toHaveBeenCalled();
+    act(() => render(null, host));
+    expect(disconnect).toHaveBeenCalledTimes(1);
+    expect(disconnect.mock.contexts[0]).toBe(observe.mock.contexts[0]);
   });
 
   it('renders dot marks from the same mark field used by toolbar and export', () => {
