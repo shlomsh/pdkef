@@ -24,6 +24,7 @@ function installViewport(props: Partial<FakeViewport>): FakeViewport {
 }
 
 function setScrollY(y: number) {
+  // Forced: jsdom scrolls nothing, so the scroll position is set.
   Object.defineProperty(window, 'scrollY', { value: y, configurable: true, writable: true });
 }
 

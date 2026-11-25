@@ -950,7 +950,7 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
       const onChange = vi.fn();
       const element = { id: 'el-comb-live', type: 'text', left: 20, top: 10, text: '27', fontSize: 12, width: 20 };
       const { box } = mountInPageWrapper(element, { isActive: true, onChange, pageWidthPoints: 600 });
-      // Stands in for real layout: width tracks whatever `.element`'s own
+      // Mocks real layout: width tracks whatever `.element`'s own
       // inline style currently says, the same way a real browser resolves it
       // from the style writeDOM just set - jsdom has no layout engine, so
       // nothing does this automatically.

@@ -13,7 +13,6 @@ import { drainPromises } from '../../../test/support/drainPromises.ts';
 import { usePdfShare } from '#lib/output/usePdfShare.js';
 import { openNewerStore } from '#lib/drafts/newerStore.test-helper.ts';
 import { waitUntil } from '../../../test/support/waitUntil.ts';
-import { runSignExport } from '../lib/runSignExport.ts';
 import type { SignedExport } from '../lib/exportHandoff.ts';
 import { useSignExport } from './useSignExport.ts';
 import { useSpeculativeExport } from './useSpeculativeExport.ts';
@@ -195,20 +194,17 @@ describe('useSpeculativeExport', () => {
     shareSheet();
     const root = document.createElement('div');
     const preparedExportRef: { current: SignedExport | null } = { current: null };
+    const api = { current: null as unknown as SignExportApi };
+    const share = { current: null as unknown as Share };
+    // Rendered after the Harness, so it is handed the real export actions, as the tool hands them over.
     function Probe() {
-      const share = usePdfShare();
-      const exportRun = useLatestRun(() => [file]);
       useSpeculativeExport({
         file, outputName: 'signed_form.pdf', status: 'editing', elementCount: 1, hasTurnedPage: false, documentRevision: 0, blocked: false,
-        runExport: (onSigned, options) => runSignExport({
-          file, outputName: 'signed_form.pdf', fileBytes, elements: [], exportRun, activeExportSpeculativeRef: { current: false },
-          lifecycleDispatch: vi.fn(), messages: englishSignMessages,
-        }, onSigned, options),
-        prepare: share.prepare, preparedExportRef, documentRevisionRef: { current: 0 },
+        runExport: api.current.runExport, prepare: share.current.prepare, preparedExportRef, documentRevisionRef: { current: 0 },
       });
       return null;
     }
-    act(() => render(<Probe />, root));
+    act(() => render(<><Harness apiRef={api} shareRef={share} preparedExportRef={preparedExportRef} /><Probe /></>, root));
     act(() => { vi.advanceTimersByTime(2000); });
     vi.useRealTimers();
     await waitUntil(() => preparedExportRef.current !== null);

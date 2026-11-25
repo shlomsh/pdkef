@@ -43,7 +43,8 @@ declare const __dirname: string;
 vi.mock('./hooks/useFormFieldRegions.ts', { spy: true });
 async function forceFormRegions(over: Record<string, unknown>) {
   const actual = await vi.importActual<typeof import('./hooks/useFormFieldRegions.ts')>('./hooks/useFormFieldRegions.ts');
-  // Forced: a real finished walk always names a kind, so the omits case cannot come from one
+  // Forced: a real finished walk always names a kind, so the omits case cannot come from one; and the page has no
+  // sign that a walk ended well, so the other cases hand over a finished one too.
   vi.mocked(useFormFieldRegions).mockImplementation((...args) => ({ ...actual.default(...args), ...over }));
 }
 
@@ -256,9 +257,9 @@ describe('PdfSignTool UI flow', () => {
 
   // FORM-11. The detector runs once per document and used to report nothing in
   // any outcome, so a total failure and an ordinary form were the same silence
-  // - the state that let a broken detector ship unnoticed. jsdom's pdf.js stub
-  // cannot walk a page, so the walk here fails, which is the outcome worth
-  // guarding: it is reported, once, as a code and nothing else.
+  // - the state that let a broken detector ship unnoticed. The walk here
+  // fails, which is the outcome worth guarding: it is reported, once, as a
+  // code and nothing else.
   it('reports the form-field walk once per document, as one anonymous event', async () => {
     container = document.createElement('div');
     document.body.appendChild(container);
@@ -314,7 +315,7 @@ describe('PdfSignTool UI flow', () => {
   ])('keeps the editor usable after a %s failure and allows a corrected retry', async (mode, title, makeError, errorText, initialText) => {
     const originalShare = Object.getOwnPropertyDescriptor(navigator, 'share');
     const originalCanShare = Object.getOwnPropertyDescriptor(navigator, 'canShare');
-    // forced: an OS share sheet; no headless browser has one to open
+    // Forced: an OS share sheet; no headless browser has one to open
     Object.defineProperty(navigator, 'share', { configurable: true, value: vi.fn(async () => {}) });
     Object.defineProperty(navigator, 'canShare', { configurable: true, value: () => true });
     const signedBlob = new Blob(['signed test result'], { type: 'application/pdf' });
@@ -435,7 +436,7 @@ describe('PdfSignTool UI flow', () => {
   it('exports the bytes it already holds when the picked file can no longer be read (DEBT-51)', async () => {
     const signedBlob = new Blob(['signed result'], { type: 'application/pdf' });
     const sources: unknown[] = [];
-    // The real signPdf reads a File with arrayBuffer(); this stand-in does the same.
+    // The real signPdf reads a File with arrayBuffer(); this mock does the same.
     const { sign, calledTimes } = spySignPdf(async (_call, source: unknown) => {
       sources.push(source);
       if (!(source instanceof ArrayBuffer)) await (source as File).arrayBuffer();
@@ -483,7 +484,7 @@ describe('PdfSignTool UI flow', () => {
   it('pre-generates the signed PDF in the background so Share is ready without a prior tap (MOBI-07)', async () => {
     const originalShare = Object.getOwnPropertyDescriptor(navigator, 'share');
     const originalCanShare = Object.getOwnPropertyDescriptor(navigator, 'canShare');
-    // forced: an OS share sheet; no headless browser has one to open
+    // Forced: an OS share sheet; no headless browser has one to open
     Object.defineProperty(navigator, 'share', { configurable: true, value: vi.fn(async () => {}) });
     Object.defineProperty(navigator, 'canShare', { configurable: true, value: () => true });
 
@@ -933,10 +934,10 @@ describe('PdfSignTool UI flow', () => {
   it('prepares and shares a valid signed PDF from the real num-1.pdf fixture', async () => {
     const originalShare = navigator.share;
     const originalCanShare = navigator.canShare;
-    // forced: an OS share sheet; no headless browser has one to open
+    // Forced: an OS share sheet; no headless browser has one to open
     const share = vi.fn((_data?: ShareData) => Promise.resolve());
     Object.defineProperty(navigator, 'share', { configurable: true, value: share });
-    // forced: an OS share sheet; no headless browser has one to open
+    // Forced: an OS share sheet; no headless browser has one to open
     Object.defineProperty(navigator, 'canShare', { configurable: true, value: vi.fn(() => true) });
 
     try {
