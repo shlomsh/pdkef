@@ -6,16 +6,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { peekHandoff, saveHandoff } from '#lib/drafts/draftStore.ts';
 import { reportHandedOn, resetUsageEventsForTests } from '#lib/telemetry/productAnalytics.ts';
 import { recentActions, resetActionTrailForTests } from '#lib/telemetry/actionTrail.ts';
+import { holdDraftStore } from '#lib/drafts/heldStore.test-helper.ts';
 import { decideDownloadState, deliverParts, useDownloadFlow, type DownloadFlowInput } from './useDownloadFlow.ts';
 
+// Forced: usePdfShare stays replaced here because the tests read the arguments of download, prepare and prepareFiles,
+// and jsdom has no navigator.share or URL.createObjectURL. The share outcomes run the real hook in useDownloadFlow.share.test.tsx.
 const share = vi.hoisted(() => ({ download: vi.fn(), prepare: vi.fn(), prepareFiles: vi.fn(), clearPrepared: vi.fn(), sharePrepared: vi.fn() }));
 vi.mock('#lib/output/usePdfShare.js', () => ({
   usePdfShare: () => ({ shareReady: false, ...share }),
 }));
 vi.mock('#lib/telemetry/productAnalytics.ts', { spy: true });
-// usePdfShare stays replaced: it is navigator.share, URL.createObjectURL and an anchor click, which jsdom lacks
-// (browser-mode wave). The draft store runs for real on fake-indexeddb; the spy sees the call, and a test
-// that needs a save to fail or to hang forces just that answer.
+// The draft store runs for real on fake-indexeddb; the spy sees the call. A refused save is a real VersionError,
+// a held save is a real held transaction, and a save that throws or fails late is forced.
 vi.mock('#lib/drafts/draftStore.ts', { spy: true });
 
 type Prepared = DownloadFlowInput['prepared'];
@@ -66,6 +68,14 @@ describe('decideDownloadState', () => {
   });
 });
 
+// The database moves to version 2 behind the product's back, so its open at version 1 fails with a real VersionError.
+const upgradeWorkspaceDb = () => new Promise<void>((resolve, reject) => {
+  const request = indexedDB.open('pdf-toolkit-workspace', 2);
+  request.onupgradeneeded = () => { request.result.createObjectStore('workspace', { keyPath: 'tool' }); };
+  request.onsuccess = () => { request.result.close(); resolve(); };
+  request.onerror = () => reject(request.error);
+});
+
 describe('useDownloadFlow', () => {
   let container: HTMLElement;
   let flow: ReturnType<typeof useDownloadFlow>;
@@ -91,6 +101,7 @@ describe('useDownloadFlow', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     wide = false;
+    // Forced: a phone and a desktop width differ by one query answer; setup.js answers every query the same.
     window.matchMedia = ((query: string) => ({
       matches: !wide && query.includes('max-width'),
       addEventListener: () => {},
@@ -296,9 +307,10 @@ describe('useDownloadFlow', () => {
   });
 
   it('a failed hand-off message is cleared by reset() and by the output going stale', async () => {
-    vi.mocked(saveHandoff).mockResolvedValue(false); // forced: a store that refuses the file
+    await upgradeWorkspaceDb();
     mount(base(ready()));
     await act(async () => { await flow.requestHandoff('compress'); });
+    expect(await vi.mocked(saveHandoff).mock.results.at(-1)!.value).toBe(false);
     expect(flow.handoffFailed).toBe(true);
     act(() => flow.reset());
     expect(flow.handoffFailed).toBe(false);
@@ -325,7 +337,8 @@ describe('useDownloadFlow', () => {
   });
 
   it('a hand-off whose save throws reports nothing', async () => {
-    vi.mocked(saveHandoff).mockRejectedValue(new Error('save')); // forced: a save that throws
+    // Forced: the real saveHandoff answers false and never throws, so a save that throws is forced.
+    vi.mocked(saveHandoff).mockRejectedValue(new Error('save'));
     mount({ ...base(ready()), navigate: vi.fn() });
     await act(async () => { await flow.requestHandoff('compress'); });
     expect(reportHandedOn).not.toHaveBeenCalled();
@@ -365,21 +378,22 @@ describe('useDownloadFlow', () => {
   });
 
   it('a hand-off still saving when reset() runs does not navigate', async () => {
-    let finish!: (saved: boolean) => void;
-    vi.mocked(saveHandoff).mockReturnValue(new Promise<boolean>((resolve) => { finish = resolve; })); // forced: a save held until the test lets go
+    const hold = await holdDraftStore();
     const navigate = vi.fn();
     mount({ ...base(ready()), navigate });
     let run!: Promise<void>;
     await act(async () => { run = flow.requestHandoff('compress'); await Promise.resolve(); });
     act(() => flow.reset());
-    await act(async () => { finish(true); await run; });
+    await act(async () => { await hold.release(); await run; });
+    expect(await vi.mocked(saveHandoff).mock.results.at(-1)!.value).toBe(true);
     expect(navigate).not.toHaveBeenCalled();
     expect(flow.handoffBusy).toBe(false);
   });
 
   it('a superseded hand-off whose save fails later leaves the newer hand-off busy', async () => {
     let failA!: (saved: boolean) => void;
-    vi.mocked(saveHandoff) // forced: two saves held, the first failing late
+    // Forced: a real store cannot be made to fail the first of two saves late and hold the second.
+    vi.mocked(saveHandoff)
       .mockReturnValueOnce(new Promise<boolean>((resolve) => { failA = resolve; }))
       .mockReturnValueOnce(new Promise<boolean>(() => {}));
     mount({ ...base(ready()), navigate: vi.fn() });
@@ -391,30 +405,5 @@ describe('useDownloadFlow', () => {
     await act(async () => { failA(false); await runA; });
     expect(flow.handoffBusy).toBe(true);
     expect(flow.handoffFailed).toBe(false);
-  });
-
-  it('a completed Share counts as a tap (processing, then done) and records a share; a canceled or failed one does neither', async () => {
-    resetActionTrailForTests();
-    mount(base(ready()));
-    const taps: string[] = [flow.tap];
-    share.sharePrepared.mockResolvedValue({ status: 'canceled' });
-    await act(async () => { await flow.handleShare(); });
-    expect(flow.tap).toBe('idle');
-    expect(recentActions()).not.toContain('share');
-    share.sharePrepared.mockResolvedValue({ status: 'error' });
-    await act(async () => { await flow.handleShare(); });
-    expect(recentActions()).not.toContain('share');
-    share.sharePrepared.mockResolvedValue({ status: 'shared' });
-    await act(async () => { await flow.handleShare(); });
-    taps.push(flow.tap);
-    expect(taps).toEqual(['idle', 'done']);
-    expect(recentActions()).toContain('share');
-  });
-
-  it('an empty share message is still announced, as before the outcome was extracted', async () => {
-    mount({ ...base(ready()), messages: { ready: 'Ready', shared: '', canceled: 'Canceled', shareError: 'Failed' } });
-    share.sharePrepared.mockResolvedValue({ status: 'shared' });
-    await act(async () => { await flow.handleShare(); });
-    expect(announce).toHaveBeenCalledWith('');
   });
 });

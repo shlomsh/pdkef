@@ -31,6 +31,14 @@ async function parked(): Promise<unknown[]> {
   return vi.mocked(saveHandoff).mock.calls[0];
 }
 
+// The database moves to version 2 behind the product's back, so its open at version 1 fails with a real VersionError.
+const upgradeWorkspaceDb = () => new Promise<void>((resolve, reject) => {
+  const request = indexedDB.open('pdf-toolkit-workspace', 2);
+  request.onupgradeneeded = () => { request.result.createObjectStore('workspace', { keyPath: 'tool' }); };
+  request.onsuccess = () => { request.result.close(); resolve(); };
+  request.onerror = () => reject(request.error);
+});
+
 const pdf = new Blob(['%PDF'], { type: 'application/pdf' });
 
 describe('driveSavePayload', () => {
@@ -59,7 +67,7 @@ describe('useSaveToDrive', () => {
     container = document.createElement('div');
     harness = installToolHarness({ trackIndexedDb: true });
     tabs.length = 0;
-    // forced: jsdom has no popups.
+    // Forced: jsdom has no popups.
     open = vi.spyOn(window, 'open').mockImplementation(() => {
       const tab: Tab = { closed: false, close() { this.closed = true; } };
       tabs.push(tab);
@@ -93,15 +101,15 @@ describe('useSaveToDrive', () => {
   });
 
   it('is available only on a hover and fine pointer device', () => {
-    // forced: a phone, where the hover and fine pointer query is false
+    // Forced: a phone, where the hover and fine pointer query is false
     vi.stubGlobal('matchMedia', () => ({ matches: false }));
     mount();
     expect(latest.available).toBe(false);
-    // forced: a browser with no matchMedia
+    // Forced: a browser with no matchMedia
     vi.stubGlobal('matchMedia', undefined);
     mount({ generation: 2 });
     expect(latest.available).toBe(false);
-    // forced: a matchMedia that throws
+    // Forced: a matchMedia that throws
     vi.stubGlobal('matchMedia', () => { throw new Error('no'); });
     mount({ generation: 3 });
     expect(latest.available).toBe(false);
@@ -133,16 +141,17 @@ describe('useSaveToDrive', () => {
   });
 
   it('reports failed on a failed answer, a blocked tab and a parking failure', async () => {
-    open.mockReturnValueOnce(null); // forced: a blocked popup
+    open.mockReturnValueOnce(null); // Forced: a blocked popup
     mount();
     act(() => latest.save());
     expect(events()).toEqual(['tool_drive_shown', 'tool_drive_tapped', 'tool_drive_failed']);
     vi.mocked(report).mockClear();
-    vi.mocked(saveHandoff).mockResolvedValue(false); // forced: a store that refuses the file
+    await upgradeWorkspaceDb(); // the store now refuses the file for real: a VersionError
     mount({ generation: 2 });
     vi.mocked(report).mockClear();
     act(() => latest.save());
     await waitUntil(() => expect(latest.state).toBe('failed')); // fail() sets the state, then reports, in one step
+    expect(await vi.mocked(saveHandoff).mock.results.at(-1)!.value).toBe(false);
     expect(events()).toContain('tool_drive_failed');
   });
 
@@ -169,7 +178,7 @@ describe('useSaveToDrive', () => {
   });
 
   it('fails when the browser blocks the tab', () => {
-    open.mockReturnValue(null); // forced: a blocked popup
+    open.mockReturnValue(null); // Forced: a blocked popup
     mount();
     act(() => latest.save());
     expect(latest.state).toBe('failed');
