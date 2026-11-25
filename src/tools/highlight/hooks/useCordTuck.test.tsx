@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { useRef } from 'preact/hooks';
@@ -6,7 +6,6 @@ import { useCordTuck } from './useCordTuck.ts';
 
 let api: ReturnType<typeof useCordTuck> | null = null;
 let rendered = true;
-let queued: FrameRequestCallback | null = null;
 
 function Probe() {
   const ref = useRef<HTMLDivElement>(null);
@@ -15,7 +14,9 @@ function Probe() {
 }
 
 let host: HTMLElement | null = null;
+beforeEach(() => { vi.useFakeTimers(); });
 afterEach(() => {
+  vi.useRealTimers();
   if (host) act(() => render(null, host!));
   host?.remove();
   host = null;
@@ -24,13 +25,13 @@ afterEach(() => {
 });
 
 function mount() {
-  vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => { queued = cb; return 1; });
+  // Forced: jsdom has no layout, so a box reports no client rects unless the test says it is rendered
   vi.spyOn(Element.prototype, 'getClientRects').mockImplementation(() => (rendered ? [{}] : []) as unknown as DOMRectList);
   host = document.createElement('div');
   document.body.appendChild(host);
   act(() => render(<Probe />, host!));
 }
-const scrollTo = (y: number) => act(() => { Object.defineProperty(window, 'scrollY', { value: y, configurable: true }); window.dispatchEvent(new Event('scroll')); const cb = queued; queued = null; cb?.(0); });
+const scrollTo = (y: number) => act(() => { Object.defineProperty(window, 'scrollY', { value: y, configurable: true }); window.dispatchEvent(new Event('scroll')); vi.advanceTimersToNextFrame(); });
 
 describe('useCordTuck', () => {
   it('tucks after scrolling past the threshold, and pop untucks it at the new position', () => {

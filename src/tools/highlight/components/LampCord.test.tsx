@@ -46,14 +46,14 @@ describe('LampCord', () => {
   });
 
   describe('tucked into the toolbar', () => {
-    let queued: FrameRequestCallback | null = null;
     const scrollBy = (y: number) => act(() => {
       Object.defineProperty(window, 'scrollY', { value: y, configurable: true });
       window.dispatchEvent(new Event('scroll'));
-      const cb = queued; queued = null; cb?.(0);
+      vi.advanceTimersToNextFrame();
     });
     const mount = (onPull: () => void) => {
-      vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => { queued = cb; return 1; });
+      vi.useFakeTimers();
+      // Forced: jsdom has no layout, so every box reports no client rects
       vi.spyOn(Element.prototype, 'getClientRects').mockImplementation(() => [{}] as unknown as DOMRectList);
       scrollBy(0);
       container = document.createElement('div');
@@ -61,7 +61,7 @@ describe('LampCord', () => {
       act(() => render(<LampCord onPull={onPull} />, container!));
       return container.querySelector<HTMLElement>('[data-lamp-part="cord"]')!;
     };
-    afterEach(() => vi.restoreAllMocks());
+    afterEach(() => { vi.restoreAllMocks(); vi.useRealTimers(); });
 
     it('marks the root once the page scrolls; a click then only pops the tip, and the next click pulls', () => {
       const onPull = vi.fn();
@@ -89,9 +89,8 @@ describe('LampCord', () => {
       const onPull = vi.fn();
       const root = mount(onPull);
       const button = container!.querySelector('button')!;
-      vi.spyOn(button, 'matches').mockImplementation((q) => q === ':focus-visible');
       scrollBy(300);
-      act(() => { button.dispatchEvent(new FocusEvent('focus')); });
+      act(() => { button.focus(); });
       expect(root.hasAttribute('data-tucked')).toBe(false);
       expect(onPull).not.toHaveBeenCalled();
     });

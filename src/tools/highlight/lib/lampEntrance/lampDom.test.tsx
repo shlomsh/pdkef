@@ -4,11 +4,13 @@ import { measureBefore, partsIn, planAfter } from './lampDom.ts';
 let root: HTMLElement;
 let ws: HTMLElement;
 
+// Forced: jsdom has no layout, so each box is given numbers
 function box(el: Element, left: number, top: number, width: number, height: number) {
   vi.spyOn(el, 'getBoundingClientRect').mockReturnValue({ left, top, width, height, right: left + width, bottom: top + height, x: left, y: top, toJSON() {} } as DOMRect);
 }
 
 beforeEach(() => {
+  // Forced: setup.js's matchMedia matches every query; most tests need reduced motion off
   vi.stubGlobal('matchMedia', () => ({ matches: false }));
   root = document.createElement('div');
   root.innerHTML = `
@@ -60,7 +62,7 @@ describe('lampDom', () => {
   });
 
   it('reduced motion is always the crossfade', () => {
-    vi.stubGlobal('matchMedia', () => ({ matches: true }));
+    vi.unstubAllGlobals(); // setup.js's matchMedia matches every query, so reduced motion is on
     expect(planAfter('enter', ws, measureBefore('enter', ws), null).plan.tracks.map((t) => t.part)).toEqual(['capsule']);
   });
 });

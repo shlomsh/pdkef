@@ -105,8 +105,10 @@ describe('NotePane', () => {
     const anchor = document.createElement('div');
     anchor.setAttribute('data-editor-element-id', 'm1');
     let marginAtScroll = '';
+    // Forced: jsdom has no scrollIntoView; the test reads the margin at the moment of the call
     anchor.scrollIntoView = vi.fn(() => { marginAtScroll = anchor.style.scrollMarginBottom; });
     document.body.appendChild(anchor);
+    // Forced: jsdom has no layout, so the pane's height is given a number
     const height = vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(220);
     mount('c1');
     expect(marginAtScroll).toBe('220px');

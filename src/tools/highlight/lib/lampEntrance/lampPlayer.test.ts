@@ -4,22 +4,26 @@ import type { Plan } from './timeline.ts';
 
 /** A stand-in for Element.animate whose animations finish when the test says so. */
 function fakeElement() {
-  const animations: { cancel: ReturnType<typeof vi.fn>; finish(): void; cancelled: boolean }[] = [];
+  const animations: { cancel(): void; finish(): void; cancelled: boolean }[] = [];
+  const animate = vi.fn();
   const el = {
-    animate: vi.fn((frames: Keyframe[], options: KeyframeAnimationOptions) => {
+    // The element is the test's input: jsdom elements have no animate, so this one records the call.
+    animate: (frames: Keyframe[], options: KeyframeAnimationOptions) => {
+      animate(frames, options);
       let resolve!: () => void;
       let reject!: (e: unknown) => void;
       const finished = new Promise<void>((res, rej) => { resolve = res; reject = rej; });
       const a = {
         frames, options, finished, cancelled: false,
-        cancel: vi.fn(() => { a.cancelled = true; reject(new Error('AbortError')); }),
+        cancel: () => { a.cancelled = true; reject(new Error('AbortError')); },
         finish: () => resolve(),
       };
+      vi.spyOn(a, 'cancel');
       animations.push(a);
       return a;
-    }),
+    },
   };
-  return { el: el as unknown as Element, animations, animate: el.animate };
+  return { el: el as unknown as Element, animations, animate };
 }
 
 const plan: Plan = { duration: 100, tracks: [{ part: 'capsule', keys: [{ t: 0, opacity: 0 }, { t: 100, opacity: 1 }] }, { part: 'site', keys: [{ t: 0, opacity: 0 }, { t: 100, opacity: 1 }] }] };

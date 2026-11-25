@@ -33,6 +33,7 @@ const buttons = () => Array.from(container.querySelectorAll('dialog button')) as
 const byText = (text: string) => buttons().find((b) => b.textContent === text)!;
 
 beforeEach(() => {
+  // Forced: this jsdom has no showModal or close on a dialog
   HTMLDialogElement.prototype.showModal = vi.fn(function (this: HTMLDialogElement) { this.open = true; });
   HTMLDialogElement.prototype.close = vi.fn(function (this: HTMLDialogElement) { this.open = false; });
   onSave.mockClear(); onDiscard.mockClear(); onReturnFocus.mockClear();

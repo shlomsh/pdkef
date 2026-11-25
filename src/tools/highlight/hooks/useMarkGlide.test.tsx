@@ -20,13 +20,18 @@ let board: HTMLElement;
 let mark: HTMLElement;
 let moved = '';
 
-const mount = (markId: string | null, menu: Menu = null) => act(() => render(<Probe markId={markId} menu={menu} />, container));
+// The hook measures two frames after it mounts: run both on the faked clock.
+const mount = (markId: string | null, menu: Menu = null) => {
+  act(() => render(<Probe markId={markId} menu={menu} />, container));
+  act(() => { vi.advanceTimersByTime(40); });
+};
 
 beforeEach(() => {
   moved = '';
-  vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => { cb(0); return 1; });
-  vi.stubGlobal('cancelAnimationFrame', () => {});
+  vi.useFakeTimers();
+  // Forced: jsdom has no CSS.escape
   if (!('CSS' in globalThis)) vi.stubGlobal('CSS', { escape: (s: string) => s });
+  // Forced: jsdom's computed style never reports the translate the board was given
   vi.spyOn(window, 'getComputedStyle').mockImplementation(() => ({ translate: moved || 'none' }) as unknown as CSSStyleDeclaration);
   board = document.createElement('div');
   board.setAttribute('data-lamp-part', 'board');
@@ -46,6 +51,7 @@ afterEach(() => {
   document.querySelectorAll('[data-editor-popover]').forEach((n) => n.remove());
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
+  vi.useRealTimers();
 });
 
 describe('useMarkGlide', () => {

@@ -10,6 +10,7 @@ function bus<A extends unknown[]>() {
 }
 
 function setup(over: Partial<ReadingCapsuleProps> = {}, width = 1024) {
+  // Forced: jsdom has no way to size its window
   (window as { innerWidth: number }).innerWidth = width;
   const scroll = bus<[number]>();
   const press = bus<[]>();

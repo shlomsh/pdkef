@@ -101,6 +101,7 @@ describe('HighlightWorkspace', () => {
   });
 
   it('on touch, a file opens armed with the hint in the card\'s identity row, Marker toggles arming, and the lamp shows no hint', () => {
+    // Forced: setup.js's matchMedia matches every query; touch needs coarse true and the rest false
     vi.stubGlobal('matchMedia', (q: string) => ({ matches: q.includes('coarse'), media: q, addEventListener() {}, removeEventListener() {} }));
     try {
       mount({ fullscreen: false, pseudoFullscreen: false });
@@ -120,6 +121,7 @@ describe('HighlightWorkspace', () => {
   });
 
   it('on a fine pointer a file opens armed too, but the touch hint stays away', () => {
+    // Forced: setup.js's matchMedia matches every query; a fine pointer needs coarse false
     vi.stubGlobal('matchMedia', (q: string) => ({ matches: !q.includes('coarse'), media: q, addEventListener() {}, removeEventListener() {} }));
     try {
       mount({ fullscreen: false, pseudoFullscreen: false });
@@ -204,9 +206,11 @@ const note: CommentElement = {
 /** A workspace of the given width with one page and these elements; the zoom is 1 and the page 600 px wide. */
 function mountNoted(elements: EditorElement[], workspaceWidth: number, extra: Record<string, unknown> = {}, page?: object, zoomValue = 1, chrome = 1, lamp = false) {
   const originalRect = HTMLElement.prototype.getBoundingClientRect;
+  // Forced: jsdom has no layout, so the workspace is given a width
   HTMLElement.prototype.getBoundingClientRect = function rect() {
     return { ...originalRect.call(this), width: this.hasAttribute('data-workspace') ? workspaceWidth : 0 } as DOMRect;
   };
+  // Forced: jsdom has no ResizeObserver that reports; this one reports once on observe
   vi.stubGlobal('ResizeObserver', class { constructor(private cb: () => void) {} observe() { this.cb(); } disconnect() {} });
   const zoom = {
     zoom: zoomValue, chrome, setting: 'width', pages: [{ width: 600, height: 800, textLeft: 0, textRight: 600 }], board: { boardWidth: 600, slack: 0 },
@@ -348,8 +352,11 @@ describe('HighlightWorkspace notes (R28, R29)', () => {
     for (const fullscreen of [true]) {
       const ws = mount({ fullscreen, pseudoFullscreen: false }, [mark, note]);
       const button = ws.querySelector<HTMLElement>('button[aria-label="Print"]')!;
+      // Forced: jsdom has no layout, so the button's box, the window and menu widths are given numbers
       vi.spyOn(button, 'getBoundingClientRect').mockReturnValue({ left: 300, right: 340, bottom: 100 } as DOMRect);
+      // Forced: jsdom has no window size
       vi.stubGlobal('innerWidth', 1280);
+      // Forced: jsdom has no element widths
       vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(192);
       act(() => { button.click(); });
       const menu = ws.querySelector('[role="menu"]')!;

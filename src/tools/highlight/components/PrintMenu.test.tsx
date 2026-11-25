@@ -75,7 +75,9 @@ describe('PrintMenu', () => {
   });
 
   it('places itself at the anchor top and the start-aligned left when floating, and sets none otherwise', () => {
+    // Forced: jsdom has no window size or element widths, and the menu is placed from both
     vi.stubGlobal('innerWidth', 1280);
+    // Forced: jsdom has no element widths
     vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(192);
     mount();
     const wrap = container!.firstElementChild as HTMLElement;
@@ -92,6 +94,7 @@ describe('PrintMenu', () => {
 describe('PrintDropdown hover', () => {
   function hoverMount(over: { fine?: boolean }) {
     vi.useFakeTimers();
+    // Forced: setup.js's matchMedia matches every query; a fine pointer needs a query that does not match
     window.matchMedia = ((q: string) => ({ matches: !(over.fine ?? true), media: q, addEventListener() {}, removeEventListener() {} })) as unknown as typeof window.matchMedia;
     const onOpenChange = vi.fn();
     container = document.createElement('div');
@@ -118,6 +121,7 @@ describe('PrintDropdown hover', () => {
   });
 
   function stateful(fine: boolean) {
+    // Forced: setup.js's matchMedia matches every query; a fine pointer needs a query that does not match
     window.matchMedia = ((q: string) => ({ matches: !fine, media: q, addEventListener() {}, removeEventListener() {} })) as unknown as typeof window.matchMedia;
     vi.useFakeTimers();
     const calls: boolean[] = [];
