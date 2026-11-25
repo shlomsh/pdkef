@@ -1,4 +1,3 @@
-// @ts-nocheck - test-only, mirrors PageGrid.test.tsx's untyped style
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { useState } from 'preact/hooks';
@@ -22,16 +21,44 @@ import 'fake-indexeddb/auto';
 import { IDBFactory } from 'fake-indexeddb';
 import {
   useMergeDraft, MERGE_DRAFT_SCHEMA_VERSION,
+  type MergeDraftEntry, type MergeDraftRestore, type MergeDraftSaveState,
+  type UseMergeDraftOptions, type UseMergeDraftResult,
 } from './useMergeDraft.ts';
 import {
   loadDraft, saveDraft, loadRecentFile, sourceIdForFiles, MERGE_DRAFT_MAX_BYTES,
-  setCurrentEntry, readCurrentEntryId,
+  setCurrentEntry, readCurrentEntryId, type DraftRecord,
 } from '#lib/drafts/draftStore.ts';
 import { takeArrival, noteRecentOpen, resetFileArrivalForTests } from '#lib/handoff/fileArrival.ts';
 import { planForFile } from '#lib/pages/pagePlan.ts';
 import { flushBeforeUpdateReload, isUpdateHeld } from '#lib/appUpdate/updateHolds.ts';
 
-function Harness({ apiRef, options }) {
+type Ref<T> = { current: T | null };
+type OnRestore = UseMergeDraftOptions['onRestore'];
+// What a harness hands back; the one that wraps the hook in a `draft` field is read through it too.
+type SaveStateHolder = { draftSaveState: MergeDraftSaveState } | { draft: { draftSaveState: MergeDraftSaveState } };
+
+// The latest value a harness stored: reading it before the mount stored one is a test mistake, so it throws.
+function api<T>(ref: Ref<T>): T {
+  if (!ref.current) throw new Error('the harness has not stored its api yet');
+  return ref.current;
+}
+
+// The stored record, or a failure when nothing is stored.
+async function storedDraft(): Promise<DraftRecord> {
+  const record = await loadDraft('merge');
+  if (!record) throw new Error('no merge draft is stored');
+  return record;
+}
+
+function revisionOf(record: DraftRecord): number {
+  if (typeof record.revision !== 'number') throw new Error('the stored draft has no revision');
+  return record.revision;
+}
+
+// A stand-in for an ArrayBuffer of a size nobody allocates: only byteLength is read before the size check.
+const fakeBuffer = (byteLength: number) => ({ byteLength }) as ArrayBuffer;
+
+function Harness({ apiRef, options }: { apiRef: Ref<UseMergeDraftResult>; options: UseMergeDraftOptions }) {
   apiRef.current = useMergeDraft(options);
   return null;
 }
@@ -40,14 +67,20 @@ function Harness({ apiRef, options }) {
 // stored files, then page-count/thumbnail inspection eventually declares the
 // restored workspace complete. Keeping that stateful bridge here makes the
 // no-autosave assertion cover the hook's real render/effect timing.
-function RestoredWorkspaceHarness({ apiRef, autosaveDebounceMs = 40 }) {
-  const [restored, setRestored] = useState(null);
+type RestoredWorkspaceApi = UseMergeDraftResult & {
+  setRestoreHydrationComplete: (complete: boolean) => void;
+  setAddPageNumbers: (on: boolean) => void;
+  rerender: () => void;
+};
+
+function RestoredWorkspaceHarness({ apiRef, autosaveDebounceMs = 40 }: { apiRef: Ref<RestoredWorkspaceApi>; autosaveDebounceMs?: number }) {
+  const [restored, setRestored] = useState<MergeDraftRestore | null>(null);
   const [restoreHydrationComplete, setRestoreHydrationComplete] = useState(false);
   const [addPageNumbers, setAddPageNumbers] = useState(false);
   // An unrelated parent re-render (PdfMergeTool's five-second restore
   // sentence timing out, say) with the snapshot unchanged.
   const [, setTick] = useState(0);
-  const entries = restored?.files.map((file, id) => ({ id, file, pageCount: null, thumbnail: null, error: null })) ?? [];
+  const entries: MergeDraftEntry[] = restored?.files.map((file, id) => ({ id, file, pageCount: null, thumbnail: null, error: null })) ?? [];
   const draft = useMergeDraft({
     enabled: true,
     entries,
@@ -63,17 +96,17 @@ function RestoredWorkspaceHarness({ apiRef, autosaveDebounceMs = 40 }) {
   return null;
 }
 
-function makeFile(name, content = `%PDF-1.4 ${name}`) {
+function makeFile(name: string, content: string = `%PDF-1.4 ${name}`) {
   return new File([content], name, { type: 'application/pdf' });
 }
 
-function baseEntry(id, name, pageCount = 1, overrides = {}) {
+function baseEntry(id: number, name: string, pageCount = 1, overrides: Partial<MergeDraftEntry> = {}): MergeDraftEntry {
   return {
     id, file: makeFile(name), pageCount, thumbnail: null, error: null, ...overrides,
   };
 }
 
-function baseOptions(overrides = {}) {
+function baseOptions(overrides: Partial<UseMergeDraftOptions> = {}): UseMergeDraftOptions {
   return {
     enabled: true,
     entries: [],
@@ -100,21 +133,26 @@ const restoreSettled = async (done?: () => unknown) => {
 };
 
 // The apiRef of the latest mount(): flushDebounce waits on its save state.
-let mounted = null;
+let mounted: Ref<SaveStateHolder> | null = null;
 
 // The debounced autosave is a setTimeout (700ms by default, `autosaveDebounceMs` in most tests below) followed by
 // an async buildRecord (reads File bytes) / persist (writes through IndexedDB) chain. Advance the debounce on
 // the faked clock, then wait for the chain to end: a save state that is no longer 'pending'.
-async function flushDebounce(debounceMs = 700, apiRef = mounted) {
+async function flushDebounce(debounceMs = 700, apiRef: Ref<SaveStateHolder> | null = mounted) {
   await act(async () => { await vi.advanceTimersByTimeAsync(debounceMs + 1); });
-  if (apiRef) await waitUntil(() => (apiRef.current?.draftSaveState ?? apiRef.current?.draft?.draftSaveState) !== 'pending');
+  const saveState = () => {
+    const held = apiRef?.current;
+    if (!held) return undefined;
+    return 'draft' in held ? held.draft.draftSaveState : held.draftSaveState;
+  };
+  if (apiRef) await waitUntil(() => saveState() !== 'pending');
   await drain(5);
 }
 
 // Two separate `act()` calls, deliberately: an async callback only flushes effects once the callback itself
 // resolves (see preact/test-utils' `act`), so awaiting inside the same call as `render()` would delay the mount
 // effect - the one that starts the restore IIFE - rather than give it time to finish.
-async function mount(apiRef, options, done?: () => unknown) {
+async function mount(apiRef: Ref<UseMergeDraftResult>, options: UseMergeDraftOptions, done?: () => unknown) {
   mounted = apiRef;
   act(() => {
     render(<Harness apiRef={apiRef} options={options} />, container);
@@ -122,7 +160,7 @@ async function mount(apiRef, options, done?: () => unknown) {
   await restoreSettled(done);
 }
 
-let container;
+let container: HTMLElement;
 
 describe('useMergeDraft', () => {
   beforeEach(() => {
@@ -148,11 +186,11 @@ describe('useMergeDraft', () => {
   });
 
   it('starts idle with no draft hint, and never calls onRestore', async () => {
-    const onRestore = vi.fn();
-    const apiRef = { current: null };
+    const onRestore = vi.fn<OnRestore>();
+    const apiRef: Ref<UseMergeDraftResult> = { current: null };
     await mount(apiRef, baseOptions({ onRestore }));
 
-    expect(apiRef.current.isRestoring).toBe(false);
+    expect(api(apiRef).isRestoring).toBe(false);
     expect(onRestore).not.toHaveBeenCalled();
   });
 
@@ -175,8 +213,8 @@ describe('useMergeDraft', () => {
       schemaVersion: MERGE_DRAFT_SCHEMA_VERSION,
     });
 
-    const onRestore = vi.fn();
-    const apiRef = { current: null };
+    const onRestore = vi.fn<OnRestore>();
+    const apiRef: Ref<UseMergeDraftResult> = { current: null };
     await mount(apiRef, baseOptions({ onRestore }));
 
     expect(onRestore).toHaveBeenCalledTimes(1);
@@ -189,7 +227,7 @@ describe('useMergeDraft', () => {
       { key: '1:0', fileId: 1, pageIndex: 0, rotation: 90, skipped: true },
     ]);
     expect(restored.options).toEqual({ addPageNumbers: true });
-    expect(apiRef.current.isRestoring).toBe(false);
+    expect(api(apiRef).isRestoring).toBe(false);
   });
 
   it.each([
@@ -207,7 +245,7 @@ describe('useMergeDraft', () => {
       fileCount: 1,
       schemaVersion: MERGE_DRAFT_SCHEMA_VERSION,
     });
-    const onRestore = vi.fn();
+    const onRestore = vi.fn<OnRestore>();
     await mount({ current: null }, baseOptions({ onRestore }));
     expect(onRestore).toHaveBeenCalledTimes(1);
     expect(onRestore).toHaveBeenCalledWith(expect.anything(), source);
@@ -224,8 +262,8 @@ describe('useMergeDraft', () => {
       schemaVersion: MERGE_DRAFT_SCHEMA_VERSION,
     });
 
-    const onRestore = vi.fn();
-    const apiRef = { current: null };
+    const onRestore = vi.fn<OnRestore>();
+    const apiRef: Ref<UseMergeDraftResult> = { current: null };
     await mount(apiRef, baseOptions({ onRestore }));
 
     expect(onRestore.mock.calls[0][0].outputName).toBe('Custom name');
@@ -237,41 +275,41 @@ describe('useMergeDraft', () => {
       plan: [{ key: '0:0', fileId: 0, pageIndex: 0, rotation: 0, skipped: false }],
       options: { addPageNumbers: false }, fileName: 'merged_invoice', schemaVersion: MERGE_DRAFT_SCHEMA_VERSION,
     });
-    const before = await loadDraft('merge');
-    const apiRef = { current: null };
+    const before = await storedDraft();
+    const apiRef: Ref<RestoredWorkspaceApi> = { current: null };
     act(() => render(<RestoredWorkspaceHarness apiRef={apiRef} />, container));
     await restoreSettled();
-    expect(apiRef.current.draftSaveState).toBe('idle');
+    expect(api(apiRef).draftSaveState).toBe('idle');
     await flushDebounce(40, apiRef);
-    expect((await loadDraft('merge')).revision).toBe(before.revision);
+    expect(revisionOf(await storedDraft())).toBe(revisionOf(before));
 
     // The delayed inspect/thumbnail completion itself is still clean.
-    act(() => apiRef.current.setRestoreHydrationComplete(true));
+    act(() => api(apiRef).setRestoreHydrationComplete(true));
     await flushDebounce(40, apiRef);
-    expect(apiRef.current.draftSaveState).toBe('idle');
-    expect((await loadDraft('merge')).revision).toBe(before.revision);
+    expect(api(apiRef).draftSaveState).toBe('idle');
+    expect(revisionOf(await storedDraft())).toBe(revisionOf(before));
     // ...and stays idle on a later render with nothing changed: the settled
     // restored snapshot has no write of its own to be pending for.
-    act(() => apiRef.current.rerender());
-    expect(apiRef.current.draftSaveState).toBe('idle');
+    act(() => api(apiRef).rerender());
+    expect(api(apiRef).draftSaveState).toBe('idle');
     await flushDebounce(40, apiRef);
-    expect(apiRef.current.draftSaveState).toBe('idle');
-    expect((await loadDraft('merge')).revision).toBe(before.revision);
+    expect(api(apiRef).draftSaveState).toBe('idle');
+    expect(revisionOf(await storedDraft())).toBe(revisionOf(before));
 
     // A person changing an option after restore gets the normal one-save
     // lifecycle, proving the quiet baseline did not disable persistence.
-    act(() => apiRef.current.setAddPageNumbers(true));
-    expect(apiRef.current.draftSaveState).toBe('pending');
+    act(() => api(apiRef).setAddPageNumbers(true));
+    expect(api(apiRef).draftSaveState).toBe('pending');
     await flushDebounce(40, apiRef);
-    expect(apiRef.current.draftSaveState).toBe('saved');
-    const afterEdit = await loadDraft('merge');
-    expect(afterEdit.revision).toBe(before.revision + 1);
+    expect(api(apiRef).draftSaveState).toBe('saved');
+    const afterEdit = await storedDraft();
+    expect(revisionOf(afterEdit)).toBe(revisionOf(before) + 1);
 
     // A late pagehide after the debounce is a flush only when there is work
     // it has not already persisted; this settled edit must stay one write.
-    act(() => window.dispatchEvent(new Event('pagehide')));
+    act(() => { window.dispatchEvent(new Event('pagehide')); });
     await flushDebounce(40, apiRef);
-    expect((await loadDraft('merge')).revision).toBe(afterEdit.revision);
+    expect(revisionOf(await storedDraft())).toBe(revisionOf(afterEdit));
   });
 
   // SITE-42: a home-page hand-off beats the restore. The island declines a
@@ -285,8 +323,8 @@ describe('useMergeDraft', () => {
 
   it('saves a set that arrives after a restore the island declined', async () => {
     await storeOldDraft();
-    const apiRef = { current: null };
-    const declined = vi.fn();
+    const apiRef: Ref<UseMergeDraftResult> = { current: null };
+    const declined = vi.fn<OnRestore>();
     await mount(apiRef, baseOptions({ onRestore: declined, autosaveDebounceMs: 40 }));
     expect(declined).toHaveBeenCalledTimes(1);
     act(() => {
@@ -298,14 +336,14 @@ describe('useMergeDraft', () => {
       })} />, container);
     });
     await flushDebounce(40);
-    expect((await loadDraft('merge')).files.map((f) => f.fileName)).toEqual(['new.pdf']);
+    expect((await storedDraft()).files?.map((f) => f.fileName)).toEqual(['new.pdf']);
   });
 
   it('saves a hand-off that replaces a restore still being hydrated', async () => {
     await storeOldDraft();
-    const apiRef = { current: null };
+    const apiRef: Ref<{ replace: (file: File) => void; draft: UseMergeDraftResult }> = { current: null };
     function ReplacedHarness() {
-      const [files, setFiles] = useState([]);
+      const [files, setFiles] = useState<File[]>([]);
       const [hydrated, setHydrated] = useState(false);
       const draft = useMergeDraft(baseOptions({
         autosaveDebounceMs: 40,
@@ -319,9 +357,9 @@ describe('useMergeDraft', () => {
     }
     act(() => render(<ReplacedHarness />, container));
     await restoreSettled();
-    act(() => apiRef.current.replace(makeFile('new.pdf')));
+    act(() => api(apiRef).replace(makeFile('new.pdf')));
     await flushDebounce(40, apiRef);
-    expect((await loadDraft('merge')).files.map((f) => f.fileName)).toEqual(['new.pdf']);
+    expect((await storedDraft()).files?.map((f) => f.fileName)).toEqual(['new.pdf']);
   });
 
   it('treats a stored record with an out-of-range plan fileId as no draft: nothing restored, the record deleted, the hint attribute cleared', async () => {
@@ -337,15 +375,15 @@ describe('useMergeDraft', () => {
     // from the same localStorage hint before this hook ever mounts.
     document.documentElement.setAttribute('data-draft-hint', '');
 
-    const onRestore = vi.fn();
-    const apiRef = { current: null };
+    const onRestore = vi.fn<OnRestore>();
+    const apiRef: Ref<UseMergeDraftResult> = { current: null };
     // The restore clears the hint attribute only after it has deleted the record it rejected.
     await mount(apiRef, baseOptions({ onRestore }), () => !document.documentElement.hasAttribute('data-draft-hint'));
 
     expect(onRestore).not.toHaveBeenCalled();
     expect(await loadDraft('merge')).toBeNull();
     expect(document.documentElement.hasAttribute('data-draft-hint')).toBe(false);
-    expect(apiRef.current.isRestoring).toBe(false);
+    expect(api(apiRef).isRestoring).toBe(false);
   });
 
   it('autosaves 700ms after entries/plan/options change, indexing the plan by array position', async () => {
@@ -355,15 +393,15 @@ describe('useMergeDraft', () => {
       { key: '10:1', fileId: 10, pageIndex: 1, rotation: 0, skipped: true },
       { key: '20:0', fileId: 20, pageIndex: 0, rotation: 90, skipped: false },
     ];
-    const apiRef = { current: null };
+    const apiRef: Ref<UseMergeDraftResult> = { current: null };
     await mount(apiRef, baseOptions({ entries, plan, title: 'merged_invoice' }));
-    expect(apiRef.current.draftSaveState).toBe('pending');
+    expect(api(apiRef).draftSaveState).toBe('pending');
 
     await flushDebounce();
 
-    expect(apiRef.current.draftSaveState).toBe('saved');
-    const record = await loadDraft('merge');
-    expect(record.files.map((f) => f.fileName)).toEqual(['invoice.pdf', 'receipt.pdf']);
+    expect(api(apiRef).draftSaveState).toBe('saved');
+    const record = await storedDraft();
+    expect(record.files?.map((f) => f.fileName)).toEqual(['invoice.pdf', 'receipt.pdf']);
     // Stable per-entry ids (10, 20) become plain array indices in the saved plan.
     expect(record.plan).toEqual([
       { key: '10:0', fileId: 0, pageIndex: 0, rotation: 0, skipped: false },
@@ -383,14 +421,14 @@ describe('useMergeDraft', () => {
       { key: '1:0', fileId: 1, pageIndex: 0, rotation: 0, skipped: false },
       { key: '2:0', fileId: 2, pageIndex: 0, rotation: 0, skipped: false },
     ];
-    const apiRef = { current: null };
+    const apiRef: Ref<UseMergeDraftResult> = { current: null };
     await mount(apiRef, baseOptions({ entries, plan }));
     await flushDebounce();
-    const record = await loadDraft('merge');
-    expect(record.files.map((f) => f.fileType)).toEqual(['application/pdf', 'image/jpeg']);
+    const record = await storedDraft();
+    expect(record.files?.map((f) => f.fileType)).toEqual(['application/pdf', 'image/jpeg']);
 
     act(() => render(null, container));
-    const onRestore = vi.fn();
+    const onRestore = vi.fn<OnRestore>();
     await mount({ current: null }, baseOptions({ onRestore }));
     expect(onRestore.mock.calls[0][0].files.map((f) => f.type)).toEqual(['application/pdf', 'image/jpeg']);
   });
@@ -398,22 +436,22 @@ describe('useMergeDraft', () => {
   it('autosaves the renamed output name once one is set, and it comes back on restore', async () => {
     const entries = [baseEntry(10, 'invoice.pdf', 1)];
     const plan = planForFile(10, 1);
-    const apiRef = { current: null };
+    const apiRef: Ref<UseMergeDraftResult> = { current: null };
     await mount(apiRef, baseOptions({
       entries, plan, title: 'My renamed file', outputName: 'My renamed file', autosaveDebounceMs: 40,
     }));
 
     await flushDebounce(40);
 
-    const record = await loadDraft('merge');
+    const record = await storedDraft();
     expect(record.outputName).toBe('My renamed file');
 
     // A fresh mount, not a re-render of the same Harness instance (which
     // would reuse its already-settled restoreAttempted ref and never call
     // onRestore again) - unmount first, the same way afterEach does.
     act(() => render(null, container));
-    const onRestore = vi.fn();
-    const restoredRef = { current: null };
+    const onRestore = vi.fn<OnRestore>();
+    const restoredRef: Ref<UseMergeDraftResult> = { current: null };
     await mount(restoredRef, baseOptions({ onRestore }));
     expect(onRestore.mock.calls[0][0].outputName).toBe('My renamed file');
   });
@@ -423,23 +461,23 @@ describe('useMergeDraft', () => {
     // A fake byteLength, not a real 200MB allocation: saveMultiFileDraft sums
     // fileBytes.byteLength before it ever hashes the bytes, exactly like
     // draftStore.test.js's own "over MERGE_DRAFT_MAX_BYTES" case.
-    vi.spyOn(entry.file, 'arrayBuffer').mockResolvedValue({ byteLength: MERGE_DRAFT_MAX_BYTES + 1 });
-    const apiRef = { current: null };
+    vi.spyOn(entry.file, 'arrayBuffer').mockResolvedValue(fakeBuffer(MERGE_DRAFT_MAX_BYTES + 1));
+    const apiRef: Ref<UseMergeDraftResult> = { current: null };
     await mount(apiRef, baseOptions({ entries: [entry], plan: planForFile(1, 1), autosaveDebounceMs: 40 }));
 
     await flushDebounce(40);
 
-    expect(apiRef.current.draftSaveState).toBe('error');
+    expect(api(apiRef).draftSaveState).toBe('error');
     expect(await loadDraft('merge')).toBeNull();
   });
 
   it('holds an update only while a save has failed, and releases once a later save succeeds (MEM-10)', async () => {
     const huge = baseEntry(1, 'huge.pdf', 1);
-    vi.spyOn(huge.file, 'arrayBuffer').mockResolvedValue({ byteLength: MERGE_DRAFT_MAX_BYTES + 1 });
-    const apiRef = { current: null };
+    vi.spyOn(huge.file, 'arrayBuffer').mockResolvedValue(fakeBuffer(MERGE_DRAFT_MAX_BYTES + 1));
+    const apiRef: Ref<UseMergeDraftResult> = { current: null };
     await mount(apiRef, baseOptions({ entries: [huge], plan: planForFile(1, 1), autosaveDebounceMs: 40 }));
     await flushDebounce(40);
-    expect(apiRef.current.draftSaveState).toBe('error');
+    expect(api(apiRef).draftSaveState).toBe('error');
     expect(isUpdateHeld()).toBe(true);
 
     const small = baseEntry(2, 'small.pdf', 1);
@@ -447,32 +485,32 @@ describe('useMergeDraft', () => {
       render(<Harness apiRef={apiRef} options={baseOptions({ entries: [small], plan: planForFile(2, 1), autosaveDebounceMs: 40 })} />, container);
     });
     await flushDebounce(40);
-    expect(apiRef.current.draftSaveState).toBe('saved');
+    expect(api(apiRef).draftSaveState).toBe('saved');
     expect(isUpdateHeld()).toBe(false);
   });
 
   it('does not hold an update while saves succeed (MEM-10)', async () => {
-    const apiRef = { current: null };
+    const apiRef: Ref<UseMergeDraftResult> = { current: null };
     await mount(apiRef, baseOptions({ entries: [baseEntry(1, 'a.pdf', 1)], plan: planForFile(1, 1), autosaveDebounceMs: 40 }));
     await flushDebounce(40);
-    expect(apiRef.current.draftSaveState).toBe('saved');
+    expect(api(apiRef).draftSaveState).toBe('saved');
     expect(isUpdateHeld()).toBe(false);
   });
 
   it('keeps a new revision "pending" while an older write is still resolving, and the stale completion cannot regress it', async () => {
-    let resolveStaleRead;
+    let resolveStaleRead: (bytes: ArrayBuffer) => void = () => { throw new Error('arrayBuffer was never read'); };
     const staleReading = Promise.withResolvers<void>();
     const entryA = baseEntry(1, 'a.pdf', 1);
     vi.spyOn(entryA.file, 'arrayBuffer').mockImplementation(
-      () => new Promise((resolve) => { resolveStaleRead = resolve; staleReading.resolve(); }),
+      () => new Promise<ArrayBuffer>((resolve) => { resolveStaleRead = resolve; staleReading.resolve(); }),
     );
-    const apiRef = { current: null };
+    const apiRef: Ref<UseMergeDraftResult> = { current: null };
 
     await mount(apiRef, baseOptions({ entries: [entryA], plan: planForFile(1, 1), autosaveDebounceMs: 40 }));
     await act(async () => { await vi.advanceTimersByTimeAsync(40 + 1); await staleReading.promise; });
     // entryA's buildRecord is now stuck awaiting arrayBuffer(); nothing has
     // reached saveDraft yet for this revision.
-    expect(apiRef.current.draftSaveState).toBe('pending');
+    expect(api(apiRef).draftSaveState).toBe('pending');
 
     const entryB = baseEntry(2, 'b.pdf', 1);
     await act(async () => {
@@ -481,10 +519,10 @@ describe('useMergeDraft', () => {
     // A distinct snapshot bumps the revision; the derived state must read
     // "pending" for the new revision immediately, not the old one's state
     // (which was also "pending", but for a write that will never resolve).
-    expect(apiRef.current.draftSaveState).toBe('pending');
+    expect(api(apiRef).draftSaveState).toBe('pending');
 
     await flushDebounce(40);
-    expect(apiRef.current.draftSaveState).toBe('saved');
+    expect(api(apiRef).draftSaveState).toBe('saved');
 
     // The stale write now finishes. Its completion is for a revision that is
     // no longer current, so it must not be allowed to change the state.
@@ -496,22 +534,22 @@ describe('useMergeDraft', () => {
     // it is done, so its completion has had its chance to repaint the state. One more turn runs its tail.
     let staleStored = false;
     await waitUntil(() => {
-      void loadDraft('merge').then((record) => { staleStored = record?.files[0]?.fileName === 'a.pdf'; });
+      void loadDraft('merge').then((record) => { staleStored = record?.files?.[0]?.fileName === 'a.pdf'; });
       return staleStored;
     });
     await drain();
-    expect(apiRef.current.draftSaveState).toBe('saved');
+    expect(api(apiRef).draftSaveState).toBe('saved');
   });
 
   it('clearDraft deletes the pointer (MEM-01: the entry itself stays in recents)', async () => {
     const entry = baseEntry(1, 'a.pdf', 1);
-    const apiRef = { current: null };
+    const apiRef: Ref<UseMergeDraftResult> = { current: null };
     await mount(apiRef, baseOptions({ entries: [entry], plan: planForFile(1, 1), autosaveDebounceMs: 40 }));
     await flushDebounce(40);
     expect(await loadDraft('merge')).not.toBeNull();
 
     await act(async () => {
-      await apiRef.current.clearDraft();
+      await api(apiRef).clearDraft();
     });
 
     // loadDraft('merge') follows the pointer, which clearDraft just dropped -
@@ -529,20 +567,20 @@ describe('useMergeDraft', () => {
   // store directly.
   it('clearDraft ("Clear all") leaves the file set in recents with an empty work map', async () => {
     const entry = baseEntry(1, 'a.pdf', 1);
-    const apiRef = { current: null };
+    const apiRef: Ref<UseMergeDraftResult> = { current: null };
     await mount(apiRef, baseOptions({ entries: [entry], plan: planForFile(1, 1), autosaveDebounceMs: 40 }));
     await flushDebounce(40);
     const id = await sourceIdForFiles([{ fileBytes: await entry.file.arrayBuffer() }]);
 
     await act(async () => {
-      await apiRef.current.clearDraft();
+      await api(apiRef).clearDraft();
     });
 
     const recovered = await loadRecentFile(id);
     expect(recovered).not.toBeNull();
-    expect(recovered.files).toHaveLength(1);
-    expect(new TextDecoder().decode(recovered.files[0].fileBytes)).toBe('%PDF-1.4 a.pdf');
-    expect(recovered.work).toEqual({});
+    expect(recovered?.files).toHaveLength(1);
+    expect(new TextDecoder().decode(recovered?.files?.[0]?.fileBytes)).toBe('%PDF-1.4 a.pdf');
+    expect(recovered?.work).toEqual({});
   });
 
   // DEBT-13: replaces merge-restore.spec.js's "moving the pointer to a second
@@ -571,6 +609,7 @@ describe('useMergeDraft', () => {
     });
     const entryAId = readCurrentEntryId('merge');
     expect(entryAId).toBeTruthy();
+    if (!entryAId) throw new Error('saveDraft did not point merge at an entry');
 
     // A second, unrelated file set - saving it moves the 'merge' pointer.
     await saveDraft('merge', {
@@ -584,7 +623,7 @@ describe('useMergeDraft', () => {
 
     setCurrentEntry('merge', entryAId);
     const restored = await loadDraft('merge');
-    expect(restored.plan).toEqual([
+    expect(restored?.plan).toEqual([
       { key: '0:0', fileId: 0, pageIndex: 0, rotation: 90, skipped: false },
       { key: '1:0', fileId: 1, pageIndex: 0, rotation: 0, skipped: false },
     ]);
@@ -594,7 +633,7 @@ describe('useMergeDraft', () => {
     const spy = vi.spyOn(File.prototype, 'arrayBuffer');
     const entryA = baseEntry(1, 'a.pdf', 1);
     const entryB = baseEntry(2, 'b.pdf', 1);
-    const apiRef = { current: null };
+    const apiRef: Ref<UseMergeDraftResult> = { current: null };
 
     await mount(apiRef, baseOptions({ entries: [entryA], plan: planForFile(1, 1), autosaveDebounceMs: 40 }));
     await flushDebounce(40);
@@ -626,13 +665,13 @@ describe('useMergeDraft', () => {
   // MEM-10: an update reload must verify the pending save is written first.
   it('flushBeforeUpdateReload writes the pending edit before the debounce and waits for the write', async () => {
     const entry = baseEntry(1, 'a.pdf', 1);
-    let releaseRead;
+    let releaseRead: () => void = () => { throw new Error('arrayBuffer was never read'); };
     const reading = Promise.withResolvers<void>();
     const realRead = entry.file.arrayBuffer.bind(entry.file);
     vi.spyOn(entry.file, 'arrayBuffer').mockImplementation(
-      () => new Promise((resolve) => { releaseRead = () => resolve(realRead()); reading.resolve(); }),
+      () => new Promise<ArrayBuffer>((resolve) => { releaseRead = () => resolve(realRead()); reading.resolve(); }),
     );
-    const apiRef = { current: null };
+    const apiRef: Ref<UseMergeDraftResult> = { current: null };
     // A debounce far longer than the test: only the reload flush can write.
     await mount(apiRef, baseOptions({
       entries: [entry], plan: planForFile(1, 1), title: 'latest-title', autosaveDebounceMs: 60000,
@@ -646,11 +685,11 @@ describe('useMergeDraft', () => {
 
     await act(async () => { releaseRead(); await reload; });
     expect(done).toBe(true);
-    expect((await loadDraft('merge')).fileName).toBe('latest-title');
+    expect((await storedDraft()).fileName).toBe('latest-title');
   });
 
   it('flushBeforeUpdateReload writes nothing after unmount', async () => {
-    const apiRef = { current: null };
+    const apiRef: Ref<UseMergeDraftResult> = { current: null };
     await mount(apiRef, baseOptions({
       entries: [baseEntry(1, 'a.pdf', 1)], plan: planForFile(1, 1), autosaveDebounceMs: 60000,
     }));

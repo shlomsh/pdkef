@@ -1,15 +1,14 @@
-// @ts-nocheck - renamed from .jsx, not yet typed; see TODO.md 'Type the interactive shell'
 import 'fake-indexeddb/auto';
 import { IDBFactory } from 'fake-indexeddb';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { readFileSync } from 'node:fs';
 import { drainPromises } from '../test/support/drainPromises.ts';
-import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
+import { describe, expect, it, vi, afterEach, beforeEach, type Mock } from 'vitest';
 import FileDropzone, { tileCopy, isolateNames, LAUNCHER_PICK_EVENT } from './FileDropzone.tsx';
 import { englishFileDropzoneMessages as en } from './fileDropzoneMessages';
 import { consumeRecentOpen } from '#lib/handoff/fileArrival.ts';
-import { cacheRecentFile, saveDraft, saveHandoff, setCurrentEntry, readRecentFiles, loadRecentFile, takeHandoff, removeRecentEntry, peekHandoff } from '#lib/drafts/draftStore.ts';
+import { cacheRecentFile, saveDraft, saveHandoff, setCurrentEntry, readRecentFiles, loadRecentFile, takeHandoff, removeRecentEntry } from '#lib/drafts/draftStore.ts';
 import { RECENT_FILES_META_KEY } from '#lib/drafts/recentFilesKey.js';
 import { setInputFiles } from '../test/support/setInputFiles.js';
 import { waitUntil } from '../test/support/waitUntil.ts';
@@ -23,7 +22,7 @@ answerNetwork();
 vi.mock('#lib/drafts/draftStore.ts', { spy: true });
 
 // The recents index in the store's own storage format: the reader under test parses it for real.
-const seedRecents = (entries) => localStorage.setItem(RECENT_FILES_META_KEY, JSON.stringify(entries));
+const seedRecents = (entries: Record<string, unknown>[]) => localStorage.setItem(RECENT_FILES_META_KEY, JSON.stringify(entries));
 
 // A real hand-off parks the file in IndexedDB before the page moves on: wait for every one the tile started.
 const landed = async () => {
@@ -31,9 +30,28 @@ const landed = async () => {
   await act(async () => { await drainPromises(); });
 };
 
-function dropOn(dropzone, files) {
-  const event = new Event('drop', { bubbles: true, cancelable: true });
-  event.dataTransfer = { files };
+// The one-file and the file-list shape of what a tile hands to saveHandoff; a test reads the shape it expects.
+type HandoffArg = Parameters<typeof saveHandoff>[1];
+const isSingleFile = (record: HandoffArg): record is Extract<HandoffArg, { fileName: string }> => 'fileName' in record;
+const isFileList = (record: HandoffArg): record is Extract<HandoffArg, { files: unknown }> => 'files' in record;
+function singleFile(record: HandoffArg) {
+  if (!isSingleFile(record)) throw new Error('expected a one-file hand-off');
+  return record;
+}
+function fileList(record: HandoffArg) {
+  if (!isFileList(record)) throw new Error('expected a hand-off of several files');
+  return record.files;
+}
+
+// What the tile announced to the closing launcher: the detail of the first pick event the spy heard.
+function launcherDetail(heard: Mock<(event: Event) => void>): { files: File[]; skipped: File[] } {
+  const event = heard.mock.calls[0][0];
+  if (!(event instanceof CustomEvent)) throw new Error('the launcher pick event was not a CustomEvent');
+  return event.detail;
+}
+
+function dropOn(dropzone: HTMLElement, files: File[]) {
+  const event = Object.assign(new Event('drop', { bubbles: true, cancelable: true }), { dataTransfer: { files } });
   return act(async () => {
     dropzone.dispatchEvent(event);
     // The handoff path is async (file.arrayBuffer(), then saveHandoff) before it commits.
@@ -42,7 +60,8 @@ function dropOn(dropzone, files) {
 }
 
 describe('FileDropzone', () => {
-  let container;
+  let container: HTMLElement;
+  let isMounted = false;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -52,14 +71,15 @@ describe('FileDropzone', () => {
   });
 
   afterEach(() => {
-    if (container) {
+    if (isMounted) {
       act(() => render(null, container));
       container.remove();
-      container = null;
+      isMounted = false;
     }
   });
 
   function mount(props = {}) {
+    isMounted = true;
     container = document.createElement('div');
     container.setAttribute('data-working-area', '');
     document.body.appendChild(container);
@@ -71,7 +91,7 @@ describe('FileDropzone', () => {
   it('provides a keyboard-accessible compact picker for one document', () => {
     mount();
     expect(container.querySelector('[data-home-picker]').tagName).toBe('BUTTON');
-    const input = container.querySelector('input[type="file"]');
+    const input = container.querySelector<HTMLInputElement>('input[type="file"]');
     // SITE-42: several files, PDFs and JPEG/PNG photos, routed by routeFiles.
     expect(input.multiple).toBe(true);
     expect(input.accept).toBe('application/pdf,.pdf,image/jpeg,image/png,.jpg,.jpeg,.png');
@@ -84,7 +104,7 @@ describe('FileDropzone', () => {
       const link = container.querySelector('a[href^="/drive/"]');
       expect(link).not.toBeNull();
       expect(link.textContent).toBe('Open from Google Drive');
-      expect(link.previousElementSibling.tagName).toBe('INPUT');
+      expect(link.previousElementSibling?.tagName).toBe('INPUT');
       const logo = link.querySelector('img');
       expect(logo.getAttribute('src')).toBe('/images/brand/google-drive.png');
       expect(logo.getAttribute('alt')).toBe('');
@@ -99,7 +119,7 @@ describe('FileDropzone', () => {
     it('returns to the page it came from', () => {
       window.history.pushState({}, '', '/he/');
       mount();
-      expect(decodeURIComponent(container.querySelector('a[href^="/drive/"]').getAttribute('href'))).toContain('/he/');
+      expect(decodeURIComponent(container.querySelector('a[href^="/drive/"]').getAttribute('href') ?? '')).toContain('/he/');
       window.history.pushState({}, '', '/');
     });
 
@@ -175,7 +195,7 @@ describe('FileDropzone', () => {
       mount();
       await act(async () => { await Promise.resolve(); });
 
-      const labelCount = (label) => Array.from(container.querySelectorAll('li span'))
+      const labelCount = (label: string) => Array.from(container.querySelectorAll('li span'))
         .filter((span) => span.textContent === label).length;
       expect(container.querySelectorAll('li')).toHaveLength(2);
       expect(labelCount('Sign & Fill PDF')).toBe(1);
@@ -193,6 +213,7 @@ describe('FileDropzone', () => {
       seedRecents([{
         id: 'sha256:contract', tool: 'sign', fileName: 'contract.pdf', savedAt: Date.now(),
       }]);
+      isMounted = true;
       container = document.createElement('div');
       container.setAttribute('data-working-area', '');
       document.body.appendChild(container);
@@ -245,7 +266,7 @@ describe('FileDropzone', () => {
     it('opens a recent file by pointer alone, never through the hand-off that discards work', async () => {
       // The record is really in the store, whole PDF and all: the tile still must not read it.
       await cacheRecentFile('sign', { fileName: 'contract.pdf', fileType: 'application/pdf', fileBytes: new TextEncoder().encode('%PDF-1.4').buffer });
-      const id = JSON.parse(localStorage.getItem(RECENT_FILES_META_KEY))[0].id;
+      const id = JSON.parse(localStorage.getItem(RECENT_FILES_META_KEY) ?? '[]')[0].id;
       vi.mocked(readRecentFiles).mockClear();
       mount();
       await act(async () => { await Promise.resolve(); });
@@ -297,7 +318,7 @@ describe('FileDropzone', () => {
       ]);
       mount();
       await act(async () => { await Promise.resolve(); });
-      const tiles = () => Array.from(container.querySelectorAll('button[aria-label^="Open recent PDF"]'));
+      const tiles = () => Array.from(container.querySelectorAll<HTMLButtonElement>('button[aria-label^="Open recent PDF"]'));
 
       await act(async () => { tiles()[0].click(); });
       expect(setCurrentEntry).toHaveBeenLastCalledWith('sign', 'sha256:first');
@@ -305,8 +326,7 @@ describe('FileDropzone', () => {
       expect(container.querySelector('[data-home-picker]').textContent).toContain('Opening');
 
       await act(async () => {
-        const restore = new Event('pageshow');
-        restore.persisted = true;
+        const restore = Object.assign(new Event('pageshow'), { persisted: true });
         window.dispatchEvent(restore);
       });
 
@@ -356,11 +376,10 @@ describe('FileDropzone', () => {
 
   it('indicates file drags across the whole working area', () => {
     mount();
-    const event = new Event('dragover', { bubbles: true, cancelable: true });
-    event.dataTransfer = { types: ['Files'] };
-    act(() => container.dispatchEvent(event));
+    const event = Object.assign(new Event('dragover', { bubbles: true, cancelable: true }), { dataTransfer: { types: ['Files'] } });
+    act(() => { container.dispatchEvent(event); });
     expect(container.hasAttribute('data-drag-over')).toBe(true);
-    act(() => container.dispatchEvent(new Event('dragleave', { bubbles: true })));
+    act(() => { container.dispatchEvent(new Event('dragleave', { bubbles: true })); });
     expect(container.hasAttribute('data-drag-over')).toBe(false);
   });
 
@@ -374,7 +393,7 @@ describe('FileDropzone', () => {
     // SITE-42: one PDF no longer goes straight to toolTarget; it waits for a
     // click on a lit toolbar link, so these tests give it a one-link dock and
     // make that click. The hand-off record and failure handling are unchanged.
-    let hero;
+    let hero: HTMLElement;
     beforeEach(() => {
       hero = document.createElement('div');
       hero.className = 'home-hero';
@@ -401,9 +420,9 @@ describe('FileDropzone', () => {
       expect(saveHandoff).toHaveBeenCalledTimes(1);
       const [tool, record] = vi.mocked(saveHandoff).mock.calls[0];
       expect(tool).toBe('sign');
-      expect(record.fileName).toBe('contract.pdf');
-      expect(record.fileType).toBe('application/pdf');
-      expect(record.fileBytes.byteLength).toBeGreaterThan(0);
+      expect(singleFile(record).fileName).toBe('contract.pdf');
+      expect(singleFile(record).fileType).toBe('application/pdf');
+      expect(singleFile(record).fileBytes.byteLength).toBeGreaterThan(0);
       expect(record.from).toBe('home');
 
       // The bug this replaces: writing the drop into the draft key destroyed
@@ -418,7 +437,7 @@ describe('FileDropzone', () => {
     // the input (see setInputFiles.js's own note on why that order matters).
     it('parks the file in a handoff when chosen via the file input too', async () => {
       mount({ toolTarget: 'sign' });
-      const input = container.querySelector('input[type="file"]');
+      const input = container.querySelector<HTMLInputElement>('input[type="file"]');
 
       await act(async () => {
         setInputFiles(input, [pdf()]);
@@ -428,7 +447,7 @@ describe('FileDropzone', () => {
 
       expect(saveHandoff).toHaveBeenCalledTimes(1);
       expect(vi.mocked(saveHandoff).mock.calls[0][0]).toBe('sign');
-      expect(vi.mocked(saveHandoff).mock.calls[0][1].fileName).toBe('contract.pdf');
+      expect(singleFile(vi.mocked(saveHandoff).mock.calls[0][1]).fileName).toBe('contract.pdf');
       expect(input.value).toBe('');
     });
 
@@ -444,7 +463,7 @@ describe('FileDropzone', () => {
 
       expect(container.querySelector('dialog')).toBeNull();
       expect(saveHandoff).toHaveBeenCalledTimes(1);
-      expect(vi.mocked(saveHandoff).mock.calls[0][1].fileName).toBe('contract.pdf');
+      expect(singleFile(vi.mocked(saveHandoff).mock.calls[0][1]).fileName).toBe('contract.pdf');
     });
 
     it('ignores an empty drop', async () => {
@@ -511,11 +530,11 @@ describe('FileDropzone', () => {
     };
     const pdf = (name = 'a.pdf') => new File(['%PDF'], name, { type: 'application/pdf' });
     const photo = (name = 'p.jpg') => new File(['jpg'], name, { type: 'image/jpeg' });
-    let hero, dock, back, realLocation, scrollIntoView;
-    const link = (tool) => dock.querySelector(`[data-tool="${tool}"]`);
-    const picker = () => container.querySelector('[data-home-picker]');
+    let hero: HTMLElement, dock: HTMLElement, back: HTMLAnchorElement, realLocation: PropertyDescriptor | undefined, scrollIntoView: Mock<Element['scrollIntoView']>;
+    const link = (tool: string) => dock.querySelector(`[data-tool="${tool}"]`);
+    const picker = () => container.querySelector<HTMLButtonElement>('[data-home-picker]');
     const flush = () => act(async () => { await drainPromises(); });
-    const pick = async (files, root = container) => {
+    const pick = async (files: File[], root: HTMLElement = container) => {
       await act(async () => {
         setInputFiles(root.querySelector('input[type="file"]'), files);
         await drainPromises();
@@ -545,8 +564,8 @@ describe('FileDropzone', () => {
     afterEach(() => {
       hero.remove();
       back.remove();
-      Object.defineProperty(window, 'location', realLocation);
-      delete Element.prototype.scrollIntoView;
+      if (realLocation) Object.defineProperty(window, 'location', realLocation);
+      Reflect.deleteProperty(Element.prototype, 'scrollIntoView');
     });
 
     it('opens Merge for several PDFs, lighting it on the way', async () => {
@@ -555,9 +574,9 @@ describe('FileDropzone', () => {
       expect(saveHandoff).toHaveBeenCalledTimes(1);
       const [key, record] = vi.mocked(saveHandoff).mock.calls[0];
       expect(key).toBe('merge');
-      expect(record.files.map((f) => f.fileName)).toEqual(['a.pdf', 'b.pdf']);
-      expect(record.files[0].fileType).toBe('application/pdf');
-      expect(record.files[0].fileBytes.byteLength).toBeGreaterThan(0);
+      expect(fileList(record).map((f) => f.fileName)).toEqual(['a.pdf', 'b.pdf']);
+      expect(fileList(record)[0].fileType).toBe('application/pdf');
+      expect(fileList(record)[0].fileBytes.byteLength).toBeGreaterThan(0);
       expect(window.location.href).toBe('/merge/');
       expect(hero.hasAttribute('data-picking')).toBe(true);
       expect(lit()).toEqual(['merge']);
@@ -570,7 +589,7 @@ describe('FileDropzone', () => {
       await pick([new File(['x'], 'one.JPG'), new File(['y'], 'two.png')]);
       const [key, record] = vi.mocked(saveHandoff).mock.calls[0];
       expect(key).toBe('image-to-pdf');
-      expect(record.files.map((f) => f.fileType)).toEqual(['image/jpeg', 'image/png']);
+      expect(fileList(record).map((f) => f.fileType)).toEqual(['image/jpeg', 'image/png']);
       expect(window.location.href).toBe('/image-to-pdf/');
     });
 
@@ -594,7 +613,7 @@ describe('FileDropzone', () => {
       expect(container.querySelector('[aria-live="polite"]').textContent).toBe('Now pick a tool below');
       expect(document.activeElement).toBe(link('redact'));
       expect(dock.scrollTo).toHaveBeenCalledTimes(1);
-      expect(dock.scrollTo.mock.calls[0][0]).toMatchObject({ left: expect.any(Number) });
+      expect(vi.mocked(dock.scrollTo).mock.calls[0][0]).toMatchObject({ left: expect.any(Number) });
       expect(scrollIntoView).not.toHaveBeenCalled();
     });
 
@@ -609,7 +628,7 @@ describe('FileDropzone', () => {
       link('image-to-pdf').getBoundingClientRect = () => rect as DOMRect;
       mount();
       await pick([new File(['x'], 'photo.jpg', { type: 'image/jpeg' })]);
-      expect(dock.scrollTo.mock.calls[0][0].left).toBe(expected);
+      expect(vi.mocked(dock.scrollTo).mock.calls[0][0]).toMatchObject({ left: expected });
     });
 
     // Merge takes photos too, but only alongside a PDF does the toolbar offer it (MERGE-22).
@@ -630,8 +649,8 @@ describe('FileDropzone', () => {
       expect(click.defaultPrevented).toBe(true);
       const [key, record] = vi.mocked(saveHandoff).mock.calls[0];
       expect(key).toBe('compress');
-      expect(record.fileName).toBe('p.jpg');
-      expect(record.fileType).toBe('image/jpeg');
+      expect(singleFile(record).fileName).toBe('p.jpg');
+      expect(singleFile(record).fileType).toBe('image/jpeg');
       expect(window.location.href).toBe('/compress-image/');
     });
 
@@ -677,7 +696,7 @@ describe('FileDropzone', () => {
       mount();
       await pick([pdf(), pdf('b.pdf')]);
       expect(picker().disabled).toBe(true);
-      await act(async () => { const e = new Event('pageshow'); e.persisted = true; window.dispatchEvent(e); });
+      await act(async () => { window.dispatchEvent(Object.assign(new Event('pageshow'), { persisted: true })); });
       expectRest();
       expect(picker().disabled).toBe(false);
     });
@@ -688,8 +707,8 @@ describe('FileDropzone', () => {
       expect(saveHandoff).toHaveBeenCalledTimes(1);
       const [key, record] = vi.mocked(saveHandoff).mock.calls[0];
       expect(key).toBe('merge');
-      expect(record.files.map((f) => f.fileName)).toEqual(['p.jpg', 'a.pdf']);
-      expect(record.files.map((f) => f.fileType)).toEqual(['image/jpeg', 'application/pdf']);
+      expect(fileList(record).map((f) => f.fileName)).toEqual(['p.jpg', 'a.pdf']);
+      expect(fileList(record).map((f) => f.fileType)).toEqual(['image/jpeg', 'application/pdf']);
       expect(window.location.href).toBe('/merge/');
       expect(lit()).toEqual(['merge']);
     });
@@ -726,7 +745,7 @@ describe('FileDropzone', () => {
       await flush();
       expect(seen.map((r) => `${r.method} ${r.url}`)).toEqual(['GET http://localhost:3000/images/redaction-guide/sample.pdf']);
       expect(vi.mocked(saveHandoff).mock.calls[0][0]).toBe('sign');
-      expect(vi.mocked(saveHandoff).mock.calls[0][1].fileName).toBe('PDkef practice form.pdf');
+      expect(singleFile(vi.mocked(saveHandoff).mock.calls[0][1]).fileName).toBe('PDkef practice form.pdf');
       expect(window.location.href).toBe('/sign/');
       expect(lit()).toEqual([]);
     });
@@ -741,7 +760,7 @@ describe('FileDropzone', () => {
     it('closing launcher: one file clicks the return link and tells the first screen, waking nothing itself', async () => {
       const clicked = vi.fn();
       back.addEventListener('click', clicked);
-      const heard = vi.fn();
+      const heard = vi.fn<(event: Event) => void>();
       window.addEventListener(LAUNCHER_PICK_EVENT, heard);
       mount({ final: true });
       const f = pdf('far.pdf');
@@ -749,7 +768,7 @@ describe('FileDropzone', () => {
       window.removeEventListener(LAUNCHER_PICK_EVENT, heard);
       expect(clicked).toHaveBeenCalledTimes(1);
       expect(heard).toHaveBeenCalledTimes(1);
-      expect(heard.mock.calls[0][0].detail.files.map((x) => x.name)).toEqual(['far.pdf']);
+      expect(launcherDetail(heard).files.map((x) => x.name)).toEqual(['far.pdf']);
       expect(LAUNCHER_PICK_EVENT).toBe('pdkef:launcher-pick');
       expect(saveHandoff).not.toHaveBeenCalled();
       expect(lit()).toEqual([]);
@@ -770,7 +789,7 @@ describe('FileDropzone', () => {
     describe('review findings', () => {
       const ARROW = 'svg[viewBox="0 0 40 72"]';
       // `held`: the test forced a hand-off that never finishes, so there is nothing to wait for.
-      const clickLink = (tool, init = {}, held = false) => {
+      const clickLink = (tool: string, init: MouseEventInit = {}, held = false) => {
         const click = new MouseEvent('click', { bubbles: true, cancelable: true, ...init });
         return act(async () => { link(tool).dispatchEvent(click); await flush(); }).then(held ? undefined : landed).then(() => click);
       };
@@ -791,7 +810,7 @@ describe('FileDropzone', () => {
         const paths = picker().querySelectorAll(`${ARROW} path`);
         expect(paths).toHaveLength(1);
         // Two subpaths (shaft, then head) in the one path element.
-        expect(paths[0].getAttribute('d').match(/M/g)).toHaveLength(2);
+        expect(paths[0].getAttribute('d')?.match(/M/g)).toHaveLength(2);
         expect(paths[0].getAttribute('pathLength')).toBe('1');
       });
 
@@ -834,8 +853,8 @@ describe('FileDropzone', () => {
         expect(saveHandoff).toHaveBeenCalledTimes(1);
         const [key, record] = vi.mocked(saveHandoff).mock.calls[0];
         expect(key).toBe('sign');
-        expect(record.fileName).toBe('contract.pdf');
-        expect(new TextDecoder().decode(record.fileBytes)).toBe('%PDF');
+        expect(singleFile(record).fileName).toBe('contract.pdf');
+        expect(new TextDecoder().decode(singleFile(record).fileBytes)).toBe('%PDF');
         expect(window.location.href).toBe('/sign/');
       });
 
@@ -878,10 +897,10 @@ describe('FileDropzone', () => {
         expect(container.querySelector('[data-tone="note"]')).toBeNull();
       });
 
-      const restore = () => act(async () => { const e = new Event('pageshow'); e.persisted = true; window.dispatchEvent(e); });
+      const restore = () => act(async () => { window.dispatchEvent(Object.assign(new Event('pageshow'), { persisted: true })); });
       const txt = (name = 'a.txt') => new File(['x'], name, { type: 'text/plain' });
       const noteOf = () => container.querySelector('[data-home-picker] [data-tone="note"]');
-      const unreadable = (name) => { const f = pdf(name); f.arrayBuffer = () => Promise.reject(new DOMException('gone', 'NotReadableError')); return f; };
+      const unreadable = (name: string) => { const f = pdf(name); f.arrayBuffer = () => Promise.reject(new DOMException('gone', 'NotReadableError')); return f; };
       const escape = (init = {}) => act(async () => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true, ...init })); });
 
       it('lets a lit tool open again after a restore from the back/forward cache', async () => {
@@ -931,7 +950,7 @@ describe('FileDropzone', () => {
       });
 
       it('closing launcher: rests on "or drop them here", sets no note on a choice, and passes the left-out files up', async () => {
-        const heard = vi.fn();
+        const heard = vi.fn<(event: Event) => void>();
         window.addEventListener(LAUNCHER_PICK_EVENT, heard);
         mount({ final: true });
         expect(picker().textContent).toContain('or drop them here');
@@ -939,17 +958,17 @@ describe('FileDropzone', () => {
         await pick([pdf('far.pdf'), txt('b.txt')]);
         window.removeEventListener(LAUNCHER_PICK_EVENT, heard);
         expect(noteOf()).toBeNull();
-        expect(heard.mock.calls[0][0].detail.skipped.map((x) => x.name)).toEqual(['b.txt']);
+        expect(launcherDetail(heard).skipped.map((x) => x.name)).toEqual(['b.txt']);
       });
 
       it('closing launcher: sends read copies, and the first screen does not read them again', async () => {
-        const heard = vi.fn();
+        const heard = vi.fn<(event: Event) => void>();
         window.addEventListener(LAUNCHER_PICK_EVENT, heard);
         mount({ final: true });
         const f = pdf('far.pdf');
         await pick([f]);
         window.removeEventListener(LAUNCHER_PICK_EVENT, heard);
-        const sent = heard.mock.calls[0][0].detail.files[0];
+        const sent = launcherDetail(heard).files[0];
         expect(sent).not.toBe(f);
         expect(new TextDecoder().decode(await sent.arrayBuffer())).toBe('%PDF');
         act(() => render(null, container));
@@ -972,9 +991,9 @@ describe('FileDropzone', () => {
 
       it('shows the busy tile while the bytes are read', async () => {
         mount();
-        let finish;
+        let finish: () => void = () => { throw new Error('arrayBuffer was never read'); };
         const slow = pdf('slow.pdf');
-        slow.arrayBuffer = () => new Promise((r) => { finish = () => r(new ArrayBuffer(4)); });
+        slow.arrayBuffer = () => new Promise<ArrayBuffer>((r) => { finish = () => r(new ArrayBuffer(4)); });
         await pick([slow]);
         expect(picker().textContent).toContain('Opening…');
         await act(async () => { finish(); await flush(); });
@@ -984,9 +1003,9 @@ describe('FileDropzone', () => {
 
       it('lets a newer pick win over a slower, older read', async () => {
         mount();
-        let finish;
+        let finish: () => void = () => { throw new Error('arrayBuffer was never read'); };
         const slow = pdf('old.pdf');
-        slow.arrayBuffer = () => new Promise((r) => { finish = () => r(new ArrayBuffer(4)); });
+        slow.arrayBuffer = () => new Promise<ArrayBuffer>((r) => { finish = () => r(new ArrayBuffer(4)); });
         await pick([slow]);
         await pick([pdf('new.pdf')]);
         await act(async () => { finish(); await flush(); });
@@ -1002,7 +1021,7 @@ describe('FileDropzone', () => {
         expect(noteOf().textContent).toBe(`Left out: ${isolateNames([{ name: 'bad.pdf' }])}`);
         await pick([pdf('g1.pdf'), pdf('g2.pdf'), unreadable('bad.pdf')]);
         expect(vi.mocked(saveHandoff).mock.calls[0][0]).toBe('merge');
-        expect(vi.mocked(saveHandoff).mock.calls[0][1].files.map((f) => f.fileName)).toEqual(['g1.pdf', 'g2.pdf']);
+        expect(fileList(vi.mocked(saveHandoff).mock.calls[0][1]).map((f) => f.fileName)).toEqual(['g1.pdf', 'g2.pdf']);
         expect(vi.mocked(saveHandoff).mock.calls[0][1].from).toBe('home');
       });
 
@@ -1018,7 +1037,7 @@ describe('FileDropzone', () => {
       it('ignores an Escape someone already handled, or one pressed inside an open dialog', async () => {
         mount();
         await pick([pdf()]);
-        const stop = (e) => e.preventDefault();
+        const stop = (e: Event) => e.preventDefault();
         window.addEventListener('keydown', stop, true);
         await escape();
         window.removeEventListener('keydown', stop, true);
@@ -1061,11 +1080,12 @@ describe('FileDropzone', () => {
       { id: 'sha256:first', tool: 'sign', fileName: 'first.pdf', savedAt: Date.now() },
       { id: 'sha256:second', tool: 'sign', fileName: 'second.pdf', savedAt: Date.now() },
     ];
-    const confirm = async (label) => {
+    const confirm = async (label: string) => {
       const button = Array.from(container.querySelectorAll('dialog button')).find((x) => x.textContent === label);
+      if (!button) throw new Error(`no dialog button labelled ${label}`);
       await act(async () => { button.click(); });
     };
-    const tiles = () => container.querySelectorAll('button[aria-label^="Open recent PDF"]');
+    const tiles = () => container.querySelectorAll<HTMLButtonElement>('button[aria-label^="Open recent PDF"]');
 
     it('keeps the tile and shows a message when the removal fails', async () => {
       seedRecents(two());
