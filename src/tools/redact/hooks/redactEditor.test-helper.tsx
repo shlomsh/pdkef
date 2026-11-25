@@ -1,5 +1,8 @@
 import { render } from 'preact';
-import type { PDFDocumentProxy } from 'pdfjs-dist';
+import { getPdfjs } from '#lib/pdf/loadPdfjs.js';
+import { PDFJS_WASM_URL } from '#lib/pdf/pdfjsWasm.js';
+import '../../../test/support/realPdfjs.ts';
+import { buildPdf } from '../../../test/support/redactCheckPdfs.test-helper.ts';
 import { useReducer } from 'preact/hooks';
 import { act } from 'preact/test-utils';
 import type { DocumentStyle } from '#editor/model/documentStyle.ts';
@@ -24,9 +27,13 @@ export interface MountedRedactEditor {
   unmount: () => void;
 }
 
+// One real three-page file, opened once by the shipped pdf.js; every mount shares it (a mount is synchronous,
+// a document opens asynchronously, and no test here asks for more than three pages).
+const sharedDocument = await (await getPdfjs()).getDocument({ data: await buildPdf([{ lines: ['one'] }, { lines: ['two'] }, { lines: ['three'] }]), wasmUrl: PDFJS_WASM_URL }).promise;
+
 /**
- * The island's editing side over the real reducer, with no pdf.js: the file is opened with
- * FILE_INITIALIZED and pdfDocument stays null, then `numPages` pages are laid out by the real
+ * The island's editing side over the real reducer: the file is opened with FILE_INITIALIZED, the shared
+ * real pdf.js document is handed over with DOCUMENT_READY, then `numPages` pages are laid out by the real
  * useRedactPages. The host is attached to document.body, because Escape, click-outside and Peek keys
  * are window and document listeners. `render: true` also renders the real page column and toolbar.
  * `styles` is the document's own carried style, as a restored draft brings it.
@@ -40,6 +47,7 @@ export function mountRedactEditor({ numPages = 1, elements = [], fileBytes = nul
   styles?: Partial<DocumentStyle>;
   render?: boolean;
 } = {}): MountedRedactEditor {
+  if (numPages > sharedDocument.numPages) throw new Error(`the shared document has ${sharedDocument.numPages} pages, not ${numPages}`);
   const root = document.createElement('div');
   document.body.appendChild(root);
   let current!: { state: RedactState; editor: RedactEditor; dispatch: (action: RedactAction) => void };
@@ -78,8 +86,7 @@ export function mountRedactEditor({ numPages = 1, elements = [], fileBytes = nul
       activeColor: resolveWhiteoutColor(styles, getAppStyle(), getEditorPreference('lastWhiteoutColor')),
       activeBlurStrength: resolveRedactBlurStrength(styles, getAppStyle(), getEditorPreference('lastBlurStrength')),
     });
-    // forced: DOCUMENT_READY is the only action that sets numPages, and it wants a pdf.js document; the pages draw nothing without one
-    current.dispatch({ type: 'DOCUMENT_READY', pdfDocument: null as unknown as PDFDocumentProxy, numPages });
+    current.dispatch({ type: 'DOCUMENT_READY', pdfDocument: sharedDocument, numPages });
     current.dispatch({ type: 'FILE_LOADED' });
   });
 

@@ -1,7 +1,12 @@
 import { render } from 'preact';
 import { useReducer } from 'preact/hooks';
 import { act } from 'preact/test-utils';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { PDFDocumentLoadingTask, PDFDocumentProxy } from 'pdfjs-dist';
+import { getPdfjs } from '#lib/pdf/loadPdfjs.js';
+import { PDFJS_WASM_URL } from '#lib/pdf/pdfjsWasm.js';
+import '../../../test/support/realPdfjs.ts';
+import { buildPdf } from '../../../test/support/redactCheckPdfs.test-helper.ts';
 import RedactWorkspaceToolbar from './RedactWorkspaceToolbar.tsx';
 import brushStyles from './BrushControls.module.css';
 import { resolveBrush } from './BrushControls.tsx';
@@ -26,7 +31,7 @@ const facts = (over: Partial<FinishFacts> = {}): FinishFacts => ({
 });
 
 function makeExp(over: Record<string, unknown> = {}) {
-  // forced: the export hook needs pdf-lib and the saved file; the toolbar reads only these seven fields
+  // Forced: the real hook reaches these states only through a real export, a share sheet and a hand-off that leaves the page; it runs in useRedactExport.test.tsx.
   return {
     canSharePdf: false, shareReady: false, handoffBusy: false,
     handleSavePdf: vi.fn(), handleSharePdf: vi.fn(), requestHandoff: vi.fn(),
@@ -47,6 +52,14 @@ function makeFinish(over: Record<string, unknown> = {}) {
 describe('RedactWorkspaceToolbar wiring', () => {
   let root: HTMLElement;
   let current: { state: RedactState; editor: RedactEditor; pages: RedactPages; dispatch: (action: RedactAction) => void };
+
+  let task: PDFDocumentLoadingTask;
+  let pdfDocument: PDFDocumentProxy;
+  beforeAll(async () => {
+    task = (await getPdfjs()).getDocument({ data: await buildPdf([{ lines: ['one'] }]), wasmUrl: PDFJS_WASM_URL });
+    pdfDocument = await task.promise;
+  });
+  afterAll(async () => { await task.destroy(); });
 
   let heard: string[];
   let stopHearing: () => void;
@@ -102,8 +115,7 @@ describe('RedactWorkspaceToolbar wiring', () => {
         past: [], carried: undefined, details: {}, brush: resolveBrush(undefined, getAppStyle()), activeColor: base.tool.activeColor,
         activeBlurStrength: base.tool.activeBlurStrength,
       });
-      // forced: DOCUMENT_READY is the only action that sets numPages, and it wants a pdf.js document; no page is drawn here
-      current.dispatch({ type: 'DOCUMENT_READY', pdfDocument: null as never, numPages: 1 });
+      current.dispatch({ type: 'DOCUMENT_READY', pdfDocument, numPages: 1 });
       current.dispatch({ type: 'FILE_LOADED' });
     });
     return { exp, finish };

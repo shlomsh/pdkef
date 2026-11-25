@@ -9,7 +9,6 @@ import '../../../test/support/realPdfjs.ts';
 import { installToolHarness, type ToolHarness } from '../../../test/harness/toolHarness.ts';
 import { drainPromises } from '../../../test/support/drainPromises.ts';
 import { setInputFiles } from '../../../test/support/setInputFiles.js';
-import { stubCanvas } from '../../../test/support/stubCanvas.ts';
 import { waitUntil as waitFor } from '../../../test/support/waitUntil.ts';
 
 /** @testSeam Under the test's own 5 s limit, so a missing result fails on its assertion rather than on the clock. */
@@ -37,9 +36,8 @@ function found<T>(el: T | null | undefined, what: string): T {
   return el;
 }
 
-/** @testSeam Mounts the real island in jsdom for each test of the calling suite; the real converter draws on a stub canvas. */
+/** @testSeam Mounts the real island in jsdom for each test of the calling suite; the real converter draws on jsdom's real canvas. */
 export function useToImageTool() {
-  let restoreCanvas = () => {};
   const s = {
     harness: null as unknown as ToolHarness,
     container: null as unknown as HTMLDivElement,
@@ -131,7 +129,6 @@ export function useToImageTool() {
   };
 
   beforeEach(() => {
-    restoreCanvas = stubCanvas();
     s.harness = installToolHarness({ trackIndexedDb: true });
     s.container = document.createElement('div');
     document.body.append(s.container);
@@ -142,7 +139,6 @@ export function useToImageTool() {
     // The hand-off intake reads IndexedDB: it must end while the DOM still exists.
     await s.harness.settle();
     s.harness.restore();
-    restoreCanvas();
   });
   return s;
 }

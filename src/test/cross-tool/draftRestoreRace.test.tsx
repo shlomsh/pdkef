@@ -9,6 +9,8 @@ import { cacheRecentFile, hasDraftHint, loadDraft, peekHandoff, saveDraft, saveH
 import { drainPromises } from '../support/drainPromises.ts';
 import { waitUntil } from '../support/waitUntil.ts';
 import { setInputFiles } from '../support/setInputFiles.js';
+import '../support/realPdfjs.ts';
+import { buildPdf } from '../support/redactCheckPdfs.test-helper.ts';
 
 
 // Regression coverage for the auto-resume "silent draft restore" race:
@@ -25,8 +27,8 @@ import { setInputFiles } from '../support/setInputFiles.js';
 // real record at once but answers only when the test opens a gate (a slow IndexedDB read), and hasDraftHint
 // says false so every scenario starts in the empty state, as before.
 
-function makePdfFile(name: string) {
-  return new File(['%PDF-1.4'], name, { type: 'application/pdf' });
+async function makePdfFile(name: string) {
+  return new File([(await buildPdf([{ lines: [name] }])).slice().buffer], name, { type: 'application/pdf' });
 }
 
 function deferred() {
@@ -43,7 +45,7 @@ async function seedDraft(fileName: string, elements: unknown[]) {
   const saved = await saveDraft('sign', {
     fileName,
     fileType: 'application/pdf',
-    fileBytes: new TextEncoder().encode('%PDF-1.4 old draft').buffer,
+    fileBytes: (await buildPdf([{ lines: ['old draft'] }])).slice().buffer,
     elements,
     extra: {}
   });
@@ -53,7 +55,7 @@ async function seedRedactDraft(fileName: string, boxes: unknown[]) {
   const saved = await saveDraft('redact', {
     fileName,
     fileType: 'application/pdf',
-    fileBytes: new TextEncoder().encode('%PDF-1.4 old draft').buffer,
+    fileBytes: (await buildPdf([{ lines: ['old draft'] }])).slice().buffer,
     elements: boxes,
     extra: {}
   });
@@ -62,24 +64,12 @@ async function seedRedactDraft(fileName: string, boxes: unknown[]) {
 
 let gate: ReturnType<typeof deferred>;
 
-vi.mock('#lib/drafts/draftStore.ts', { spy: true });
+/** The same record with its bytes copied into the jsdom realm, where the shipped pdf.js accepts them. */
+const inJsdomRealm = <T extends { fileBytes?: ArrayBuffer } | null | undefined>(record: T): T => (
+  record?.fileBytes ? { ...record, fileBytes: new Uint8Array(record.fileBytes).slice().buffer } : record
+);
 
-// Forced: a restored draft's bytes come out of fake-indexeddb as a Node-realm ArrayBuffer, which the shipped pdf.js in jsdom rejects ('Invalid PDF binary data', tried with real pdf-lib bytes)
-vi.mock('pdfjs-dist', () => ({
-  GlobalWorkerOptions: { workerSrc: '' },
-  getDocument: vi.fn(() => ({
-    promise: Promise.resolve({
-      numPages: 1,
-      getPermissions: vi.fn(async () => null),
-      getPage: vi.fn(() =>
-        Promise.resolve({
-          getViewport: () => ({ width: 612, height: 792 }),
-          render: () => ({ promise: Promise.resolve() })
-        })
-      )
-    })
-  }))
-}));
+vi.mock('#lib/drafts/draftStore.ts', { spy: true });
 
 const announced = (container: HTMLElement, tag: 'p' | 'div') =>
   container.querySelector(`${tag}.sr-only[role="status"]`)?.textContent ?? '';
@@ -88,7 +78,10 @@ const announced = (container: HTMLElement, tag: 'p' | 'div') =>
 // same promise runs after its continuation (same promise, reactions in order), so by then the stale
 // restore has either been dropped or has started applying; the drain carries the rest into the render.
 let restoreResult: Promise<unknown> | undefined;
-async function resolveRestore() {
+async function resolveRestore({ readExpected = true } = {}) {
+  // The restore read starts only once the hand-off check before it has answered: wait for it, then open the gate.
+  // (A pending hand-off opens its file first and the draft is never read.)
+  if (readExpected) await waitUntil(() => restoreResult !== undefined);
   await act(async () => {
     gate.resolve(null);
     await restoreResult;
@@ -106,12 +99,14 @@ async function pickFile(container: HTMLElement, file: File) {
 describe('draft-restore vs. manual file pick race', () => {
   let container: HTMLElement | null = null;
 
+  // Forced: fake-indexeddb clones with Node's structuredClone, so a restored draft's bytes are a Node-realm ArrayBuffer that fails the shipped pdf.js's `instanceof ArrayBuffer` in jsdom ('Invalid PDF binary data', measured: `structuredClone(buffer) instanceof ArrayBuffer` is false); the bytes are copied into jsdom's realm and pdf.js still parses them for real.
   // Forced: a held store would also hold the picked file's own save, so the draft read would not be the stale one the race needs; the restore read starts at once on the real store but answers when the gate opens.
   const holdRestore = () => {
     gate = deferred();
+    restoreResult = undefined;
     vi.mocked(loadDraft).mockImplementationOnce(async (name) => {
       const real = await vi.importActual<typeof import('#lib/drafts/draftStore.ts')>('#lib/drafts/draftStore.ts');
-      const record = real.loadDraft(name);
+      const record = real.loadDraft(name).then(inJsdomRealm);
       restoreResult = record;
       await gate.promise;
       return record;
@@ -133,6 +128,11 @@ describe('draft-restore vs. manual file pick race', () => {
     indexedDB = new IDBFactory();
     localStorage.clear();
     vi.mocked(loadDraft).mockReset();
+    // Forced: the hand-off record's bytes come out of fake-indexeddb in the Node realm too (see holdRestore); the real read runs, its bytes are copied into jsdom's realm.
+    vi.mocked(peekHandoff).mockImplementation(async (...args) => {
+      const real = await vi.importActual<typeof import('#lib/drafts/draftStore.ts')>('#lib/drafts/draftStore.ts');
+      return inJsdomRealm(await real.peekHandoff(...args));
+    });
     // Forced: a real hint (the seeded pointer) opens the tool in its restoring state, with no file input to pick with
     vi.mocked(hasDraftHint).mockReturnValue(false);
   });
@@ -164,7 +164,7 @@ describe('draft-restore vs. manual file pick race', () => {
 
     // Restore's loadDraft() is now in flight and unresolved.
 
-    await pickFile(container, makePdfFile('fresh-user-pick.pdf'));
+    await pickFile(container, await makePdfFile('fresh-user-pick.pdf'));
     await waitUntil(() => announced(container!, 'p').includes('fresh-user-pick.pdf'));
 
     let announcement = container.querySelector('p.sr-only[role="status"]');
@@ -210,7 +210,7 @@ describe('draft-restore vs. manual file pick race', () => {
       render(<PdfRedactTool />, container!);
     });
 
-    await pickFile(container, makePdfFile('fresh-user-pick.pdf'));
+    await pickFile(container, await makePdfFile('fresh-user-pick.pdf'));
     await waitUntil(() => announced(container!, 'div').includes('fresh-user-pick.pdf'));
 
     let announcement = container.querySelector('div.sr-only[role="status"]');
@@ -256,7 +256,7 @@ describe('draft-restore vs. manual file pick race', () => {
     expect(await saveHandoff('sign', {
       fileName: 'dropped-on-home.pdf',
       fileType: 'application/pdf',
-      fileBytes: new TextEncoder().encode('%PDF-1.4').buffer
+      fileBytes: (await buildPdf([{ lines: ['home drop'] }])).slice().buffer
     })).toBe(true);
     holdRestore();
 
@@ -268,9 +268,9 @@ describe('draft-restore vs. manual file pick race', () => {
 
     // Let the draft resolve too: it must lose, and it must lose deterministically
     // rather than because the handoff happened to be quicker.
-    await resolveRestore();
+    await resolveRestore({ readExpected: false });
     await waitUntil(() => announced(container!, 'p').includes('dropped-on-home.pdf'));
-    await resolveRestore();
+    await resolveRestore({ readExpected: false });
 
     const announcement = container.querySelector('p.sr-only[role="status"]');
     expect(announcement.textContent).toContain('dropped-on-home.pdf');

@@ -2,12 +2,14 @@ import 'fake-indexeddb/auto';
 import { IDBFactory } from 'fake-indexeddb';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import { describe, expect, it, vi, beforeAll, beforeEach, afterEach } from 'vitest';
 import PdfSignTool from '../../tools/sign/PdfSignTool.tsx';
 import { until } from '../support/until.js';
 import { RESTORE_TIMEOUT_MS } from '#lib/drafts/useDraftLifecycle.ts';
 import { holdDraftStore } from '#lib/drafts/heldStore.test-helper.ts';
-import { hasDraftHint, saveDraft } from '#lib/drafts/draftStore.ts';
+import { hasDraftHint, loadDraft, saveDraft } from '#lib/drafts/draftStore.ts';
+import '../support/realPdfjs.ts';
+import { buildPdf } from '../support/redactCheckPdfs.test-helper.ts';
 
 // Coverage for the "checking draft" gate that replaces the flicker of an empty
 // dropzone briefly showing before a saved draft loads over it (see
@@ -16,12 +18,16 @@ import { hasDraftHint, saveDraft } from '#lib/drafts/draftStore.ts';
 // and the hint (hasDraftHint) comes from the real index. A slow IndexedDB read is a real write
 // transaction held on the store (holdDraftStore), released when the test opens the gate.
 
+// A real PDF, built once on the real clock (pdf-lib yields on a 0 ms timer, which a faked clock would hold).
+let pdfBytes: Uint8Array;
+beforeAll(async () => { pdfBytes = await buildPdf([{ lines: ['an earlier draft'] }]); });
+
 // An earlier session's draft, written by the real store: the hint and the pointer a reload finds.
 async function seedDraft(fileName: string) {
   const saved = await saveDraft('sign', {
     fileName,
     fileType: 'application/pdf',
-    fileBytes: new TextEncoder().encode('%PDF-1.4').buffer,
+    fileBytes: pdfBytes.slice().buffer,
     elements: [],
     extra: {}
   });
@@ -29,23 +35,6 @@ async function seedDraft(fileName: string) {
 }
 
 vi.mock('#lib/drafts/draftStore.ts', { spy: true });
-
-// Forced: a restored draft's bytes come out of fake-indexeddb as a Node-realm ArrayBuffer, which the shipped pdf.js in jsdom rejects ('Invalid PDF binary data', tried with real pdf-lib bytes)
-vi.mock('pdfjs-dist', () => ({
-  GlobalWorkerOptions: { workerSrc: '' },
-  getDocument: vi.fn(() => ({
-    promise: Promise.resolve({
-      numPages: 1,
-      getPermissions: vi.fn(async () => null),
-      getPage: vi.fn(() =>
-        Promise.resolve({
-          getViewport: () => ({ width: 612, height: 792 }),
-          render: () => ({ promise: Promise.resolve() })
-        })
-      )
-    })
-  }))
-}));
 
 describe('checking-draft placeholder (avoids the empty-dropzone flicker)', () => {
   let container: HTMLElement | null = null;
@@ -55,6 +44,12 @@ describe('checking-draft placeholder (avoids the empty-dropzone flicker)', () =>
   beforeEach(() => {
     indexedDB = new IDBFactory();
     localStorage.clear();
+    // Forced: fake-indexeddb clones with Node's structuredClone, so a restored draft's bytes are a Node-realm ArrayBuffer that fails the shipped pdf.js's `instanceof ArrayBuffer` in jsdom ('Invalid PDF binary data', measured: `structuredClone(buffer) instanceof ArrayBuffer` is false); the real read runs and its bytes are copied into jsdom's realm, then pdf.js parses them for real.
+    vi.mocked(loadDraft).mockImplementation(async (...args) => {
+      const real = await vi.importActual<typeof import('#lib/drafts/draftStore.ts')>('#lib/drafts/draftStore.ts');
+      const record = await real.loadDraft(...args);
+      return record && { ...record, fileBytes: new Uint8Array(record.fileBytes as ArrayBuffer).slice().buffer };
+    });
   });
 
   afterEach(() => {

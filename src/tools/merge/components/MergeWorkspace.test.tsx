@@ -11,6 +11,7 @@ import { hebrewShellMessages } from '#shell/shellMessages.ts';
 import { installToolHarness, type ToolHarness } from '../../../test/harness/toolHarness.ts';
 import { pagesPdf } from '../../../test/support/mergeFixtures.ts';
 import { waitUntil } from '../../../test/support/waitUntil.ts';
+import '../../../test/support/realPdfjs.ts';
 
 type View = ReturnType<typeof useMergeTool>;
 
@@ -163,12 +164,10 @@ describe('MergeWorkspace', () => {
     );
     const mountLocked = async (props?: PdfMergeToolProps) => {
       await mount([lockedFile()], props);
-      // forced: the real probe asks pdf.js, whose worker jsdom lacks, so it settles on "cannot say"; its answer for this file is injected
+      // The real probe asks the shipped pdf.js; the wait is on its answer, and the locked state is then asserted.
       await waitUntil(() => view.workspace.state.lockedProbe !== null);
-      const { file } = view.workspace.entries[0];
-      const bytes = await file.arrayBuffer();
-      act(() => view.workspace.dispatch({ type: 'LOCK_PROBED', probe: { file, kind: 'needs-password', bytes } }));
-      await waitUntil(() => container.querySelector('[data-needs-unlock]') !== null);
+      expect(view.workspace.state.lockedProbe?.kind).toBe('needs-password');
+      await waitUntil(() => expect(container.querySelector('[data-needs-unlock]')).not.toBeNull());
     };
 
     it('shows the locked state in place of the result area, with Add files still available', async () => {
