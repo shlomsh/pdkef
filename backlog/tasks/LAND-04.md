@@ -330,3 +330,9 @@ count). The rule is off meanwhile.
   66 mutations: no coverage lost, and a report sent to the wrong path, never caught before, now is. Left as never caught: a Drive
   session for another user, the chooser after a failed hand-off, the chunk record read back, the store's Authorization header,
   `.vercel.app` usage, the report's 204, two middleware answers, the Picker's `forgetSaved`.
+- Highlight (2026-11-25): 691 sites in 201 files down to 644 in 189, 46 left in the tool, each with its forced line. Print sheets, ink bounds,
+  page geometry, scan reads and scan clicks run on real PDFs that real pdf.js paints into jsdom's canvas; the share, the store, the mark commands and
+  the mark glide run for real. Left: layout numbers, media queries that must not match, Web Animations, dialogs, Worker, the share sheet,
+  the idle callback. A fresh review ran 80 mutations: no coverage lost, 20 never caught by either version (among them the retry
+  after a lost worker, the print sheets' `onError`, the passage picture's colors). It found one flake, a real scan read that timed
+  out under load; the sheet is now small and the test takes 0.2 s.
