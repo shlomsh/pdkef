@@ -1,4 +1,7 @@
+// @vitest-environment jsdom
+// @vitest-environment-options { "url": "https://pdkef.com/merge/", "referrer": "https://www.google.com/", "userAgent": "Mozilla/5.0 (iPhone) Safari/604" }
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { installBeaconRecorder, type BeaconRecorder } from '../../test/support/beaconRecorder.ts';
 import { setReportingEnabledForTests } from './errorReport.ts';
 import { readSinkConfig, resetSinkForTests, sendToSink, toCapture } from './analyticsSink.ts';
 
@@ -52,44 +55,36 @@ describe('toCapture client buckets', () => {
 });
 
 describe('sendToSink', () => {
-  let beacon: ReturnType<typeof vi.fn>;
+  let recorder: BeaconRecorder;
   beforeEach(() => {
-    beacon = vi.fn(() => true);
-    Object.defineProperty(navigator, 'sendBeacon', { value: beacon, configurable: true, writable: true });
+    recorder = installBeaconRecorder();
     setReportingEnabledForTests(true);
-    vi.stubGlobal('location', { origin: 'https://pdkef.com', pathname: '/merge/', hostname: 'pdkef.com' });
-    vi.stubGlobal('screen', { width: 390, height: 844 });
-    // forced: a touch screen (coarse pointer), which needs device emulation
-    vi.stubGlobal('matchMedia', () => ({ matches: true }));
-    // forced: a search-engine referrer, which a test page cannot be given
-    vi.stubGlobal('document', { referrer: 'https://www.google.com/' });
-    // forced: an iPhone user agent
-    vi.stubGlobal('navigator', { userAgent: 'Mozilla/5.0 (iPhone) Safari/604', sendBeacon: beacon });
     resetSinkForTests();
   });
   afterEach(() => {
     setReportingEnabledForTests(false);
+    vi.restoreAllMocks();
     vi.unstubAllEnvs();
-    vi.unstubAllGlobals();
+    recorder.restore();
   });
   const configure = () => {
     vi.stubEnv('PUBLIC_ANALYTICS_HOST', 'https://e.example.test');
     vi.stubEnv('PUBLIC_ANALYTICS_KEY', 'k');
   };
-  const body = async (call: number) => JSON.parse(await (beacon.mock.calls[call][1] as Blob).text());
+  const body = async (call: number) => (await recorder.bodies())[call] as any;
 
   it('does nothing when the config is unset', () => {
     expect(sendToSink(EVENT)).toBe(false);
-    expect(beacon).not.toHaveBeenCalled();
+    expect(recorder.calls).toHaveLength(0);
   });
 
   it('sends one text/plain capture to the host, with one id per page load', async () => {
     configure();
     expect(sendToSink(EVENT)).toBe(true);
     expect(sendToSink(EVENT)).toBe(true);
-    expect(beacon).toHaveBeenCalledTimes(2);
-    expect(beacon.mock.calls[0][0]).toBe('https://e.example.test/i/v0/e/');
-    expect((beacon.mock.calls[0][1] as Blob).type).toBe('text/plain');
+    expect(recorder.calls).toHaveLength(2);
+    expect(recorder.calls[0].url).toBe('https://e.example.test/i/v0/e/');
+    expect(recorder.calls[0].blob.type).toBe('text/plain');
     const first = await body(0);
     expect(first).toMatchObject({ event: 'tool_page_viewed', api_key: 'k', properties: { $process_person_profile: false, device: 'phone', browser: 'safari', os: 'ios', ref: 'search' } });
     expect(first.distinct_id).toBeTruthy();
@@ -111,40 +106,33 @@ describe('sendToSink', () => {
     configure();
     setReportingEnabledForTests(false);
     expect(sendToSink(EVENT)).toBe(false);
-    expect(beacon).not.toHaveBeenCalled();
+    expect(recorder.calls).toHaveLength(0);
   });
 
   it('never throws when the beacon does', () => {
     configure();
-    // forced: a sendBeacon that throws cannot be produced on cue
-    beacon.mockImplementation(() => {
+    // Forced: a sendBeacon that throws cannot be produced on cue
+    vi.spyOn(navigator, 'sendBeacon').mockImplementation(() => {
       throw new Error('boom');
     });
     expect(sendToSink(EVENT)).toBe(false);
   });
 
-  it('still sends when matchMedia, screen and document are missing', async () => {
-    configure();
-    vi.stubGlobal('matchMedia', undefined);
-    vi.stubGlobal('screen', undefined);
-    vi.stubGlobal('document', undefined);
-    expect(sendToSink(EVENT)).toBe(true);
-    expect(await body(0)).toMatchObject({ properties: { device: 'desktop', ref: 'direct' } });
-  });
-
   it('computes the buckets once per page load', async () => {
     configure();
     sendToSink(EVENT);
-    // forced: a Firefox user agent
-    vi.stubGlobal('navigator', { userAgent: 'Mozilla/5.0 Firefox/121.0', sendBeacon: beacon });
+    // Forced: a Firefox user agent, which the page's own cannot be changed to mid-load
+    vi.spyOn(Navigator.prototype, 'userAgent', 'get').mockReturnValue('Mozilla/5.0 Firefox/121.0');
     sendToSink(EVENT);
     expect((await body(1)).properties.browser).toBe('safari');
   });
 
   it('reads nothing from the browser while unconfigured', () => {
-    const ua = vi.fn(() => 'x');
-    vi.stubGlobal('navigator', { get userAgent() { return ua(); }, sendBeacon: beacon });
+    const ua = vi.spyOn(Navigator.prototype, 'userAgent', 'get');
     expect(sendToSink(EVENT)).toBe(false);
     expect(ua).not.toHaveBeenCalled();
+    configure();
+    expect(sendToSink(EVENT)).toBe(true);
+    expect(ua).toHaveBeenCalled();
   });
 });

@@ -153,6 +153,7 @@ describe('anonymous maintenance telemetry', () => {
       expect(reportMaintenanceEvent(signExportSucceeded(10), transport)).toBe(false);
       expect(transport).not.toHaveBeenCalled();
     } finally {
+      // Forced: the two lines that undo it
       if (originalOnline) Object.defineProperty(navigator, 'onLine', originalOnline);
       else delete (navigator as { onLine?: boolean }).onLine;
     }

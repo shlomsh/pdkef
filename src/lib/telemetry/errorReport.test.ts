@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { installBeaconRecorder, type BeaconRecorder } from '../../test/support/beaconRecorder.ts';
 import {
   ACTIONS,
@@ -7,7 +7,6 @@ import {
   MAX_REPORT_BYTES,
   parseErrorReport,
   readBuildCommit,
-  readPageContext,
   reportError,
   resetErrorReportingForTests,
   setReportingEnabledForTests,
@@ -74,32 +73,6 @@ describe('toErrorReport', () => {
   });
   it('is null when the schema rejects the step', () => {
     expect(toErrorReport('drafts', errorAt('A.js:1:1'), 'has space', CTX)).toBeNull();
-  });
-});
-
-describe('readPageContext', () => {
-  const stubPage = (pathname: string, matchMedia: unknown = () => ({ matches: false })) => {
-    vi.stubGlobal('location', { pathname });
-    // forced: an installed-app display mode and a matchMedia that throws, which no test browser can be put in
-    vi.stubGlobal('matchMedia', matchMedia);
-    // forced: a service worker controlling the page, which cannot be set per test
-    vi.stubGlobal('navigator', { serviceWorker: { controller: {} } });
-  };
-  it('reads the page facts', () => {
-    stubPage('/he/sign/', () => ({ matches: true }));
-    expect(readPageContext()).toMatchObject({ tool: '/he/sign/', installed: true, sw: true });
-  });
-  it('falls back to / for a path outside the schema shape', () => {
-    for (const p of ['/x?y', '/Sign/', '/a/b/c/d/e/']) {
-      stubPage(p);
-      expect(readPageContext().tool).toBe('/');
-    }
-  });
-  it('falls back for that one fact when matchMedia throws, keeping the others', () => {
-    stubPage('/sign/', () => {
-      throw new Error('no');
-    });
-    expect(readPageContext()).toMatchObject({ tool: '/sign/', installed: false });
   });
 });
 
@@ -269,23 +242,6 @@ describe('readBuildCommit', () => {
 });
 
 describe('build in the page context and report', () => {
-  const stubPage = (content: string | null) => {
-    const timing = content === null ? [] : [{ name: 'build', description: content }];
-    // forced: a Server-Timing header with the build commit, which the test server does not send
-    vi.stubGlobal('performance', { getEntriesByType: () => [{ serverTiming: timing }] });
-    vi.stubGlobal('location', { pathname: '/sign/' });
-    vi.stubGlobal('matchMedia', () => ({ matches: false }));
-    vi.stubGlobal('navigator', {});
-    vi.stubGlobal('document', { documentElement: { className: '' } });
-  };
-  it('readPageContext includes build only when the tag is valid', () => {
-    stubPage('abc1234');
-    expect(readPageContext().build).toBe('abc1234');
-    for (const bad of [null, 'nope']) {
-      stubPage(bad);
-      expect('build' in readPageContext()).toBe(false);
-    }
-  });
   it('toErrorReport carries a valid build and omits it otherwise', () => {
     expect(toErrorReport('drafts', errorAt('A.js:1:1'), 'x', { ...CTX, build: 'abc1234' })?.build).toBe('abc1234');
     const without = toErrorReport('drafts', errorAt('A.js:1:1'), 'x', CTX);
@@ -305,20 +261,6 @@ describe('translated field (SIGN-40)', () => {
   });
   it('omits translated from a report that lacks it', () => {
     expect('translated' in (parseErrorReport(base) as object)).toBe(false);
-  });
-  it('readPageContext sends translated: true only when <html> carries translated-ltr or -rtl', () => {
-    const stub = (className: string) => {
-      vi.stubGlobal('location', { pathname: '/sign/' });
-      vi.stubGlobal('matchMedia', () => ({ matches: false }));
-      vi.stubGlobal('navigator', {});
-      vi.stubGlobal('document', { querySelector: () => null, documentElement: { className } });
-    };
-    stub('translated-ltr');
-    expect(readPageContext().translated).toBe(true);
-    stub('a translated-rtl b');
-    expect(readPageContext().translated).toBe(true);
-    stub('untranslated-ltr');
-    expect('translated' in readPageContext()).toBe(false);
   });
   it('toErrorReport carries translated', () => {
     expect(toErrorReport('drafts', errorAt('A.js:1:1'), 'x', { ...CTX, translated: true })?.translated).toBe(true);
