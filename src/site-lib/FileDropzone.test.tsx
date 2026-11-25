@@ -12,17 +12,22 @@ import { cacheRecentFile, saveDraft, saveHandoff, setCurrentEntry, readRecentFil
 import { RECENT_FILES_META_KEY } from '#lib/drafts/recentFilesKey.js';
 import { setInputFiles } from '../test/support/setInputFiles.js';
 import { waitUntil } from '../test/support/waitUntil.ts';
+import { openNewerStore } from '#lib/drafts/newerStore.test-helper.ts';
+import { holdDraftStore } from '#lib/drafts/heldStore.test-helper.ts';
 import { http, HttpResponse } from 'msw';
 import { answerNetwork, server } from '../test/support/network.ts';
 
 answerNetwork();
 
 // The draft store runs for real on fake-indexeddb and the page's own localStorage; the spy sees what the tile
-// asked of it. What a store cannot be made to do (refuse a file, never answer) is one forced line on the spy.
+// asked of it. A refused file is a real VersionError from a newer store, a held write is a real held transaction.
 vi.mock('#lib/drafts/draftStore.ts', { spy: true });
 
 // The recents index in the store's own storage format: the reader under test parses it for real.
 const seedRecents = (entries: Record<string, unknown>[]) => localStorage.setItem(RECENT_FILES_META_KEY, JSON.stringify(entries));
+
+// The store the page already opened is gone and a newer one stands in its place: every save now fails for real.
+const refuseStore = () => { indexedDB = new IDBFactory(); return openNewerStore(); };
 
 // A real hand-off parks the file in IndexedDB before the page moves on: wait for every one the tile started.
 const landed = async () => {
@@ -126,6 +131,7 @@ describe('FileDropzone', () => {
     it('hides while offline and returns when back online', () => {
       mount();
       const link = container.querySelector('a[href^="/drive/"]');
+      // Forced: jsdom cannot go offline
       const onLine = vi.spyOn(navigator, 'onLine', 'get');
       onLine.mockReturnValue(false);
       act(() => { window.dispatchEvent(new Event('offline')); });
@@ -295,7 +301,7 @@ describe('FileDropzone', () => {
       }]);
       // A store that never answers. If opening a tile awaited it at all, the
       // pointer below would never be set and the dropzone would sit busy.
-      vi.mocked(loadRecentFile).mockReturnValueOnce(new Promise(() => {})); // forced: a store that never answers
+      await holdDraftStore();
       mount();
       await act(async () => { await Promise.resolve(); });
 
@@ -473,7 +479,7 @@ describe('FileDropzone', () => {
     });
 
     it('reports an error, and never navigates, if handoff storage fails', async () => {
-      vi.mocked(saveHandoff).mockResolvedValueOnce(false); // forced: a store that refuses the file
+      await refuseStore();
       const area = mountTarget();
       await dropOn(area, [pdf()]);
       await chooseSign();
@@ -817,14 +823,17 @@ describe('FileDropzone', () => {
       it('keeps waiting, lit and retryable when the hand-off of a clicked tool fails', async () => {
         mount();
         await pick([pdf('contract.pdf')]);
-        vi.mocked(saveHandoff).mockResolvedValueOnce(false); // forced: a store that refuses the file
+        await refuseStore();
         await clickLink('sign');
+        expect(saveHandoff).toHaveBeenCalledTimes(1);
+        expect(await vi.mocked(saveHandoff).mock.results[0].value).toBe(false);
         expect(hero.hasAttribute('data-picking')).toBe(true);
         expect(lit()).toHaveLength(8);
         expect(container.querySelector('[data-home-picker] [data-tone="note"]').textContent).toBe(en.handoffFailed);
         expect(picker().disabled).toBe(false);
         expect(picker().textContent).toContain('contract.pdf');
         expect(picker().textContent).toContain(en.handoffFailed);
+        indexedDB = new IDBFactory(); // the store is back
         await clickLink('sign');
         expect(saveHandoff).toHaveBeenCalledTimes(2);
         expect(window.location.href).toBe('/sign/');
@@ -832,8 +841,9 @@ describe('FileDropzone', () => {
 
       it('rests the dock and the tile when the hand-off of several files fails', async () => {
         mount();
-        vi.mocked(saveHandoff).mockResolvedValueOnce(false); // forced: a store that refuses the file
+        await refuseStore();
         await pick([pdf('a.pdf'), pdf('b.pdf')]);
+        expect(await vi.mocked(saveHandoff).mock.results[0].value).toBe(false);
         expect(hero.hasAttribute('data-picking')).toBe(false);
         expect(lit()).toEqual([]);
         expect(picker().disabled).toBe(false);
@@ -872,7 +882,7 @@ describe('FileDropzone', () => {
       it('hands off once when a second lit tool is clicked while the first is in flight', async () => {
         mount();
         await pick([pdf()]);
-        vi.mocked(saveHandoff).mockReturnValueOnce(new Promise(() => {})); // forced: a hand-off held in flight
+        await holdDraftStore();
         await clickLink('sign', {}, true);
         await clickLink('merge', {}, true);
         expect(saveHandoff).toHaveBeenCalledTimes(1);
@@ -881,7 +891,7 @@ describe('FileDropzone', () => {
       it('tells the person which tool is opening, with the file name, after a click', async () => {
         mount();
         await pick([pdf('contract.pdf')]);
-        vi.mocked(saveHandoff).mockReturnValueOnce(new Promise(() => {})); // forced: a hand-off held in flight
+        await holdDraftStore();
         await clickLink('sign', {}, true);
         expect(picker().textContent).toContain('contract.pdf');
         expect(picker().textContent).toContain('Opening Sign PDF…');
@@ -910,6 +920,7 @@ describe('FileDropzone', () => {
         expect(saveHandoff).toHaveBeenCalledTimes(1);
         await restore();
         await pick([pdf('b.pdf')]);
+        indexedDB = new IDBFactory(); // the store is back
         await clickLink('sign');
         expect(saveHandoff).toHaveBeenCalledTimes(2);
       });
@@ -943,8 +954,9 @@ describe('FileDropzone', () => {
         await pick([pdf('c.pdf'), txt()]);
         expect(polite()).toBe(`Left out: ${isolateNames([txt()])}. Now pick a tool below`);
         expect(assertive()).toBe('');
-        vi.mocked(saveHandoff).mockResolvedValueOnce(false); // forced: a store that refuses the file
+        await refuseStore();
         await clickLink('sign');
+        expect(await vi.mocked(saveHandoff).mock.results[0].value).toBe(false);
         expect(assertive()).toBe(en.handoffFailed);
         expect(polite()).toBe('Now pick a tool below');
       });
@@ -982,8 +994,9 @@ describe('FileDropzone', () => {
       it('ends the wait when several files open instead, so a failed hand-off does not say "pick a tool"', async () => {
         mount();
         await pick([pdf('one.pdf')]);
-        vi.mocked(saveHandoff).mockResolvedValueOnce(false); // forced: a store that refuses the file
+        await refuseStore();
         await pick([pdf('a.pdf'), pdf('b.pdf')]);
+        expect(await vi.mocked(saveHandoff).mock.results[0].value).toBe(false);
         expect(picker().textContent).not.toContain('Now pick a tool below');
         expect(picker().textContent).toContain('Choose files');
         expect(lit()).toEqual([]);
@@ -1089,14 +1102,15 @@ describe('FileDropzone', () => {
 
     it('keeps the tile and shows a message when the removal fails', async () => {
       seedRecents(two());
-      vi.mocked(removeRecentEntry).mockResolvedValueOnce(false); // forced: a store that will not delete
       mount();
       await act(async () => { await Promise.resolve(); });
+      await refuseStore();
       await act(async () => { container.querySelector('button[aria-label^="Remove first.pdf"]').click(); });
       await confirm('Remove');
       expect(removeRecentEntry).toHaveBeenCalledWith('sha256:first');
+      expect(await vi.mocked(removeRecentEntry).mock.results[0].value).toBe(false);
+      await waitUntil(() => expect(container.textContent).toContain("That didn't work. Please try again."), { timeout: 2000 });
       expect(tiles()).toHaveLength(2);
-      expect(container.textContent).toContain("That didn't work. Please try again.");
     });
 
     it('drops the tile when the removal succeeds', async () => {
