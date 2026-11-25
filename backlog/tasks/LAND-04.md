@@ -298,3 +298,13 @@ count). The rule is off meanwhile.
   fast test now, proven. Two lessons: the kill of the result-URL mutation came from an unrelated old test, so it was a flake,
   and `toHaveBeenCalledWith(file)` proved nothing in jsdom, where any two `File`s counted as equal. The shared setup
   now makes a `File` or `Blob` equal only to itself (`fileEquality.ts`); every test still passed.
+- errorReport seam dropped (2026-11-25): the 218 to 36 figure counts test files an `errorReport` edit re-runs (239 reach
+  it), not mocks. All 24 mocks of it are spy-through, and none of the 849 sites replaces `reportError`.
+- `src/lib` without telemetry (2026-11-25): 849 sites in 220 files down to 809 in 208. Real failures take the place of
+  forced ones: a full jsdom storage (`fullStorage.ts`), Node without storage or IndexedDB, a database at a newer version, data
+  IndexedDB cannot clone, and a held write transaction (`heldStore.test-helper.ts`). Real encrypted PDFs, pdf.js text streams and
+  Node object URLs run too. Every kept site in the area has a forced line. A fresh review's 30 mutations found no coverage
+  lost; four wrong reasons and one test that never ran its fallback (`draftSourceId`) are fixed. Never caught, before or
+  after: `ensureMigrated`'s early return and the inner deadline check of the size search.
+- Found on the way: jsdom 31 (2026-11-25) draws real 2D pixels through `@napi-rs/canvas`, so most "no canvas" reasons
+  (27 in 17 test files) are no longer true. They are a wave of their own.

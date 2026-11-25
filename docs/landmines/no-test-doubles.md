@@ -1,8 +1,8 @@
 # Removing test doubles (`no-test-doubles`, LAND-04)
 
 Shlomi's call, 2026-11-19: bring the count down in waves, best value first. The waves landed on main
-with branch `landmines-all` (50cd7eba3, 2026-11-25): 879 sites in 223 files are left. The rule stays off
-(`.oxlintrc.json`) until upstream takes a per-file `allow` option like its sibling testing rules; that PR waits until our open ones (#21, #33) are resolved. The count left then goes in as an
+with branch `landmines-all` (50cd7eba3, 2026-11-25): 879 sites in 223 files were left, and later waves are counted in LAND-04. The rule stays off
+(`.oxlintrc.json`) until upstream takes a per-file `allow` option like its sibling testing rules; that PR waits until our open ones (#21, #33) are resolved (opened 2026-11-25: https://github.com/interfere-inc/landmines/pull/65). The count left then goes in as an
 allow list that only shrinks. 1,877 sites on 1,792 lines in 266 files at the start.
 
 About 200 sites have no honest ending: tests that force a module to fail (146 lines) or force a
