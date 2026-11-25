@@ -14,7 +14,6 @@ const ORIGINAL_HEIGHT = 1000;
 
 describe('compressImageToTarget', () => {
   let originalToBlob;
-  let originalGetContext;
   let createSpy;
   let revokeSpy;
   let originalImageSrcDescriptor;
@@ -43,32 +42,13 @@ describe('compressImageToTarget', () => {
       },
     });
 
-    // Forced: the decoded image is a swapped object, so a real canvas cannot draw it and the size must be a known function.
+    // Forced: the undecoded picture draws nothing, and a blank canvas's real JPEG fits every target here at the first try,
+    // so the search would never run. This encoder's size is a known function of the canvas area and the quality; real
+    // encoders are monotonic in both, which this preserves.
     originalToBlob = HTMLCanvasElement.prototype.toBlob;
-    originalGetContext = HTMLCanvasElement.prototype.getContext;
-
-    // Deterministic fake JPEG encoder: size is a known function of the
-    // canvas area and the requested quality, so scale/quality outcomes are
-    // predictable instead of just "it ran". Real encoders are monotonic in
-    // both, which this preserves.
     HTMLCanvasElement.prototype.toBlob = function toBlob(callback, type, quality) {
       const size = Math.max(1, Math.round(this.width * this.height * quality));
       callback(new Blob([new Uint8Array(size)], { type: type || 'image/jpeg' }));
-    };
-
-    HTMLCanvasElement.prototype.getContext = function getContext() {
-      const canvasEl = this;
-      const baseContext = {
-        canvas: canvasEl,
-        fillStyle: '',
-        strokeStyle: '',
-      };
-      return new Proxy(baseContext, {
-        get(target, prop) {
-          if (prop in target) return target[prop];
-          return vi.fn();
-        },
-      });
     };
   });
 
@@ -79,7 +59,6 @@ describe('compressImageToTarget', () => {
       Object.defineProperty(HTMLImageElement.prototype, 'src', originalImageSrcDescriptor);
     }
     HTMLCanvasElement.prototype.toBlob = originalToBlob;
-    HTMLCanvasElement.prototype.getContext = originalGetContext;
   });
 
   function makeFile({ sizeBytes, type = 'image/jpeg', name = 'photo.jpg' }) {

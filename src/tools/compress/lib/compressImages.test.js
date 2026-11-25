@@ -302,10 +302,9 @@ describe('compressPdfImages', () => {
   });
 
   it('passes the target from targetDimensions', async () => {
-    // Forced: it reads the target the encoder is given, and the real encoder returns nothing in jsdom and Node.
-    const encode = vi.fn(async () => jpeg1x1());
+    const encode = recording(encodeImageOnCanvas);
     await compressPdfImages(fixture('mixed.pdf'), { maxLongSidePx: 1000, quality: 0.7, encodeImage: encode });
-    const call = encode.mock.calls.map(([arg]) => arg).find((arg) => arg.image.width === 2000);
+    const call = encode.calls.find((arg) => arg.image.width === 2000);
     expect(call.target).toEqual({ width: 1000, height: 750 });
   });
 });
@@ -323,8 +322,8 @@ describe('IMAGE_LEVELS', () => {
 describe('compressPdfImagesToTarget', () => {
   // Output size follows the target width, so each rung is smaller than the last.
   // Any Uint8Array works: the rewrite never parses the JPEG body.
-  // Test input: the size search is a pure algorithm over its encoder, so a recording function is its input.
-  const sized = () => recording(async ({ target }) => new Uint8Array(target.width * 5));
+  // Forced: the real encoder returns nothing in jsdom and Node, and the rungs need sizes.
+  const sized = () => vi.fn(async ({ target }) => new Uint8Array(target.width * 5));
   const afterBytesAt = async (rung) =>
     (await compressPdfImages(fixture('mixed.pdf'), { ...rung, encodeImage: sized() })).afterBytes;
 
@@ -335,7 +334,7 @@ describe('compressPdfImagesToTarget', () => {
     expect(result.reason).toBe('under-target');
     expect(result.metTarget).toBe(true);
     expect(result.blob).toBe(file);
-    expect(encode.calls).toHaveLength(0);
+    expect(encode).not.toHaveBeenCalled();
   });
 
   it('stops at once when there are no images', async () => {
@@ -345,7 +344,7 @@ describe('compressPdfImagesToTarget', () => {
     expect(result.reason).toBe('no-images');
     expect(result.metTarget).toBe(false);
     expect(result.blob).toBe(file);
-    expect(encode.calls).toHaveLength(0);
+    expect(encode).not.toHaveBeenCalled();
   });
 
   it("stops at once when every image is unsupported", async () => {
@@ -355,7 +354,7 @@ describe('compressPdfImagesToTarget', () => {
     expect(result.reason).toBe('unsupported');
     expect(result.metTarget).toBe(false);
     expect(result.blob).toBe(file);
-    expect(encode.calls).toHaveLength(0);
+    expect(encode).not.toHaveBeenCalled();
   });
 
   it('takes the first rung that meets the target', async () => {
@@ -370,7 +369,7 @@ describe('compressPdfImagesToTarget', () => {
     expect(result.metTarget).toBe(true);
     expect(result.reason).toBe('smaller');
     expect(result.afterBytes).toBe(third);
-    const widths = encode.calls.map((arg) => arg.target.width).filter((w) => w !== 800 && w !== 200);
+    const widths = encode.mock.calls.map(([arg]) => arg.target.width).filter((w) => w !== 800 && w !== 200);
     // The walk stops at the third rung; bisection calls follow it.
     expect(widths.slice(0, 3)).toEqual([2000, 1600, 1000]);
   });
@@ -406,9 +405,9 @@ describe('compressPdfImagesToTarget', () => {
 
 describe('compressPdfImagesToTarget bisection between rungs', () => {
   // Bytes grow with both the target width and the quality.
-  // Test input: the size search is a pure algorithm over its encoder.
+  // Forced: the real encoder returns nothing in jsdom and Node, and the rungs need sizes.
   const sizedQ = () =>
-    recording(async ({ target, quality }) => new Uint8Array(Math.round(target.width * 5 * (1 + quality))));
+    vi.fn(async ({ target, quality }) => new Uint8Array(Math.round(target.width * 5 * (1 + quality))));
   const afterBytesAt = async (rung) =>
     (await compressPdfImages(fixture('mixed.pdf'), { ...rung, encodeImage: sizedQ() })).afterBytes;
   const between = async () => {
@@ -439,7 +438,7 @@ describe('compressPdfImagesToTarget bisection between rungs', () => {
     expect(result.afterBytes).toBe(best);
     const single = sizedQ();
     await compressPdfImages(file, { ...TARGET_IMAGE_LADDER[0], encodeImage: single });
-    expect(encode.calls.length).toBe(single.calls.length);
+    expect(encode.mock.calls.length).toBe(single.mock.calls.length);
   });
 
   it('reports non-decreasing progress ending at 1 on the bisect path', async () => {
