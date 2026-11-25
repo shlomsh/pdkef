@@ -309,7 +309,7 @@ describe('what the island reports (DEBT-44)', () => {
     const b = new GivesOutFile([bytes], 'b.pdf', { type: 'application/pdf' });
     act(() => render(<PdfMergeTool />, host));
     await addToIsland([await pagesPdf([100, 100], 'a.pdf'), b]);
-    await waitUntil(() => host.querySelectorAll('[data-testid="file-pages"]').length === 2 && !host.textContent?.includes('\u2026'), { dueFakeTimers: true });
+    await waitUntil(() => rowsRead() && host.querySelectorAll('[data-testid="file-pages"]').length === 2, { dueFakeTimers: true });
     b.givingOut = true;
     await advance(DEFAULT_QUIET.maxMs);
     await waitUntil(() => expect(downloadBox()?.getAttribute('data-state')).toBe('error'), { dueFakeTimers: true });
@@ -521,7 +521,7 @@ describe('a saved draft (MERGE-13)', () => {
     expect(document.documentElement.hasAttribute('data-draft-hint')).toBe(true);
     // The hint alone holds the empty state back before the module has loaded.
     expect(host.querySelector('[aria-busy="true"]')).not.toBeNull();
-    await waitUntil(() => fileNamesOnPage().length === 2, { dueFakeTimers: true });
+    await waitUntil(() => fileNamesOnPage().length === 2 && rowsRead(), { dueFakeTimers: true });
     expect(fileNamesOnPage()).toEqual(['x.pdf', 'y.pdf']);
     // The pre-paint hint attribute is gone once the check settled, so a later Clear all shows the dropzone instead of a blank card.
     expect(document.documentElement.hasAttribute('data-draft-hint')).toBe(false);
