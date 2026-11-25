@@ -27,7 +27,9 @@ beforeEach(() => {
   root = document.createElement('div');
   document.body.appendChild(root);
   saved = { showModal: proto.showModal, close: proto.close };
+  // Forced: jsdom 31 has no HTMLDialogElement.showModal or close (checked), so these are mocks
   proto.showModal = vi.fn(function (this: HTMLDialogElement) { this.open = true; });
+  // Forced: see showModal above
   proto.close = vi.fn(function (this: HTMLDialogElement) { this.open = false; });
 });
 afterEach(() => {

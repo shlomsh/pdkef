@@ -2,23 +2,26 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('#lib/telemetry/errorReport.ts', { spy: true });
-import { sendBeacon } from '#lib/telemetry/errorReport.ts';
+import { setReportingEnabledForTests } from '#lib/telemetry/errorReport.ts';
+import { installBeaconRecorder, type BeaconRecorder } from '../test/support/beaconRecorder.ts';
 import RatingPrompt, { resetRatingPromptForTests, useDownloaded } from './RatingPrompt.tsx';
 import { recordAction } from '#lib/telemetry/actionTrail.ts';
 
 describe('RatingPrompt', () => {
   let container: HTMLElement;
+  let rec: BeaconRecorder;
   beforeEach(() => {
     vi.useFakeTimers();
     localStorage.clear();
     resetRatingPromptForTests();
-    vi.mocked(sendBeacon).mockClear();
-    vi.mocked(sendBeacon).mockReturnValue(true); // forced: the send succeeds (every test; the real one returns false under test)
+    setReportingEnabledForTests(true);
+    rec = installBeaconRecorder();
     container = document.createElement('div');
     document.body.appendChild(container);
   });
   afterEach(() => {
+    rec.restore();
+    setReportingEnabledForTests(false);
     vi.useRealTimers();
     render(null, container);
     container.remove();
@@ -133,10 +136,10 @@ describe('RatingPrompt', () => {
     expect(container.innerHTML).toBe('');
   });
 
-  it('a high rating sends, remembers, and offers Share and GitHub', () => {
+  it('a high rating sends, remembers, and offers Share and GitHub', async () => {
     showAfterDelay();
     act(() => stars()[3].click());
-    expect(sendBeacon).toHaveBeenCalledWith({ name: 'tool_rating', properties: { tool: 'compress', stars: 4 } });
+    expect(await rec.bodies()).toContainEqual({ name: 'tool_rating', properties: { tool: 'compress', stars: 4 } });
     expect(localStorage.getItem('pdkef:rated:compress')).toBe('1');
     expect(localStorage.getItem('pdkef:my-stars')).toBe('4');
     expect(container.textContent).toContain("Thank you, that really helps. Know someone who'd use it?");
@@ -163,10 +166,10 @@ describe('RatingPrompt', () => {
     expect(click()).toBe(false);
   });
 
-  it('a low rating offers the issues link', () => {
+  it('a low rating offers the issues link', async () => {
     showAfterDelay();
     act(() => stars()[1].click());
-    expect(sendBeacon).toHaveBeenCalledWith({ name: 'tool_rating', properties: { tool: 'compress', stars: 2 } });
+    expect(await rec.bodies()).toContainEqual({ name: 'tool_rating', properties: { tool: 'compress', stars: 2 } });
     expect(container.textContent).toContain("Thank you. If something went wrong, I'd love to hear about it.");
     const a = container.querySelector('a') as HTMLAnchorElement;
     expect(a.textContent).toBe('Tell me on GitHub');
@@ -183,9 +186,9 @@ describe('RatingPrompt', () => {
       act(() => { input().value = value; input().dispatchEvent(new Event('input', { bubbles: true })); });
       act(() => { form()!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); });
     };
-    const comments = () => vi.mocked(sendBeacon).mock.calls.filter(([e]) => (e as { name: string }).name === 'tool_rating_comment');
+    const comments = async () => (await rec.bodies()).filter((e) => (e as { name: string }).name === 'tool_rating_comment');
 
-    it('shows after a high rating, never focused', () => {
+    it('shows after a high rating, never focused', async () => {
       showAfterDelay();
       act(() => stars()[3].click());
       expect(input().maxLength).toBe(500);
@@ -193,32 +196,32 @@ describe('RatingPrompt', () => {
       expect(document.activeElement).not.toBe(input());
     });
 
-    it('shows after a low rating too', () => {
+    it('shows after a low rating too', async () => {
       showAfterDelay();
       act(() => stars()[1].click());
       expect(form()).not.toBeNull();
     });
 
-    it('whitespace sends nothing', () => {
+    it('whitespace sends nothing', async () => {
       showAfterDelay();
       act(() => stars()[3].click());
       submit('   ');
-      expect(comments()).toHaveLength(0);
+      expect(await comments()).toHaveLength(0);
       expect(form()).not.toBeNull();
     });
 
-    it('keeps the tapped stars when the prompt moves before the comment', () => {
+    it('keeps the tapped stars when the prompt moves before the comment', async () => {
       showAfterDelay();
       act(() => stars()[4].click());
       act(() => render(null, container));
       mount(true);
       vi.advanceTimersByTime(1000);
       submit('moved');
-      expect(comments()).toHaveLength(1);
-      expect(comments()[0][0]).toEqual({ name: 'tool_rating_comment', properties: { tool: 'compress', stars: 5, comment: 'moved' } });
+      expect(await comments()).toHaveLength(1);
+      expect((await comments())[0]).toEqual({ name: 'tool_rating_comment', properties: { tool: 'compress', stars: 5, comment: 'moved' } });
     });
 
-    it('keeps the thanks, not a fresh form, when the prompt moves after a comment', () => {
+    it('keeps the thanks, not a fresh form, when the prompt moves after a comment', async () => {
       showAfterDelay();
       act(() => stars()[4].click());
       submit('once');
@@ -226,40 +229,42 @@ describe('RatingPrompt', () => {
       mount(true);
       expect(form()).toBeNull();
       expect(container.textContent).toContain('Got it, thank you.');
-      expect(comments()).toHaveLength(1);
+      expect(await comments()).toHaveLength(1);
     });
 
-    it('keeps the form when the comment could not be sent', () => {
+    it('keeps the form when the comment could not be sent', async () => {
       showAfterDelay();
       act(() => stars()[4].click());
       submit('\u0001'.repeat(500));
-      expect(comments()).toHaveLength(0);
+      expect(await comments()).toHaveLength(0);
       expect(form()).not.toBeNull();
     });
 
-    it('sends one comment with the tapped stars and shows thanks', () => {
+    it('sends one comment with the tapped stars and shows thanks', async () => {
       showAfterDelay();
       act(() => stars()[3].click());
       submit(' lovely ');
-      expect(comments()).toHaveLength(1);
-      expect(comments()[0][0]).toEqual({ name: 'tool_rating_comment', properties: { tool: 'compress', stars: 4, comment: 'lovely' } });
+      expect(await comments()).toHaveLength(1);
+      expect((await comments())[0]).toEqual({ name: 'tool_rating_comment', properties: { tool: 'compress', stars: 4, comment: 'lovely' } });
       expect(form()).toBeNull();
       expect(container.textContent).toContain('Got it, thank you.');
     });
 
-    it('the send button ignores a tap inside the settle window', () => {
+    it('the send button ignores a tap inside the settle window', async () => {
       showAfterDelay();
       act(() => stars()[3].click());
       act(() => { input().value = 'hi'; input().dispatchEvent(new Event('input', { bubbles: true })); });
       const event = new MouseEvent('click', { bubbles: true, cancelable: true });
       container.querySelector('form button')!.dispatchEvent(event);
       expect(event.defaultPrevented).toBe(true);
-      expect(comments()).toHaveLength(0);
+      expect(await comments()).toHaveLength(0);
     });
   });
 
   describe('Share', () => {
+    // Forced: jsdom has no navigator.share or clipboard, so there is no real one to run
     const nav = navigator as unknown as Record<string, unknown>;
+    // Forced: removes the share and clipboard mocks again
     afterEach(() => { delete nav.share; delete nav.clipboard; document.head.querySelectorAll('link[rel=canonical]').forEach((l) => l.remove()); });
     const tapShare = () => {
       showAfterDelay();
@@ -274,6 +279,7 @@ describe('RatingPrompt', () => {
       link.href = 'https://pdkef.com/compress/';
       document.head.appendChild(link);
       document.title = 'Compress PDF';
+      // Forced: no navigator.share in jsdom
       const share = vi.fn(() => Promise.resolve());
       nav.share = share;
       await tapShare();
@@ -281,13 +287,16 @@ describe('RatingPrompt', () => {
     });
 
     it('swallows a rejected share', async () => {
+      // Forced: no navigator.share in jsdom
       nav.share = vi.fn(() => Promise.reject(new DOMException('x', 'AbortError')));
       await expect(tapShare()).resolves.toBeUndefined();
       expect(buttons().map((b) => b.textContent)).toEqual(['Share', 'Send']);
     });
 
     it('copies the link when share is missing', async () => {
+      // Forced: no navigator.clipboard in jsdom
       const writeText = vi.fn(() => Promise.resolve());
+      // Forced: no navigator.clipboard in jsdom
       nav.clipboard = { writeText };
       await tapShare();
       expect(writeText).toHaveBeenCalledWith(location.origin + location.pathname);
@@ -295,6 +304,7 @@ describe('RatingPrompt', () => {
     });
 
     it('falls back to a plain link when the clipboard fails too', async () => {
+      // Forced: no navigator.clipboard in jsdom
       nav.clipboard = { writeText: vi.fn(() => Promise.reject(new Error('no'))) };
       await tapShare();
       const links = [...container.querySelectorAll('a')];

@@ -2,23 +2,26 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('#lib/telemetry/errorReport.ts', { spy: true });
-import { sendBeacon } from '#lib/telemetry/errorReport.ts';
+import { setReportingEnabledForTests } from '#lib/telemetry/errorReport.ts';
+import { installBeaconRecorder, type BeaconRecorder } from '../test/support/beaconRecorder.ts';
 import RatingPrompt, { resetRatingPromptForTests } from './RatingPrompt.tsx';
 import { hebrewShellMessages } from './shellMessages';
 
 describe('RatingPrompt as a modal (merge, sign, highlight-pdf, redact, scan-to-pdf)', () => {
   let container: HTMLElement;
+  let rec: BeaconRecorder;
   beforeEach(() => {
     vi.useFakeTimers();
     localStorage.clear();
     resetRatingPromptForTests();
-    vi.mocked(sendBeacon).mockClear();
-    vi.mocked(sendBeacon).mockReturnValue(true); // forced: the send succeeds (every test; the real one returns false under test)
+    setReportingEnabledForTests(true);
+    rec = installBeaconRecorder();
     container = document.createElement('div');
     document.body.appendChild(container);
   });
   afterEach(() => {
+    rec.restore();
+    setReportingEnabledForTests(false);
     vi.useRealTimers();
     render(null, container);
     container.remove();
@@ -34,7 +37,7 @@ describe('RatingPrompt as a modal (merge, sign, highlight-pdf, redact, scan-to-p
     act(() => { box.value = text; box.dispatchEvent(new Event('input', { bubbles: true })); });
   };
   const share = () => container.querySelector<HTMLInputElement>('input[type="checkbox"]')!;
-  const events = () => vi.mocked(sendBeacon).mock.calls.map(([e]) => e as { name: string; properties: Record<string, unknown> });
+  const events = async () => (await rec.bodies()) as { name: string; properties: Record<string, unknown> }[];
 
   it('opens a modal dialog after the download delay, and not before', () => {
     mount();
@@ -62,7 +65,7 @@ describe('RatingPrompt as a modal (merge, sign, highlight-pdf, redact, scan-to-p
     show();
     act(() => button(/not now/i)!.click());
     expect(dialog()).toBeNull();
-    expect(sendBeacon).not.toHaveBeenCalled();
+    expect(rec.calls).toHaveLength(0);
     expect(localStorage.getItem('pdkef:rated:merge')).toBeNull();
     expect(Number(localStorage.getItem('pdkef:rating-asked-at'))).toBeGreaterThan(0);
     act(() => { vi.advanceTimersByTime(60000); });
@@ -73,14 +76,14 @@ describe('RatingPrompt as a modal (merge, sign, highlight-pdf, redact, scan-to-p
     show();
     act(() => { dialog()!.dispatchEvent(new Event('cancel', { cancelable: true })); });
     expect(dialog()).toBeNull();
-    expect(sendBeacon).not.toHaveBeenCalled();
+    expect(rec.calls).toHaveLength(0);
   });
 
-  it('five stars sends the rating at once and says thanks with share and star links', () => {
+  it('five stars sends the rating at once and says thanks with share and star links', async () => {
     show();
     act(() => star(5).click());
-    expect(events().map((e) => e.name)).toEqual(['tool_rating']);
-    expect(events()[0].properties).toEqual({ tool: 'merge', stars: 5 });
+    expect((await events()).map((e) => e.name)).toEqual(['tool_rating']);
+    expect((await events())[0].properties).toEqual({ tool: 'merge', stars: 5 });
     expect(localStorage.getItem('pdkef:rated:merge')).not.toBeNull();
     expect(container.textContent).toMatch(/Share/);
     expect(container.querySelector('a[href="https://github.com/shlomsh/pdkef"]')).not.toBeNull();
@@ -136,41 +139,42 @@ describe('RatingPrompt as a modal (merge, sign, highlight-pdf, redact, scan-to-p
     expect(container.textContent).not.toContain('What would you tell a friend');
   });
 
-  it('five stars may leave words: Send waits for some, and they stay private unless the box is ticked', () => {
+  it('five stars may leave words: Send waits for some, and they stay private unless the box is ticked', async () => {
     show();
     act(() => star(5).click());
     expect((button(/^send$/i) as HTMLButtonElement).disabled).toBe(true);
     type('Saved my afternoon');
     expect(share().checked).toBe(false);
     act(() => button(/^send$/i)!.click());
-    expect(events().at(-1)).toEqual({ name: 'tool_rating_comment', properties: { tool: 'merge', stars: 5, comment: 'Saved my afternoon' } });
+    expect((await events()).at(-1)).toEqual({ name: 'tool_rating_comment', properties: { tool: 'merge', stars: 5, comment: 'Saved my afternoon' } });
     expect(container.querySelector('textarea')).toBeNull();
     expect(button(/^send$/i)).toBeUndefined();
     expect(container.textContent).toContain('Got it, thank you.');
   });
 
-  it('five stars with the box ticked sends the OK to show the words', () => {
+  it('five stars with the box ticked sends the OK to show the words', async () => {
     show();
     act(() => star(5).click());
     type('Saved my afternoon');
     act(() => share().click());
     act(() => button(/^send$/i)!.click());
-    expect(events().at(-1)).toEqual({ name: 'tool_rating_comment', properties: { tool: 'merge', stars: 5, comment: 'Saved my afternoon', share: true } });
+    expect((await events()).at(-1)).toEqual({ name: 'tool_rating_comment', properties: { tool: 'merge', stars: 5, comment: 'Saved my afternoon', share: true } });
   });
 
-  it('Done with words typed but not sent sends only the stars', () => {
+  it('Done with words typed but not sent sends only the stars', async () => {
     show();
     act(() => star(5).click());
     type('Half a thought');
     act(() => button(/^done$/i)!.click());
-    expect(events().map((e) => e.name)).toEqual(['tool_rating']);
+    expect((await events()).map((e) => e.name)).toEqual(['tool_rating']);
   });
 
   it('five stars words that cannot go keep the text and say so', () => {
     show();
     act(() => star(5).click());
     type('Saved my afternoon');
-    vi.mocked(sendBeacon).mockReturnValue(false); // forced: the send fails
+    rec.restore();
+    rec = installBeaconRecorder({ returns: false });
     act(() => button(/^send$/i)!.click());
     expect(container.querySelector<HTMLTextAreaElement>('textarea')?.value).toBe('Saved my afternoon');
     expect(container.querySelector('[role="alert"]')).not.toBeNull();
@@ -187,10 +191,10 @@ describe('RatingPrompt as a modal (merge, sign, highlight-pdf, redact, scan-to-p
     expect(idea?.target).toBe('_blank');
   });
 
-  it.each([1, 2, 3, 4])('%i stars asks what happened and sends nothing until there is a real reason', (n) => {
+  it.each([1, 2, 3, 4])('%i stars asks what happened and sends nothing until there is a real reason', async (n) => {
     show();
     act(() => star(n).click());
-    expect(sendBeacon).not.toHaveBeenCalled();
+    expect(rec.calls).toHaveLength(0);
     const send = button(/^send$/i) as HTMLButtonElement;
     expect(container.querySelector('textarea')).not.toBeNull();
     expect(send.disabled).toBe(true);
@@ -200,13 +204,13 @@ describe('RatingPrompt as a modal (merge, sign, highlight-pdf, redact, scan-to-p
     expect((button(/^send$/i) as HTMLButtonElement).disabled).toBe(true);
     expect(container.textContent).toContain('A sentence or two is plenty');
     act(() => { container.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); });
-    expect(sendBeacon).not.toHaveBeenCalled();
+    expect(rec.calls).toHaveLength(0);
     type('The page order came out wrong');
     expect((button(/^send$/i) as HTMLButtonElement).disabled).toBe(false);
     act(() => button(/^send$/i)!.click());
-    expect(events().map((e) => e.name).sort()).toEqual(['tool_rating', 'tool_rating_comment']);
-    expect(events().find((e) => e.name === 'tool_rating')!.properties).toEqual({ tool: 'merge', stars: n });
-    expect(events().find((e) => e.name === 'tool_rating_comment')!.properties).toEqual({ tool: 'merge', stars: n, comment: 'The page order came out wrong' });
+    expect((await events()).map((e) => e.name).sort()).toEqual(['tool_rating', 'tool_rating_comment']);
+    expect((await events()).find((e) => e.name === 'tool_rating')!.properties).toEqual({ tool: 'merge', stars: n });
+    expect((await events()).find((e) => e.name === 'tool_rating_comment')!.properties).toEqual({ tool: 'merge', stars: n, comment: 'The page order came out wrong' });
     expect(localStorage.getItem('pdkef:rated:merge')).not.toBeNull();
     act(() => button(/^done$/i)!.click());
     expect(dialog()).toBeNull();
@@ -218,7 +222,7 @@ describe('RatingPrompt as a modal (merge, sign, highlight-pdf, redact, scan-to-p
     type('half written');
     act(() => button(/not now/i)!.click());
     expect(dialog()).toBeNull();
-    expect(sendBeacon).not.toHaveBeenCalled();
+    expect(rec.calls).toHaveLength(0);
     expect(localStorage.getItem('pdkef:rated:merge')).toBeNull();
   });
 
@@ -226,7 +230,8 @@ describe('RatingPrompt as a modal (merge, sign, highlight-pdf, redact, scan-to-p
     show();
     act(() => star(3).click());
     type('It was slow on my phone today');
-    vi.mocked(sendBeacon).mockReturnValue(false); // forced: the send fails
+    rec.restore();
+    rec = installBeaconRecorder({ returns: false });
     act(() => button(/^send$/i)!.click());
     expect(container.querySelector<HTMLTextAreaElement>('textarea')?.value).toBe('It was slow on my phone today');
     expect(container.querySelector('[role="alert"]')).not.toBeNull();

@@ -87,14 +87,15 @@ describe('DownloadElement', () => {
   });
 
   it('is a download link only once there is a href, and then only observes the tap', () => {
-    const onDownloadClick = vi.fn((event: MouseEvent) => event.preventDefault());
+    const taps: MouseEvent[] = [];
+    const onDownloadClick = (event: MouseEvent) => { event.preventDefault(); taps.push(event); };
     const onPreparingTap = vi.fn();
     const box = mount({ state: 'ready', href: 'blob:merged', fileName: 'merged_a.pdf', detail: '4 pages · 9 KB', onDownloadClick, onPreparingTap });
     expect(box.getAttribute('href')).toBe('blob:merged');
     expect(box.getAttribute('download')).toBe('merged_a.pdf');
     expect(box.textContent).toContain('4 pages · 9 KB');
     act(() => { box.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); });
-    expect(onDownloadClick).toHaveBeenCalledTimes(1);
+    expect(taps).toHaveLength(1);
     expect(onPreparingTap).not.toHaveBeenCalled();
   });
 

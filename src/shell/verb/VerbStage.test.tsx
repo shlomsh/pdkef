@@ -3,13 +3,17 @@ import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import VerbStage from './VerbStage.tsx';
 
-function mockMotion(reduce: boolean) {
-  window.matchMedia = vi.fn().mockImplementation((query: string) => ({
-    matches: reduce && query.includes('reduce'),
+// setup.js installs a matchMedia that matches every query, which is "reduce" here. Only the
+// no-preference answer needs a replacement.
+const installedMatchMedia = window.matchMedia;
+function noMotionPreference() {
+  // Forced: jsdom has no matchMedia, so a no-preference answer cannot be real
+  window.matchMedia = (query: string) => ({
+    matches: false,
     media: query,
     addEventListener() {},
     removeEventListener() {},
-  }));
+  }) as unknown as MediaQueryList;
 }
 
 function mount() {
@@ -28,18 +32,20 @@ function mount() {
 describe('VerbStage replay listeners', () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    // Forced: puts setup.js's matchMedia back
+    window.matchMedia = installedMatchMedia;
     document.body.innerHTML = '';
   });
 
   it('adds no listeners under reduced motion', () => {
-    mockMotion(true);
+    expect(window.matchMedia('(prefers-reduced-motion: reduce)').matches).toBe(true);
     const m = mount();
     expect(m.names(m.sheetAdd)).not.toContain('pointerenter');
     expect(m.names(m.docAdd)).not.toContain('visibilitychange');
   });
 
   it('adds both with no preference, and removes them on unmount', () => {
-    mockMotion(false);
+    noMotionPreference();
     const m = mount();
     expect(m.names(m.sheetAdd)).toContain('pointerenter');
     expect(m.names(m.docAdd)).toContain('visibilitychange');
