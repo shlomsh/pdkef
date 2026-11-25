@@ -5,7 +5,7 @@
 // the delete elements useDeleteTool.markObjects builds, into applyPageEdits.
 // Runs the real deleteObjectsFromPdf and (for the cover path) redactPdf.
 import path from 'path';
-import { describe, expect, it, vi, beforeAll, afterAll } from 'vitest';
+import { describe, expect, it, beforeAll } from 'vitest';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { pointAtLegacyWorker } from '../../../test/support/realPdfjs.ts';
 import { applyPageEdits } from './applyPageEdits.js';
@@ -13,34 +13,7 @@ import { listDeletableObjects } from './deleteObjects.js';
 import { withPreviews } from './objectPreviews.test-helper.js';
 import { buildFormXObjectPdf } from '#editor/adapters/pdf/formXObjectFixture.test-helper.js';
 
-// The cover path rasterizes a page; jsdom has no canvas, so stub it as redact.test.js does.
-const JPEG_1X1_BASE64 =
-  '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==';
-const realToDataURL = HTMLCanvasElement.prototype.toDataURL;
-const realGetContext = HTMLCanvasElement.prototype.getContext;
-afterAll(() => {
-  HTMLCanvasElement.prototype.toDataURL = realToDataURL;
-  HTMLCanvasElement.prototype.getContext = realGetContext;
-});
-
-beforeAll(() => {
-  HTMLCanvasElement.prototype.toDataURL = () => `data:image/jpeg;base64,${JPEG_1X1_BASE64}`;
-  HTMLCanvasElement.prototype.getContext = function getContext() {
-    const base = { canvas: this, fillStyle: '', strokeStyle: '' };
-    return new Proxy(base, {
-      get(target, prop) {
-        if (prop in target) return target[prop];
-        if (prop === 'getTransform') return () => ({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0, invertSelf() { return this; } });
-        return vi.fn();
-      },
-      set(target, prop, value) {
-        target[prop] = value;
-        return true;
-      },
-    });
-  };
-  pointAtLegacyWorker(pdfjs);
-});
+beforeAll(() => { pointAtLegacyWorker(pdfjs); });
 
 async function pageText(blob, pageIndex) {
   const bytes = new Uint8Array(await blob.arrayBuffer());

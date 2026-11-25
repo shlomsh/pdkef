@@ -43,8 +43,8 @@ beforeAll(async () => {
 });
 afterAll(() => original.close());
 
-/** A saved export Blob; jsdom's has no arrayBuffer(), so it carries one. */
-const exportOf = (data: Uint8Array) => Object.assign(new Blob([data as BlobPart]), { arrayBuffer: () => Promise.resolve(toBuffer(data)) });
+/** A saved export Blob. */
+const exportOf = (data: Uint8Array) => new Blob([data as BlobPart]);
 const unreadable = () => Object.assign(new Error('The requested file could not be read'), { name: 'NotReadableError' });
 
 async function run(saved: Blob, heldBytes: ArrayBuffer | null = toBuffer(originalBytes)) {

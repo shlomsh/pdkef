@@ -10,7 +10,7 @@
 // redactPdf - see applyPageEdits.js's own docstring), reusing the read-back
 // helpers redact.test.js and deleteObjects.test.js already established.
 import path from 'path';
-import { describe, expect, it, vi, beforeAll, afterAll } from 'vitest';
+import { describe, expect, it, beforeAll } from 'vitest';
 import {
   PDFDocument,
   StandardFonts,
@@ -172,42 +172,6 @@ describe('RED CamScanner footer: A - footer as its own image XObject, removed wi
 });
 
 describe('RED CamScanner footer: B - footer text + Link annotation, covered with Whiteout', () => {
-  let originalToDataURL;
-  let originalGetContext;
-
-  beforeAll(() => {
-    originalToDataURL = HTMLCanvasElement.prototype.toDataURL;
-    originalGetContext = HTMLCanvasElement.prototype.getContext;
-    // redact.js's flatten path rasterizes to a canvas and reads it back with
-    // toDataURL(); jsdom implements neither, so both are stubbed exactly as
-    // redact.test.js stubs them - what gets painted doesn't matter here, only
-    // whether the resulting PDF still carries the footer's text/annotation.
-    HTMLCanvasElement.prototype.toDataURL = function toDataURL() {
-      return `data:image/jpeg;base64,${JPEG_1X1_BASE64}`;
-    };
-    HTMLCanvasElement.prototype.getContext = function getContext() {
-      const target = { canvas: this, fillStyle: '', strokeStyle: '' };
-      return new Proxy(target, {
-        get(t, p) {
-          if (p in t) return t[p];
-          if (p === 'getTransform') {
-            return () => ({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0, invertSelf() { return this; } });
-          }
-          return () => {};
-        },
-        set(t, p, v) {
-          t[p] = v;
-          return true;
-        },
-      });
-    };
-  });
-
-  afterAll(() => {
-    HTMLCanvasElement.prototype.toDataURL = originalToDataURL;
-    HTMLCanvasElement.prototype.getContext = originalGetContext;
-  });
-
   async function buildFixtureB() {
     const doc = await PDFDocument.create();
     const page = doc.addPage([200, 300]);

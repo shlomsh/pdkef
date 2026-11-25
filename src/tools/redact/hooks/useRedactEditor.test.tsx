@@ -14,7 +14,6 @@ import { mountRedactEditor, type MountedRedactEditor } from './redactEditor.test
 import type { RedactEditor } from './useRedactEditor.ts';
 
 vi.mock('#editor-ui/whiteout/pageSampling.ts', { spy: true });
-vi.mock('../components/DeleteLift.tsx', { spy: true });
 
 const BOX: PercentBox = { left: 10, top: 20, width: 20, height: 30 };
 const SECOND: PercentBox = { left: 40, top: 50, width: 20, height: 30 };
@@ -514,7 +513,7 @@ describe('useRedactEditor over the real reducer', () => {
       const bytes = new Uint8Array(readFileSync(join(import.meta.dirname, '../../../lib/__fixtures__/num-1.pdf'))).buffer;
       const [object] = await listDeletableObjects(bytes);
       m = mountRedactEditor({ numPages: 1, fileBytes: bytes, render: true });
-      // The page column draws no canvas without a pdf.js document: a real one, drawn into by jsdom, stands where pdf.js would paint.
+      // The page column draws no canvas without a pdf.js document: this is a real one, in the place pdf.js would paint.
       const canvas = document.createElement('canvas');
       canvas.width = 20;
       canvas.height = 20;

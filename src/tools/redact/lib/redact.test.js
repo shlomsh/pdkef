@@ -292,40 +292,6 @@ describe('redactPdf library integration with real fixtures', () => {
 // A covered page is saved as one picture with no text layer at all
 // (2026-09-28); an uncovered page is still the original lossless copy.
 describe('redactPdf: a covered page saves with no text layer', () => {
-  // Same canvas/JPEG stubs as the describe block above; duplicated rather
-  // than shared across `describe`s because vitest's per-file beforeAll only
-  // needs to run once either way, but keeping each block's fixture setup
-  // next to the tests that read it is worth the few duplicated lines.
-  let originalToDataURL;
-  let originalGetContext;
-
-  beforeAll(() => {
-    originalToDataURL = HTMLCanvasElement.prototype.toDataURL;
-    originalGetContext = HTMLCanvasElement.prototype.getContext;
-    HTMLCanvasElement.prototype.toDataURL = function toDataURL() {
-      return `data:image/jpeg;base64,${JPEG_1X1_BASE64}`;
-    };
-    HTMLCanvasElement.prototype.getContext = function getContext() {
-      const target = { canvas: this, fillStyle: '', strokeStyle: '' };
-      return new Proxy(target, {
-        get(t, p) {
-          if (p in t) return t[p];
-          if (p === 'getTransform') return () => ({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 });
-          return () => {};
-        },
-        set(t, p, v) {
-          t[p] = v;
-          return true;
-        },
-      });
-    };
-  });
-
-  afterAll(() => {
-    HTMLCanvasElement.prototype.toDataURL = originalToDataURL;
-    HTMLCanvasElement.prototype.getContext = originalGetContext;
-  });
-
   it('saves a covered page with no text at all, while an uncovered page keeps its own', async () => {
     const file = getFixtureFile('num-5.pdf');
     const { blob } = await redactPdf(file, [
