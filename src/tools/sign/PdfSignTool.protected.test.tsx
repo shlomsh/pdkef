@@ -2,34 +2,19 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import fs from 'node:fs';
-import * as pdfjsDist from 'pdfjs-dist';
 import PdfSignTool from './PdfSignTool.tsx';
 import { hebrewSignMessages } from './messages';
 import type { SignMessages } from '#editor/registry/messages.ts';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { waitUntil } from '../../test/support/waitUntil.ts';
+import '../../test/support/realPdfjs.ts';
 
 declare const __dirname: string;
 
 // ENC-07: a protected PDF is one quiet state in Sign, not an editor or an alert.
 
-// EDGE: pdf.js cannot run its worker in jsdom, so getDocument is faked below. draftStore, analytics and the
-// annotation read-back run for real over the harness.
-const plainDocument = () => ({
-  numPages: 1,
-  getPermissions: vi.fn(async () => null),
-  getPage: vi.fn(() => Promise.resolve({
-    getViewport: () => ({ width: 612, height: 792 }),
-    render: () => ({ promise: Promise.resolve() }),
-  })),
-  destroy: vi.fn(),
-});
-
-vi.mock('pdfjs-dist', () => ({
-  GlobalWorkerOptions: { workerSrc: '' },
-  getDocument: vi.fn(),
-}));
+// pdf.js runs for real over the fixtures (realPdfjs.ts), as do draftStore, analytics and the annotation read-back.
 
 function required<T>(value: T | null | undefined, description: string): T {
   if (value == null) throw new Error(`Expected ${description}`);
@@ -51,15 +36,6 @@ describe('a protected PDF in Sign (ENC-07)', () => {
     { type: 'application/pdf' },
   );
 
-  function mockProtection(kind: 'needs-password' | 'owner-restricted') {
-    vi.mocked(pdfjsDist.getDocument).mockImplementationOnce(() => ({
-      promise: kind === 'needs-password'
-        ? Promise.reject(Object.assign(new Error('No password given'), { name: 'PasswordException' }))
-        : Promise.resolve({ ...plainDocument(), getPermissions: vi.fn(async () => []) }),
-      destroy: vi.fn(),
-    }) as unknown as ReturnType<typeof pdfjsDist.getDocument>);
-  }
-
   async function pick(file: File, messages?: Partial<SignMessages>) {
     container = document.createElement('div');
     document.body.appendChild(container);
@@ -77,10 +53,6 @@ describe('a protected PDF in Sign (ENC-07)', () => {
 
   beforeEach(() => {
     harness = installToolHarness();
-    vi.mocked(pdfjsDist.getDocument).mockImplementation(() => ({
-      promise: Promise.resolve(plainDocument()),
-      destroy: vi.fn(),
-    }) as unknown as ReturnType<typeof pdfjsDist.getDocument>);
     window.history.pushState({}, '', '?next=0');
   });
 
@@ -95,10 +67,9 @@ describe('a protected PDF in Sign (ENC-07)', () => {
   });
 
   it.each([
-    ['owner-only.pdf', 'owner-restricted', 'This PDF is protected', "It opens without a password, but Sign can't change it as it is. Unlock takes the protection off on your device, then you can sign it."],
-    ['needs-password.pdf', 'needs-password', 'This PDF has a password', 'Unlock opens it on your device, then you can sign it.'],
-  ] as const)('%s shows the state and never reaches the editor or the failure count', async (name, kind, title, body) => {
-    mockProtection(kind);
+    ['owner-only.pdf', 'This PDF is protected', "It opens without a password, but Sign can't change it as it is. Unlock takes the protection off on your device, then you can sign it."],
+    ['needs-password.pdf', 'This PDF has a password', 'Unlock opens it on your device, then you can sign it.'],
+  ] as const)('%s shows the state and never reaches the editor or the failure count', async (name, title, body) => {
     await pick(fixture(name));
     await stateShown();
 
@@ -112,7 +83,6 @@ describe('a protected PDF in Sign (ENC-07)', () => {
   });
 
   it('Unlock it parks the file for Unlock, then navigates there', async () => {
-    mockProtection('owner-restricted');
     await pick(fixture('owner-only.pdf'));
     await stateShown();
     const location = { href: '/sign/' };
@@ -126,7 +96,6 @@ describe('a protected PDF in Sign (ENC-07)', () => {
   });
 
   it('a failed save says so quietly and leaves the button usable', async () => {
-    mockProtection('needs-password');
     vi.spyOn(console, 'error').mockImplementation(() => {});
     await pick(fixture('needs-password.pdf'));
     await stateShown();
@@ -139,7 +108,6 @@ describe('a protected PDF in Sign (ENC-07)', () => {
   });
 
   it('choosing another file clears the state', async () => {
-    mockProtection('needs-password');
     await pick(fixture('needs-password.pdf'));
     await stateShown();
     expect(state()).not.toBeNull();
@@ -153,7 +121,6 @@ describe('a protected PDF in Sign (ENC-07)', () => {
   });
 
   it('shows the Hebrew title on the Hebrew page', async () => {
-    mockProtection('needs-password');
     await pick(fixture('needs-password.pdf'), hebrewSignMessages);
     await stateShown();
     expect(state()?.querySelector('h2')?.textContent).toBe(hebrewSignMessages.protectedNeedsPasswordTitle);

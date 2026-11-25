@@ -72,11 +72,13 @@ describe('useComparePreviews', () => {
   });
 
   it('reports a failed render as the error status', async () => {
-    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const error = vi.spyOn(console, 'error');
     vi.mocked(thumbnails.renderComparePreview).mockRejectedValue(new Error('boom'));
     await act(async () => api.current!.open(pdf(), blob()));
     await settle();
     expect(api.current!.status).toBe('error');
+    expect(error.mock.calls).toEqual([[expect.objectContaining({ message: 'boom' })]]);
+    error.mockRestore();
     act(() => api.current!.resetStatus());
     expect(api.current!.status).toBe('idle');
   });

@@ -500,9 +500,7 @@ describe('listDeletableObjects', () => {
     const source = new Uint8Array(await doc.save());
 
     vi.mocked(reportError).mockClear();
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const objects = await listDeletableObjects(source);
-    consoleSpy.mockRestore();
 
     expect(reportError).not.toHaveBeenCalled();
     expect(objects.length).toBeGreaterThan(0);
@@ -515,7 +513,7 @@ describe('listDeletableObjects', () => {
     doc.addPage(copied);
     const source = new Uint8Array(await doc.save());
 
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleSpy = vi.spyOn(console, 'error');
     const pdfObjects = await import('#editor/adapters/pdf/pdfObjects.js');
     const realExtract = pdfObjects.extractPageObjects;
     const extractSpy = vi
@@ -528,7 +526,8 @@ describe('listDeletableObjects', () => {
     const objects = await listDeletableObjects(source);
     expect(objects.every((o) => o.pageIndex === 0)).toBe(true);
     expect(objects.length).toBeGreaterThan(0);
-    expect(consoleSpy).toHaveBeenCalled();
+    expect(consoleSpy).toHaveBeenCalledTimes(1);
+    expect(consoleSpy).toHaveBeenCalledWith('Could not read deletable objects on page 2', expect.objectContaining({ message: 'unsupported operator' }));
 
     extractSpy.mockRestore();
     consoleSpy.mockRestore();

@@ -5,11 +5,13 @@ import { announceShareResult } from './shareResult.ts';
 describe('announceShareResult', () => {
   it('says each answer of the share sheet', () => {
     const say = vi.fn();
-    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const error = vi.spyOn(console, 'error');
     announceShareResult({ status: 'shared' }, say);
     announceShareResult({ status: 'canceled' }, say);
     announceShareResult({ status: 'error', error: new Error('no') }, say);
     expect(say.mock.calls.map(([text]) => text)).toEqual([t.shared, t.shareCanceled, t.shareError]);
+    expect(error.mock.calls).toEqual([[expect.objectContaining({ message: 'no' })]]);
+    error.mockRestore();
   });
 
   it('says nothing when there was nothing to share', () => {

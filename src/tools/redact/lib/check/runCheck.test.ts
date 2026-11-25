@@ -75,11 +75,12 @@ describe('runSavedFileCheck', () => {
     const { doc, close } = await openOriginal(originalBytes, PDFJS_WASM_URL);
     const page = await doc.getPage(1);
     page.getOperatorList = () => Promise.reject(new Error('broken content stream'));
-    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleError = vi.spyOn(console, 'error');
     try {
       const out = await runSavedFileCheck({ originalDoc: doc, originalBytes, savedBytes: await buildPdf([{}]), boxes: [blackout(0, 0)], extraTerms: [], picturePages: [] });
       expect(out.context.original[0].glyphs).toBeNull();
       expect(out.results).toEqual([]);
+      expect(consoleError.mock.calls).toEqual([["Redact could not read a page's text", expect.objectContaining({ message: 'broken content stream' })]]);
     } finally {
       consoleError.mockRestore();
       await close();

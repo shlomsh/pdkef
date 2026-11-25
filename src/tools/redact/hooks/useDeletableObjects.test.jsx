@@ -102,7 +102,8 @@ describe('useDeletableObjects', () => {
     await act(async () => { await logged.promise; await drainPromises(); });
 
     expect(apiRef.current).toEqual([]);
-    expect(consoleSpy).toHaveBeenCalled();
+    expect(consoleSpy).toHaveBeenCalledTimes(1);
+    expect(consoleSpy).toHaveBeenCalledWith('Could not read deletable objects from this PDF', expect.anything());
   });
 
   it('re-scans when the file identity changes', async () => {

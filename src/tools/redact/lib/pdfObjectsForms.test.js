@@ -194,9 +194,7 @@ describe('Form XObject transform and guards', () => {
       .map(([, object]) => object)
       .find((object) => object.dict?.get(PDFName.of('Subtype'))?.asString?.() === '/Form');
     form.dict.set(PDFName.of('Filter'), PDFName.of('FlateDecode')); // content is not flate data
-    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
     const { objects } = extractPageObjects(page, 0);
-    error.mockRestore();
     expect(objects.map((o) => o.formPath)).toEqual([[]]);
   });
 });

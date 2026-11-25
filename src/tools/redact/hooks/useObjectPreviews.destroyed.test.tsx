@@ -35,7 +35,7 @@ describe('useObjectPreviews when the document is replaced and destroyed mid-read
     vi.mocked(reportError).mockClear();
     unhandled = [];
     process.on('unhandledRejection', onUnhandled);
-    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'error');
     host = document.createElement('div');
     document.body.appendChild(host);
   });
@@ -102,7 +102,7 @@ describe('useObjectPreviews when the document is replaced and destroyed mid-read
 
 describe('useObjectPreviews genuine errors', () => {
   it('still reports an error from a document that is current', async () => {
-    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const error = vi.spyOn(console, 'error');
     const page = { getOperatorList: async () => { throw new Error('bad stream'); }, commonObjs: { get: () => null } };
     const doc = fakePdfDocument({ getPage: async () => page });
     const objects = [anObject()];
@@ -114,6 +114,7 @@ describe('useObjectPreviews genuine errors', () => {
     await act(flush);
     await flush();
     expect(reportError).toHaveBeenCalledWith('redact', expect.any(Error), 'read_glyphs');
+    expect(error.mock.calls).toEqual([["Redact could not read a page's text", expect.objectContaining({ message: 'bad stream' })]]);
     act(() => render(null, host));
     host.remove();
     vi.restoreAllMocks();

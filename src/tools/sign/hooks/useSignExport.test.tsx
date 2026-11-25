@@ -129,7 +129,7 @@ describe('Sign export funnel events', () => {
 
   it('a hand-off reports nothing when the file could not be parked, since it never reaches its proceed step', async () => {
     preparedExportRef.current = prepared();
-    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const error = vi.spyOn(console, 'error');
     vi.mocked(reportHandedOn).mockClear();
     vi.mocked(saveHandoff).mockResolvedValueOnce(false); // the one forced line: the store refuses the file
     await act(() => api.current.requestHandoff('compress'));
@@ -139,6 +139,7 @@ describe('Sign export funnel events', () => {
     });
     expect(vi.mocked(sendHandoff)).toHaveBeenCalledTimes(1);
     expect(reportHandedOn).not.toHaveBeenCalled();
+    expect(error.mock.calls).toEqual([[expect.objectContaining({ message: 'handoff' })]]);
   });
 
   it('a hand-off reports the file handed on only when sendHandoff reaches its proceed step', async () => {

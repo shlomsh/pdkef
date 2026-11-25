@@ -75,7 +75,6 @@ describe('createCompressCallbacks', () => {
 
   it('fail announces the image failure for an image file', () => {
     const { callbacks, setAnnouncement } = setup();
-    vi.spyOn(console, 'error').mockImplementation(() => {});
     callbacks.fail(new Error('boom'));
     expect(setAnnouncement).toHaveBeenCalledWith(t.imageFailed);
   });

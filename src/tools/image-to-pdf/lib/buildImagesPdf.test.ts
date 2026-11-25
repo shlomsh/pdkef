@@ -3,22 +3,22 @@ import { buildImagesPdf, reportBuildError, skippedNames } from './buildImagesPdf
 import { imagesToPdf, UnreadableImageError } from '#lib/images/imagesToPdf.js';
 import { reportError } from '#lib/telemetry/errorReport.ts';
 
-// Neither decoder runs in Node (no <img>), so the two imagesToPdf tests force the whole spy: the forced implementation
-// stands in for imagesToPdf itself and fabricates its result (the skipped name and the Blob, and in one test the abort).
-// buildImagesPdf is the real code under test; the real imagesToPdf is not exercised here.
+// The counting test runs the real imagesToPdf: cut.png is bytes neither pdf-lib nor a browser decoder (absent here) can
+// read, so it is really skipped. Forced: the second test must abort after the last picture was read, a moment the real
+// imagesToPdf closes (it throws AbortError at the end), so its forced implementation stands in for imagesToPdf and
+// fabricates its result; there buildImagesPdf's own guard is what is under test.
 vi.mock('#lib/images/imagesToPdf.js', { spy: true });
 vi.mock('#lib/telemetry/errorReport.ts', { spy: true });
 
-const files = ['a.png', 'cut.png', 'c.png'].map((name) => new File([new Uint8Array(1)], name, { type: 'image/png' }));
+// A real, valid 1x1 transparent PNG (67 bytes).
+const PNG_1X1_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+const png = () => Uint8Array.from(atob(PNG_1X1_BASE64), (c) => c.charCodeAt(0));
+const files = ['a.png', 'cut.png', 'c.png'].map((name) => new File([name === 'cut.png' ? png().slice(0, 40) : png()], name, { type: 'image/png' }));
 
 describe('buildImagesPdf (DEBT-75)', () => {
   beforeEach(() => { vi.mocked(imagesToPdf).mockReset(); vi.mocked(reportError).mockClear(); });
 
   it('counts the pages kept and names the pictures left out', async () => {
-    vi.mocked(imagesToPdf).mockImplementation(async (_files, _progress, _signal, options) => {
-      options?.onSkip?.('cut.png');
-      return new Blob(['pdf']);
-    });
     const onUnreadable = vi.fn();
     const built = await buildImagesPdf(files, () => {}, new AbortController().signal, onUnreadable);
     expect(built.pageCount).toBe(2);

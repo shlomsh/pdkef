@@ -74,7 +74,6 @@ describe('useHighlightShare', () => {
   });
 
   it('keeps the file and asks for another tap when the automatic attempt errors', async () => {
-    vi.spyOn(console, 'error').mockImplementation(() => {});
     const share = fakeShare([{ status: 'error', error: new Error('x') }]);
     const m = mount(share, async () => { share.shareReady = true; return true; });
     share.clearPrepared.mockClear();
@@ -115,7 +114,7 @@ describe('useHighlightShare', () => {
   });
 
   it('a later tap announces cancel and error', async () => {
-    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const error = vi.spyOn(console, 'error');
     const share = fakeShare([{ status: 'canceled' }, { status: 'error', error: new Error('x') }]);
     share.shareReady = true;
     const m = mount(share, async () => true);
@@ -123,6 +122,8 @@ describe('useHighlightShare', () => {
     expect(m.setAnnouncement).toHaveBeenLastCalledWith(t.shareCanceled);
     await act(async () => { await m.api.onShare(); });
     expect(m.setAnnouncement).toHaveBeenLastCalledWith(t.shareError);
+    expect(error.mock.calls).toEqual([[expect.objectContaining({ message: 'x' })]]);
+    error.mockRestore();
     expect(vi.mocked(recordAction)).not.toHaveBeenCalled();
   });
 });
