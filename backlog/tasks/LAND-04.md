@@ -316,3 +316,10 @@ count). The rule is off meanwhile.
   navigation and LCP entries. A fresh review ran 33 mutations: no coverage lost. Two it found were never caught, now are
   (a four-part path) or have a direct test (a query never reaches the tool path). Never caught, before or after: the
   `done`, `busy` and message type checks in `workerDownloads`, and the `supportedEntryTypes` check in `pagePerformance`.
+- `src/shell` (2026-11-25): 753 sites in 209 files down to 718 in 202, 23 left in the area, each with its forced line. A browser's
+  user agent is the jsdom environment's own (a small file per browser), ratings are real sends caught by the beacon recorder, thumbnails
+  and page previews are real pdf.js renders of real PDFs, `usePdfShare` runs for real with only `navigator.share` replaced, and a
+  store that refuses is a database at a newer version (`newerStore.test-helper.ts`). A fresh review ran 45 mutations: no coverage
+  lost, two caught now that the old mocks let through (a share of only the first file, a wrong download name), and three the review
+  asked for and got (the page drawn in the preview, its picture, no title in a share). Left as never caught: Android in the cloud
+  drive hint, the preview's abort on close, a stale failed hand-off clearing busy.

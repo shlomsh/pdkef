@@ -35,7 +35,7 @@ describe('shared PagePreviewDialog', () => {
     return container.querySelector('dialog');
   }
 
-  it('renders the title, the badge and the toggle from props', () => {
+  it('renders the title, the badge and the toggle from props', async () => {
     const onToggle = vi.fn();
     const dialog = mount({ target: { ...target, badge: 'Left out' }, toggle: { label: 'Bring back', pressed: true, always: true, onToggle } });
     expect(dialog.textContent).toContain('Page 2 of 5');
@@ -43,6 +43,10 @@ describe('shared PagePreviewDialog', () => {
     const toggleBtn = Array.from(dialog.querySelectorAll('button')).find((b) => b.textContent === 'Bring back');
     act(() => toggleBtn!.click());
     expect(onToggle).toHaveBeenCalledTimes(1);
+    // The page the target names, and no other, is the one drawn.
+    expect(renderPdfThumbnails).toHaveBeenCalledExactlyOnceWith(target.file, expect.any(Function), expect.objectContaining({ pageIndices: [1] }));
+    await act(async () => { await vi.mocked(renderPdfThumbnails).mock.results[0].value; });
+    expect(dialog.querySelector('img')?.getAttribute('src')).toMatch(/^data:image\/jpeg;base64,/);
   });
 
   it('disables Previous at the start and steps by one with Next', () => {

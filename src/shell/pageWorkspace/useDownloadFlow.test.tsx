@@ -79,10 +79,11 @@ const expectDownloads = (expected: [Blob, string][]) => {
 };
 // What the native share sheet was handed, one list of files per share.
 const sheets: File[][] = [];
+const sheetKeys: string[][] = [];
 // Forced: jsdom has no navigator.share, so the sheet is a function that records the files it is handed.
 const shareSheet = (answer: () => Promise<void> = () => Promise.resolve()) => Object.defineProperty(navigator, 'share', {
   configurable: true,
-  value: (data: { files: File[] }) => { sheets.push(data.files); return answer(); },
+  value: (data: { files: File[] }) => { sheets.push(data.files); sheetKeys.push(Object.keys(data)); return answer(); },
 });
 const described = async (files: File[]) => Promise.all(files.map(async (file) => ({ name: file.name, type: file.type, text: await file.text() })));
 
@@ -125,6 +126,7 @@ describe('useDownloadFlow', () => {
     localStorage.clear();
     downloads.length = 0;
     sheets.length = 0;
+    sheetKeys.length = 0;
     vi.spyOn(URL, 'createObjectURL');
     document.addEventListener('click', onDownloadClick, true);
     shareSheet();
@@ -270,6 +272,7 @@ describe('useDownloadFlow', () => {
     await act(async () => { await flow.handleShare(); });
     expect(sheets).toHaveLength(1);
     expect(await described(sheets[0])).toEqual([{ name: 'out.pdf', type: 'image/png', text: 'x' }]);
+    expect(sheetKeys).toEqual([['files']]); // a title or text becomes a stray file on iOS (DEBT-60)
   });
 
   it('a tap that goes stale while the plan changes mid-build asks the new build to run now', () => {
