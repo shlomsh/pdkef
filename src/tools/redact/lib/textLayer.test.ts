@@ -172,4 +172,9 @@ describe('text drawn twice for a bold look (RED-62)', () => {
       Math.hypot = real;
     }
   });
+
+  it('reads a page whose single line holds 130,000 glyphs', () => {
+    const glyphs = makeLine('a'.repeat(130000), { widthEm: 0.5 });
+    expect(textInReadingOrder(glyphs, geometry)).toBe('a'.repeat(130000));
+  });
 });

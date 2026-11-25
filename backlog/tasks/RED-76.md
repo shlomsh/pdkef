@@ -1,10 +1,9 @@
 ---
 id: "RED-76"
 title: "Delete's text preview reads a page with one very long line"
-status: "open"
+status: "done"
 priority: "P3"
 epic: "redact"
-horizon: "later"
 depends_on: []
 ---
 

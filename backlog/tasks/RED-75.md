@@ -1,10 +1,9 @@
 ---
 id: "RED-75"
 title: "Delete's page previews free their pdf.js documents"
-status: "open"
+status: "done"
 priority: "P3"
 epic: "redact"
-horizon: "later"
 depends_on: []
 ---
 

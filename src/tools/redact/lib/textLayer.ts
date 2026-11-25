@@ -228,7 +228,9 @@ function readingLines(glyphs: PageGlyph[], geometry: PageGeometry): ReadingLine[
   for (const line of positionalLines(withoutOverprints(glyphs))) {
     const words = positionalWords(line);
     if (words.length === 0) continue;
-    lines.push({ top: Math.min(...words.flat().map((glyph) => glyphCore(geometry, glyph).y0)), words });
+    let top = Infinity;
+    for (const word of words) for (const glyph of word) top = Math.min(top, glyphCore(geometry, glyph).y0);
+    lines.push({ top, words });
   }
   return lines;
 }

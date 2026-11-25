@@ -7,18 +7,18 @@ import { h, render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
+import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import useDeletePreviews, { deleteSpansByPage } from './useDeletePreviews.ts';
 import { buildDeletePreviewPage, listDeletableObjects } from '../lib/deleteObjects.js';
 import { getPdfjs } from '#editor/adapters/pdf/pdfjsLoader.js';
-import { buildPdf, legacyPdfjs } from '../../../test/support/redactCheckPdfs.test-helper.ts';
+import { buildPdf, legacyPdfjs, openedTasks } from '../../../test/support/redactCheckPdfs.test-helper.ts';
 import { drainPromises } from '../../../test/support/drainPromises.ts';
 import { waitUntil } from '../../../test/support/waitUntil.ts';
 
 declare const process: { cwd(): string };
 
-// The one edge: getPdfjs() is the vite worker import, which node cannot run, so each test says what
-// stands in for it: the legacy build, or (where the test counts destroy calls) a small pdf.js.
+// The one edge: getPdfjs() is the vite worker import, which node cannot run; the legacy build stands in.
 vi.mock('#editor/adapters/pdf/pdfjsLoader.js', () => ({ getPdfjs: vi.fn() }));
 // Spy-through: the real page rewrite runs; a test only needs to see it was asked, and times one rewrite.
 vi.mock('../lib/deleteObjects.js', { spy: true });
@@ -41,24 +41,10 @@ async function fileWithFirstLineDeleted(lines: string[]) {
   return { fileBytes, elements: [{ type: 'delete', pageIndex: first.pageIndex, start: first.start, end: first.end }] };
 }
 
-/** The text pdf.js reads on page 1 of the PDF bytes a preview was parsed from. */
-async function textOf(data: Uint8Array): Promise<string> {
-  const task = pdfjs.getDocument({ data: data.slice(), useSystemFonts: true });
-  const content = await (await (await task.promise).getPage(1)).getTextContent();
-  await task.destroy();
+/** The text pdf.js reads on page 1 of a preview's document. */
+async function textOf(proxy: PDFDocumentProxy): Promise<string> {
+  const content = await (await proxy.getPage(1)).getTextContent();
   return content.items.map((item) => ('str' in item ? item.str : '')).join(' ');
-}
-
-/** A pdf.js whose documents record the bytes they were opened from and can be destroyed. */
-function recordingPdfjs() {
-  const opened: Array<{ destroy: ReturnType<typeof vi.fn>; data: Uint8Array }> = [];
-  // A pdf.js stand-in whose document has destroy(); real 6.5 documents do not (RED-75), so this test pins the intended release until RED-75 lands.
-  const getDocument = vi.fn((opts: { data: Uint8Array }) => {
-    const proxy = { destroy: vi.fn(), data: opts.data };
-    opened.push(proxy);
-    return { promise: Promise.resolve(proxy) };
-  });
-  return { opened, lib: { getDocument } as never };
 }
 
 describe('useDeletePreviews', () => {
@@ -81,8 +67,8 @@ describe('useDeletePreviews', () => {
   }
 
   it('rebuilds a page-0 preview from a reopened file with the same delete offsets as the previous file', async () => {
-    const { opened, lib } = recordingPdfjs();
-    vi.mocked(getPdfjs).mockResolvedValue(lib);
+    openedTasks.length = 0;
+    vi.mocked(getPdfjs).mockImplementation(async () => legacyPdfjs());
     let latest: any = null;
     const onPreviews = (p: unknown) => { latest = p; };
 
@@ -98,7 +84,7 @@ describe('useDeletePreviews', () => {
     const proxyA = latest.get(0);
     expect(proxyA).toBeDefined();
     expect(buildDeletePreviewPage).toHaveBeenCalledTimes(1);
-    expect(await textOf(proxyA.data)).toContain('Alpha two');
+    expect(await textOf(proxyA)).toContain('Alpha two');
 
     // Step 2 (the reopened-draft path the e2e cannot reach): a different
     // file, B, arrives with delete elements at the SAME byte offsets as A's.
@@ -108,16 +94,16 @@ describe('useDeletePreviews', () => {
     act(() => { render(h(Harness, { fileBytes: b.fileBytes, elements: b.elements, onPreviews }), container!); });
     await waitUntil(() => latest.size === 1 && latest.get(0) !== proxyA, { timeout: 3000 });
 
-    expect(proxyA.destroy).toHaveBeenCalledOnce();
+    expect(proxyA.loadingTask.destroyed).toBe(true);
     expect(buildDeletePreviewPage).toHaveBeenCalledTimes(2);
     expect(load).toHaveBeenCalledTimes(2);
     expect(load.mock.calls[1][0]).not.toBe(load.mock.calls[0][0]);
     const proxyB = latest.get(0);
     expect(proxyB).toBeDefined();
     expect(proxyB).not.toBe(proxyA);
-    expect(opened).toHaveLength(2);
+    expect(openedTasks).toHaveLength(2);
     // The page it parsed is B's own, with its first line gone: not A's.
-    const textB = await textOf(proxyB.data);
+    const textB = await textOf(proxyB);
     expect(textB).toContain('Bravo two');
     expect(textB).not.toContain('Bravo one');
   });
@@ -149,8 +135,8 @@ describe('useDeletePreviews', () => {
   });
 
   it('destroys the pdf.js handles of a rebuild that was cancelled before it finished', async () => {
-    const { opened, lib } = recordingPdfjs();
-    vi.mocked(getPdfjs).mockResolvedValue(lib);
+    openedTasks.length = 0;
+    vi.mocked(getPdfjs).mockImplementation(async () => legacyPdfjs());
     const actual = await vi.importActual<typeof import('../lib/deleteObjects.js')>('../lib/deleteObjects.js');
     const { fileBytes, elements } = await fileWithFirstLineDeleted(['Alpha one', 'Alpha two']);
     const onPreviews = () => {};
@@ -168,8 +154,8 @@ describe('useDeletePreviews', () => {
     await cancelled;
 
     // pdf.js finished that parse after the cancel: its handle is destroyed, not leaked.
-    await act(async () => { await drainPromises(); });
-    expect(opened[0].destroy).toHaveBeenCalledOnce();
+    await waitUntil(() => openedTasks[0]?.destroyed === true, { timeout: 3000 });
+    expect(openedTasks).toHaveLength(1);
   });
 });
 

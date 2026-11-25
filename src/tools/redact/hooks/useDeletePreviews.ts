@@ -60,13 +60,12 @@ function spansKey(spans: DeleteSpan[]): string {
   return spans.map((s) => `${s.formPath.join('/')}:${s.start}-${s.end}`).join(',');
 }
 
-// pdf.js documents carry a runtime `destroy()` that isn't part of
-// PDFDocumentProxy's own type (loadPdf.ts's disposePdfHandle hits the same
-// gap for the editors' own document handles).
+// The loading task owns the document and its worker; PDFDocumentProxy has no destroy of its own.
+// Destroying it also ends any parse or render still in flight on that document, and marks the
+// task's own promise handled, so nothing surfaces as an unhandled rejection.
 function destroyPreview(proxy: PDFDocumentProxy | undefined) {
-  const destroy = Reflect.get(proxy ?? {}, 'destroy');
   // expected: best-effort cleanup of a preview pdf.js doc
-  if (typeof destroy === 'function') void Promise.resolve(destroy.call(proxy)).catch(() => {});
+  void proxy?.loadingTask.destroy().catch(() => {});
 }
 
 /**
