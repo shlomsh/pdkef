@@ -428,7 +428,7 @@ export function runStageWith(ids, { spawnStep, limit = Math.max(2, availablePara
 
 // Guards run from their package.json command, not `npm run -s` and not a `--step` child that
 // recomputes the scope: a 0.05s guard then costs about that. null when the command needs npm.
-export const GUARD_LANE_LIMIT = 3;
+const GUARD_LANE_LIMIT = 3;
 const LONGEST_GUARD = 'test:spec-file-reads';
 
 export function guardCommand(id, scripts) {

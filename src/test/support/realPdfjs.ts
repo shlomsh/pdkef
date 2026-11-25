@@ -9,7 +9,7 @@ const workerFile = (build: string) => pathToFileURL(resolve(process.cwd(), `node
 type WorkerHost = { GlobalWorkerOptions: object };
 
 /** Points a real pdf.js build at its own worker file, and keeps it there when the code under test sets it. */
-export function pointAtWorker(lib: WorkerHost, url: string) {
+function pointAtWorker(lib: WorkerHost, url: string) {
   Object.defineProperty(lib.GlobalWorkerOptions, 'workerSrc', { get: () => url, set() {}, configurable: true });
 }
 

@@ -21,7 +21,7 @@ import 'fake-indexeddb/auto';
 import { IDBFactory } from 'fake-indexeddb';
 import {
   useMergeDraft, MERGE_DRAFT_SCHEMA_VERSION,
-  type MergeDraftEntry, type MergeDraftRestore, type MergeDraftSaveState,
+  type MergeDraftRestore, type MergeDraftSaveState,
   type UseMergeDraftOptions, type UseMergeDraftResult,
 } from './useMergeDraft.ts';
 import {
@@ -31,6 +31,8 @@ import {
 import { takeArrival, noteRecentOpen, resetFileArrivalForTests } from '#lib/handoff/fileArrival.ts';
 import { planForFile } from '#lib/pages/pagePlan.ts';
 import { flushBeforeUpdateReload, isUpdateHeld } from '#lib/appUpdate/updateHolds.ts';
+
+type MergeDraftEntry = UseMergeDraftOptions['entries'][number];
 
 type Ref<T> = { current: T | null };
 type OnRestore = UseMergeDraftOptions['onRestore'];
