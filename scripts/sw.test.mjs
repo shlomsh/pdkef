@@ -7,6 +7,7 @@ import { IDBFactory } from 'fake-indexeddb';
 import { http, HttpResponse } from 'msw';
 import undici from 'undici';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { drainPromises } from '../src/test/support/drainPromises.ts';
 import { answerNetwork, server } from '../src/test/support/network.ts';
 import { minifyServiceWorker } from './minifyServiceWorker.mjs';
 import { pageHash } from './pageHash.mjs';
@@ -25,6 +26,8 @@ const CachePrototype = Object.getPrototypeOf(await cacheStorage.open('prototype'
 const absolute = (url) => new URL(url, 'https://pdkef.test').href;
 
 const realSetTimeout = setTimeout;
+const realClearTimeout = clearTimeout;
+const GIVE_UP_MS = 3000;
 answerNetwork();
 async function clearCaches() {
   for (const key of await cacheStorage.keys()) await cacheStorage.delete(key);
@@ -42,6 +45,7 @@ afterEach(async () => {
   vi.useRealTimers();
 });
 
+// Forced: Node has no window client.
 function homeWindow() {
   return { id: 'home', url: 'https://pdkef.test/', postMessage: (_message, [port]) => port.postMessage({ busy: false }) };
 }
@@ -109,7 +113,8 @@ function createWorker(site = offline, cacheKeys = ['pdkef-previous'], source = w
     MessageChannel,
     setTimeout: (...args) => setTimeout(...args),
     clearTimeout: (...args) => clearTimeout(...args),
-    // A resource observer that sees nothing, so a worker counts no downloads unless a test says so.
+    // Forced: a mock resource observer that sees nothing, so a worker counts no downloads unless a test says so; Node's real one
+    // also sees every other worker's, since they share the process.
     PerformanceObserver: class { static supportedEntryTypes = ['resource']; observe() {} },
     ...extraContext,
   };
@@ -131,12 +136,25 @@ function createWorker(site = offline, cacheKeys = ['pdkef-previous'], source = w
   });
 }
 
+// A wait for something the worker does. A worker that never does it lets the test go on after 3 s, to fail on the
+// assertion that follows.
+async function orGiveUp(promise) {
+  let timer;
+  const late = new Promise((resolve) => { timer = realSetTimeout(resolve, GIVE_UP_MS); });
+  await Promise.race([promise, late]);
+  realClearTimeout(timer);
+}
+
 // Background work has no event to await, so a test waits for what it leaves in storage.
 async function untilHeld(worker, ...urls) {
-  for (;;) {
-    if ((await Promise.all(urls.map((url) => worker.holds(url)))).every(Boolean)) return;
-    await new Promise((resolve) => { realSetTimeout(resolve, 5); });
-  }
+  let givenUp = false;
+  const held = async () => {
+    while (!givenUp && !(await Promise.all(urls.map((url) => worker.holds(url)))).every(Boolean)) {
+      await new Promise((resolve) => { realSetTimeout(resolve, 5); });
+    }
+  };
+  await orGiveUp(held());
+  givenUp = true;
 }
 
 // What a cache holds, keyed by URL (this build's cache unless named).
@@ -395,10 +413,10 @@ describe('offline-first service worker', () => {
         await vi.advanceTimersByTimeAsync(LIMIT - 1);
         expect(abortedPaths).toEqual([]);
         await vi.advanceTimersByTimeAsync(1);
-        await install;
         // The worker's own request is aborted at once; the server side hears of it afterwards.
         expect(worker.requests.find((asked) => pathOf(asked) === '/sign/').signal.aborted).toBe(true);
-        await aborted;
+        await install;
+        await orGiveUp(aborted);
         expect(abortedPaths).toEqual(['/sign/']);
         expect(await worker.holds('https://pdkef.test/')).toBe(true);
         expect(await worker.holds('https://pdkef.test/_astro/app.js')).toBe(true);
@@ -417,6 +435,7 @@ describe('offline-first service worker', () => {
         const install = dispatchInstall(worker);
         await untilHeld(worker, '/', '/_astro/app.js');
         await vi.advanceTimersByTimeAsync(LIMIT);
+        expect(worker.requests.find((asked) => pathOf(asked) === '/sign/').signal.aborted).toBe(true);
         await install;
         expect(await worker.holds('https://pdkef.test/_astro/app.js')).toBe(true);
         expect(await worker.holds('https://pdkef.test/sign/')).toBe(false);
@@ -429,7 +448,7 @@ describe('offline-first service worker', () => {
       fakeClock();
       try {
         const real = CachePrototype.put;
-        // Forced: a write that never settles, whatever the request does, cannot be made on demand.
+        // Forced: a stalled body ends when its request is aborted; only a write deaf to that shows the time limit itself.
         vi.spyOn(CachePrototype, 'put').mockImplementation(function put(request, response) {
           return (typeof request === 'string' ? request : request.url).endsWith('/sign/') ? new Promise(() => {}) : real.call(this, request, response);
         });
@@ -1209,7 +1228,7 @@ async function withSilentTimeouts(start, asked) {
   vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
   try {
     const pending = start();
-    await asked;
+    await orGiveUp(asked);
     // Replies of the tabs that do answer travel over real message ports.
     await settle();
     await vi.advanceTimersByTimeAsync(5000);
@@ -1626,7 +1645,7 @@ describe.each(criticalSources)('critical version (%s)', (_label, criticalSource,
     const sitemap = criticalWindow('s', 'ready', 'https://pdkef.test/sitemap.xml');
     const worker = await build({ windows: [a, b, sitemap] });
     const done = runCheck(worker);
-    await Promise.all([a.asked, b.asked]);
+    await orGiveUp(Promise.all([a.asked, b.asked]));
     expect(a.sent).toEqual([[UPDATE, [expect.anything()]]]);
     expect(b.sent).toEqual([[UPDATE, [expect.anything()]]]);
     expect(sitemap.sent).toEqual([]);
@@ -1648,7 +1667,7 @@ describe.each(criticalSources)('critical version (%s)', (_label, criticalSource,
       const frozen = criticalWindow('frozen', 'never');
       const worker = await build({ windows: [criticalWindow('a'), frozen] });
       const done = runCheck(worker);
-      await frozen.asked;
+      await orGiveUp(frozen.asked);
       await vi.advanceTimersByTimeAsync(74_999);
       expect(worker.self.skipWaiting).not.toHaveBeenCalled();
       await vi.advanceTimersByTimeAsync(1);
@@ -1663,7 +1682,7 @@ describe.each(criticalSources)('critical version (%s)', (_label, criticalSource,
     const a = criticalWindow('a', 'late');
     const worker = await build({ windows: [a] });
     const first = runCheck(worker);
-    await a.asked;
+    await orGiveUp(a.asked);
     const second = runCheck(worker);
     await settle();
     expect(a.sent).toHaveLength(1);
@@ -1735,7 +1754,7 @@ describe.each(criticalSources)('critical version (%s)', (_label, criticalSource,
     const replaced = criticalWindow('a', 'late');
     const first = await build({ windows: [replaced] });
     const replacedDone = runCheck(first);
-    await replaced.asked;
+    await orGiveUp(replaced.asked);
     first.self.registration.waiting = null;
     replaced.reply();
     await replacedDone;
@@ -1744,7 +1763,7 @@ describe.each(criticalSources)('critical version (%s)', (_label, criticalSource,
     const dropped = criticalWindow('b', 'late');
     const second = await build({ windows: [dropped] });
     const droppedDone = runCheck(second);
-    await dropped.asked;
+    await orGiveUp(dropped.asked);
     second.self.navigator.onLine = false;
     dropped.reply();
     await droppedDone;
@@ -1758,11 +1777,11 @@ describe.each(criticalSources)('critical version (%s)', (_label, criticalSource,
       const worker = await build({ windows: [frozen], marker: false });
       worker.site = manifestResponder(['/', '/sign/']);
       await dispatchInstall(worker);
-      await frozen.asked;
+      await orGiveUp(frozen.asked);
       expect(frozen.sent).toEqual([[UPDATE, [expect.anything()]]]);
       expect(worker.self.skipWaiting).not.toHaveBeenCalled();
       await vi.advanceTimersByTimeAsync(75_000);
-      await worker.skipped;
+      await orGiveUp(worker.skipped);
       expect(worker.self.skipWaiting).toHaveBeenCalledTimes(1);
     } finally {
       vi.useRealTimers();
@@ -1781,8 +1800,8 @@ describe.each(criticalSources)('critical version (%s)', (_label, criticalSource,
     worker.self.serviceWorker.state = 'installed';
     worker.self.registration.waiting = worker.self.serviceWorker;
     statechange();
-    await a.asked;
-    await worker.skipped;
+    await orGiveUp(a.asked);
+    await orGiveUp(worker.skipped);
     expect(a.sent).toHaveLength(1);
     expect(worker.self.skipWaiting).toHaveBeenCalledTimes(1);
   });
@@ -2140,7 +2159,7 @@ describe.each([['source', workerSource], ['minified source', minifiedWorkerSourc
     const worker = await installThen(withoutCss, NEXT);
     const redirect = { type: 'opaqueredirect', ok: false, status: 0 };
     // Forced: Node's fetch answers a manual redirect with the 3xx itself, where a browser answers an opaque redirect.
-    vi.spyOn(worker.context, 'fetch').mockImplementationOnce(async () => redirect);
+    vi.spyOn(worker.context, 'fetch').mockImplementation(async () => redirect);
     const nav = await dispatchFetch(worker, navigate('/merge'), { resultingClientId: 'tab-1' });
     expect(nav.response).toBe(redirect);
     const { response } = await dispatchFetch(worker, asset(ENTRY), { clientId: 'tab-1' });
@@ -2240,7 +2259,7 @@ describe.each([['source', workerSource], ['minified source', minifiedWorkerSourc
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     try {
       const settled = dispatchInstall(worker).then(() => 'resolved', (error) => error.message);
-      await putStarted;
+      await orGiveUp(putStarted);
       await vi.advanceTimersByTimeAsync(2500);
       expect(await settled).toBe('Precache manifest belongs to another build.');
     } finally {
@@ -2360,8 +2379,11 @@ describe.each([['source', workerSource], ['minified source', minifiedWorkerSourc
         }
         return real.call(this, key);
       });
-      const retried = dispatchMessage(worker, { type: 'pdkef:skip-waiting' });
-      await reaching;
+      let settled = false;
+      const retried = dispatchMessage(worker, { type: 'pdkef:skip-waiting' }).then(() => { settled = true; });
+      await orGiveUp(reaching);
+      await drainPromises();
+      expect(settled).toBe(false);
       release();
       await retried;
       expect(await recordOf()).toMatchObject({ reason: 'files_missed' });
@@ -2565,6 +2587,7 @@ describe.each([['source', workerSource], ['minified source', minifiedWorkerSourc
   function timeline(size = 100) {
     // `null` leaves the transfer size off the entry.
     const po = { pending: [], callback: null };
+    // Forced: each test sets the sizes the browser reports, 0 from its cache or none at all; Node's fetch counts at least 300.
     class FakeObserver {
       static supportedEntryTypes = ['resource'];
       constructor(callback) { po.callback = callback; }
@@ -2702,7 +2725,7 @@ describe.each([['source', workerSource], ['minified source', minifiedWorkerSourc
       await vi.advanceTimersByTimeAsync(1999);
       expect(await recordsOf()).toEqual([]);
       await vi.advanceTimersByTimeAsync(1);
-      await tab.hinted;
+      await orGiveUp(tab.hinted);
       expect(await recordsOf()).toEqual([{ v: 1, forwarded: 2 }]);
       expect(tab.sent).toEqual([{ type: 'pdkef:downloads-recorded' }]);
       const [key] = (await maintEntries()).keys();
