@@ -47,7 +47,8 @@ such a rewrite by deleting the product guard: the test must fail. Example: DEBT-
 `src/tools/split/PdfSplitTool.load.test.tsx`. A product timer gets fake timers scoped to that one test.
 
 Keep the browser layer small (test pyramid): a browser test is only for what Node and jsdom cannot show, on a narrow
-subject, never a tool's whole island suite. Rule and evidence: `docs/landmines/no-test-doubles.md`.
+subject, never a tool's whole island suite. Rule and evidence: `docs/landmines/no-test-doubles.md`. `check:fast` never
+runs one; `check:push` runs those the diff reaches and CI runs them all.
 
 A browser test never calls `page.viewport`: a resize can leave Chromium with no idle time, and every later canvas encode
 takes 1s (LAND-04). A desktop-width file goes in `DESKTOP_BROWSER_TESTS` (`vitest.config.js`); one that needs touch or a camera is

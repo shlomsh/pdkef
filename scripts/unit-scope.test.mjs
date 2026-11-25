@@ -300,6 +300,15 @@ describe('runUnitByImpact', () => {
     expect(calls[0].args).toEqual(['vitest', 'related', 'src/lib/text/format.js', 'src/lib/text/format.test.js', '--run', '--passWithNoTests']);
   });
 
+  it('leaves the browser project out when the caller asks (check:fast)', () => {
+    const { spawn, calls } = fakeSpawn([{ error: new Error('ENOENT') }, { status: 0 }]);
+    runUnitByImpact({ all: false, seeds: ['src/lib/text/format.js'] }, spawn, { browser: false });
+    expect(calls.map((call) => call.args)).toEqual([
+      ['vitest', 'related', 'src/lib/text/format.js', '--run', '--passWithNoTests', '--project=!browser'],
+      ['vitest', 'run', '--project=!browser'],
+    ]);
+  });
+
   it('runs the unnarrowed "vitest run" when scope.all is true', () => {
     const { spawn, calls } = fakeSpawn([{ status: 1 }]);
     const status = runUnitByImpact({ all: true, seeds: [] }, spawn);

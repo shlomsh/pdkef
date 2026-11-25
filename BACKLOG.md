@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 188 live: 82 up next, 24 then, 26 waiting, 56 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 189 live: 83 up next, 24 then, 26 waiting, 56 parked.
 
 ## Redact: finish removal
 
@@ -211,6 +211,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 | QUAL-54 | P1 | [QUAL-54](backlog/tasks/QUAL-54.md) · The unit jobs stop failing when the runner cannot reach Ubuntu's package servers | In progress |
 | MEM-36 | P2 | [MEM-36](backlog/tasks/MEM-36.md) · Pinned notes are baked into the page at build, not fetched per visit | In progress |
 | MEM-42 | P2 | [MEM-42](backlog/tasks/MEM-42.md) · The rating board's flags come as one file | In progress |
+| QUAL-57 | P2 | [QUAL-57](backlog/tasks/QUAL-57.md) · check:fast never starts a browser, and CI says when it slows down | In progress |
 | DEBT-55 | P3 | [DEBT-55](backlog/tasks/DEBT-55.md) · Every tool that loads with pdf-lib repairs a lost page list the way Edit Pages does | In progress |
 | MEM-24 | P3 | [MEM-24](backlog/tasks/MEM-24.md) · A service worker that cannot install, or never completes its precache, says so | In progress |
 

@@ -553,17 +553,19 @@ export function resolveUnitScope({ explicitBase, explicitHead, mode = 'ci' } = {
 // process could not even be started - not a real test failure, which still
 // exits through spawnSync normally) is the "vitest related errors" fail-open
 // case: fall back to the full, unnarrowed `vitest run`.
-export function runUnitByImpact(scope, spawn = spawnSync) {
+// `browser: false` leaves Vitest's browser project out: check:fast never starts Chromium.
+export function runUnitByImpact(scope, spawn = spawnSync, { browser = true } = {}) {
+  const projects = browser ? [] : ['--project=!browser'];
   if (!scope.all && scope.seeds.length === 0) {
     console.error('unit-scope: no unit tests selected');
     return 0;
   }
   if (!scope.all && scope.seeds.length > 0) {
-    const result = spawn('npx', ['vitest', 'related', ...scope.seeds, '--run', '--passWithNoTests'], { stdio: 'inherit', cwd: ROOT });
+    const result = spawn('npx', ['vitest', 'related', ...scope.seeds, '--run', '--passWithNoTests', ...projects], { stdio: 'inherit', cwd: ROOT });
     if (!result.error) return result.status ?? 1;
     console.error(`unit-scope: "vitest related" could not be started (${result.error.message}); falling back to the full suite.`);
   }
-  const result = spawn('npx', ['vitest', 'run'], { stdio: 'inherit', cwd: ROOT });
+  const result = spawn('npx', ['vitest', 'run', ...projects], { stdio: 'inherit', cwd: ROOT });
   return result.status ?? 1;
 }
 

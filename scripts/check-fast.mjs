@@ -6,7 +6,8 @@
 //   guards         the cheap source guards, always (incl. check-orphaned-selectors, RED-30:
 //                  a deleted CSS rule whose comma-ended selector now joins the next rule).
 //   units          `vitest related` over the diff (scripts/unit-scope.mjs,
-//                  mode 'local'). What would make CI run everything is only
+//                  mode 'local'), never the browser project: check:push and
+//                  CI run those. What would make CI run everything is only
 //                  noted; an empty diff or no usable base skips units.
 //   typecheck      always `tsc --noEmit` (incremental), after `astro sync`
 //                  when `.astro/types.d.ts` is not generated yet.
@@ -186,7 +187,7 @@ function main(argv) {
       detail: unitsDetail(unitScope),
       run: () => {
         console.error(`check:fast units: ${unitScope.reasons.join(' | ')}`);
-        return runUnitByImpact(unitScope);
+        return runUnitByImpact(unitScope, undefined, { browser: false });
       },
     },
     ...typecheck.map((tool) => ({ name: tool === 'tsc' ? 'tsc' : 'astro sync', run: () => runTypecheck(tool) })),

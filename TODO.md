@@ -73,6 +73,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [QUAL-54](backlog/tasks/QUAL-54.md) P1 · The unit jobs stop failing when the runner cannot reach Ubuntu's package servers (in progress)
 - [MEM-36](backlog/tasks/MEM-36.md) P2 · Pinned notes are baked into the page at build, not fetched per visit (in progress)
 - [MEM-42](backlog/tasks/MEM-42.md) P2 · The rating board's flags come as one file (in progress)
+- [QUAL-57](backlog/tasks/QUAL-57.md) P2 · check:fast never starts a browser, and CI says when it slows down (in progress)
 - [DEBT-55](backlog/tasks/DEBT-55.md) P3 · Every tool that loads with pdf-lib repairs a lost page list the way Edit Pages does (in progress)
 - [MEM-24](backlog/tasks/MEM-24.md) P3 · A service worker that cannot install, or never completes its precache, says so (in progress)
 
