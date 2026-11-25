@@ -415,6 +415,31 @@ describe('the action trail (DEBT-31)', () => {
   });
 });
 
+describe('the first saved result', () => {
+  it('shows the install line once the merged file is ready', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
+    mount();
+    expect(view.workspace.state.showInstallLine).toBe(false);
+    await act(async () => { view.base.onFilesAdded([await twoPages('a.pdf'), await twoPages('b.pdf')]); });
+    await waitUntil(inspected, { dueFakeTimers: true });
+    await advance(DEFAULT_QUIET.maxMs);
+    await waitUntil(() => view.workspace.prepared.status === 'ready', { dueFakeTimers: true });
+    expect(view.workspace.state.showInstallLine).toBe(true);
+  });
+});
+
+describe('the page numbers option', () => {
+  it('stays off after being turned on and off again', async () => {
+    mount();
+    const change = (checked: boolean) => act(() => view.workspace.onPageNumbersChange({ target: { checked } } as unknown as Event));
+    expect(view.workspace.state.addPageNumbers).toBe(false);
+    change(true);
+    expect(view.workspace.state.addPageNumbers).toBe(true);
+    change(false);
+    expect(view.workspace.state.addPageNumbers).toBe(false);
+  });
+});
+
 describe('the output name (MERGE-11)', () => {
   it('is saved with the draft and restored as the customised name', async () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });

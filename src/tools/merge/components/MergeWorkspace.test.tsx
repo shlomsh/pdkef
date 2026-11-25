@@ -82,6 +82,14 @@ describe('MergeWorkspace', () => {
     expect(requestReplace).toHaveBeenCalledTimes(1);
   });
 
+  it('removes the file whose chip remove button is pressed', async () => {
+    await mount([await twoPages('a.pdf'), await twoPages('b.pdf')]);
+    const remove = container.querySelectorAll<HTMLButtonElement>('[data-chip-remove]');
+    expect(remove).toHaveLength(2);
+    act(() => remove[1].click());
+    expect(view.workspace.entries.map((entry) => entry.file.name)).toEqual(['a.pdf']);
+  });
+
   it('brings back the hand-off row and the page-numbers row once a second file arrives', async () => {
     await mount([await twoPages('a.pdf')]);
     expect(container.querySelector('[data-count]')).toBeNull();
