@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { CommentElement, HighlightElement } from '#editor/model/editorModel.ts';
+import type { ElementsAction } from '#editor/model/elementsReducer.ts';
+import { markCommands } from '../marks/markCommands.ts';
 import { withPhoneWriting } from './phoneWriting.ts';
 
 const mark: HighlightElement = {
@@ -11,18 +13,28 @@ const saved: CommentElement = {
   comment: 'Check this', anchor: { kind: 'element', elementId: 'h1' },
 };
 
-function setup(wide: boolean) {
+// The real mark commands, over a document with the one mark; what they dispatch is recorded.
+function setup(wide: boolean, noted: CommentElement[] = []) {
   const writer = { open: vi.fn() };
-  const base = { comment: vi.fn(() => ({ id: 'c2', comment: '', isNew: true })), remove: vi.fn() };
-  return { writer, base, commands: withPhoneWriting(base, [mark, saved], { wide, writer }) };
+  const dispatched: ElementsAction[] = [];
+  const base = markCommands({
+    elements: [mark], dispatch: (action) => { dispatched.push(action); },
+    logAction: () => {}, rearm: () => {}, setAnnouncement: () => {},
+  });
+  const comment = vi.spyOn(base, 'comment');
+  const remove = vi.spyOn(base, 'remove');
+  return { writer, dispatched, base: { comment, remove }, commands: withPhoneWriting(base, [mark, ...(noted.length ? noted : [saved])], { wide, writer }) };
 }
 
 describe('withPhoneWriting', () => {
   it('on a narrow workspace, Comment makes the note active and opens the writer on it', () => {
-    const { writer, base, commands } = setup(false);
-    expect(commands.comment(mark)).toEqual({ id: 'c2', comment: '', isNew: true });
+    const { writer, base, dispatched, commands } = setup(false);
+    const made = commands.comment(mark);
+    const added = dispatched.find((action) => action.type === 'ADD_ELEMENT');
+    expect(added).toBeDefined();
+    expect(made).toEqual({ id: (added as { payload: { id: string } }).payload.id, comment: '', isNew: true });
     expect(base.comment).toHaveBeenCalledWith(mark);
-    expect(writer.open).toHaveBeenCalledWith({ id: 'c2', comment: '', isNew: true });
+    expect(writer.open).toHaveBeenCalledWith(made);
   });
 
   it('on a wide workspace, Comment only makes the note active', () => {
@@ -46,9 +58,7 @@ describe('withPhoneWriting', () => {
   });
 
   it('Edit on a blank note opens the writer as new', () => {
-    const writer = { open: vi.fn() };
-    const base = { comment: vi.fn(), remove: vi.fn() };
-    const commands = withPhoneWriting(base, [{ ...saved, comment: ' ' }], { wide: false, writer });
+    const { writer, commands } = setup(false, [{ ...saved, comment: ' ' }]);
     commands.editNote('c1');
     expect(writer.open).toHaveBeenCalledWith({ id: 'c1', comment: ' ', isNew: true });
   });

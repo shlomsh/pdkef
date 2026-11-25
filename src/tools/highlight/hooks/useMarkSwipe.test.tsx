@@ -260,6 +260,7 @@ describe('useMarkSwipe off the text', () => {
   const touch = (type: string, touches: Array<{ clientX: number; clientY: number }>) =>
     window.dispatchEvent(Object.assign(new Event(type, { cancelable: true }), { touches }));
   // The browser's zoom: only a zoomed page can move sideways under one finger, so only then is a line's move claimed.
+  // Forced: jsdom has no visualViewport, so the zoom is a viewport that reports its scale.
   const zoom = (scale: number) => Object.defineProperty(window, 'visualViewport', { value: { scale }, configurable: true });
   beforeEach(() => zoom(2));
   afterEach(() => zoom(1));
@@ -379,6 +380,7 @@ describe('useMarkSwipe off the text', () => {
 
   it('one touch press that marks reads once and the gesture gets that reader', () => {
     const reader = readerOf(true);
+    // Forced: the one production reader wraps createSwipeReader, which reads canvas pixels the test page does not paint.
     const factory = vi.fn(() => reader);
     readerAt = factory;
     mount(); pressTouch();
@@ -388,6 +390,7 @@ describe('useMarkSwipe off the text', () => {
   });
 
   it('a mouse press never asks for a reader', () => {
+    // Forced: as above, the reader is the page's pixel reader.
     const factory = vi.fn(() => readerOf(true));
     readerAt = factory;
     mount(); press();

@@ -64,6 +64,7 @@ describe('useBoardPan', () => {
 
   it('a hidden document resets Space', () => {
     space('keydown');
+    // Forced: jsdom's document is never hidden, so the page's visibility is made to read hidden.
     const spy = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
     document.dispatchEvent(new Event('visibilitychange'));
     spy.mockRestore();

@@ -1,4 +1,7 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+// @vitest-environment jsdom
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { h, render } from 'preact';
+import { act } from 'preact/test-utils';
 
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { buildPdf } from '../../../../test/support/redactCheckPdfs.test-helper.ts';
@@ -11,10 +14,11 @@ import { resetActionTrailForTests } from '#lib/telemetry/actionTrail.ts';
 vi.mock('#lib/telemetry/productAnalytics.ts', { spy: true });
 
 const { downloadHandler, buildHandler, shareHandler } = await import('./download.ts');
+const { usePdfShare } = await import('#lib/output/usePdfShare.js');
 
 const real = await (async () => { const u = await buildPdf([{ lines: ['one'] }]); return u.buffer.slice(u.byteOffset, u.byteOffset + u.byteLength) as ArrayBuffer; })();
 const corrupt = () => new ArrayBuffer(1);
-const reopened = async (blob: Blob) => PDFDocument.load(await new Response(blob).arrayBuffer());
+const reopened = async (blob: Blob) => PDFDocument.load(await blob.arrayBuffer());
 
 describe('downloadHandler', () => {
   beforeEach(() => { vi.mocked(reportToolLifecycleEvent).mockClear(); resetUsageEventsForTests(); resetActionTrailForTests(); });
@@ -70,24 +74,50 @@ describe('buildHandler', () => {
 });
 
 describe('shareHandler', () => {
-  beforeEach(() => { vi.mocked(reportToolLifecycleEvent).mockClear(); resetUsageEventsForTests(); resetActionTrailForTests(); });
+  // The real usePdfShare prepares the file; what the native share sheet is handed is read off the sheet.
+  const sheets: File[][] = [];
+  let share: ReturnType<typeof usePdfShare>;
+  let host: HTMLElement;
+  function Probe() { share = usePdfShare(); return null; }
+  beforeEach(() => {
+    vi.mocked(reportToolLifecycleEvent).mockClear(); resetUsageEventsForTests(); resetActionTrailForTests();
+    sheets.length = 0;
+    // Forced: jsdom has no navigator.share, so the sheet is a function that records the files it is handed.
+    Object.defineProperty(navigator, 'share', { configurable: true, value: async (data: { files: File[] }) => { sheets.push(data.files); } });
+    host = document.createElement('div');
+    document.body.appendChild(host);
+    act(() => render(h(Probe, null), host));
+  });
+  afterEach(() => {
+    act(() => render(null, host));
+    host.remove();
+    delete (navigator as { share?: unknown }).share;
+  });
   const input = { outputName: 'highlighted_a.pdf', bytes: () => real, elements: [], pageTurns: {} };
+  const shared = async () => { await act(async () => { await share.sharePrepared(); }); return sheets.flat().map((file) => ({ name: file.name, type: file.type })); };
 
   it('builds the file, hands it to prepare, and reports it ready', async () => {
-    const prepare = vi.fn(() => true);
-    expect(await shareHandler({ ...input, prepare })()).toBe(true);
-    expect(prepare).toHaveBeenCalledWith(expect.any(Blob), 'highlighted_a.pdf');
+    let ready: boolean | undefined;
+    await act(async () => { ready = await shareHandler({ ...input, prepare: share.prepare })(); });
+    expect(ready).toBe(true);
+    expect(await shared()).toEqual([{ name: 'highlighted_a.pdf', type: 'application/pdf' }]);
     expect(vi.mocked(reportToolLifecycleEvent).mock.calls).toEqual([['tool_operation_started', 'highlight-pdf'], ['tool_result_ready', 'highlight-pdf']]);
   });
 
   it('returns false when the browser cannot share the file', async () => {
-    expect(await shareHandler({ ...input, prepare: () => false })()).toBe(false);
+    delete (navigator as { share?: unknown }).share;
+    expect(typeof navigator.share).toBe('undefined');
+    let ready: boolean | undefined;
+    await act(async () => { ready = await shareHandler({ ...input, prepare: share.prepare })(); });
+    expect(ready).toBe(false);
     expect(vi.mocked(reportToolLifecycleEvent).mock.calls).toEqual([['tool_operation_started', 'highlight-pdf']]);
   });
 
   it('returns false without prepare when nothing was built', async () => {
-    const prepare = vi.fn(() => true);
-    expect(await shareHandler({ ...input, outputName: undefined, prepare })()).toBe(false);
-    expect(prepare).not.toHaveBeenCalled();
+    let ready: boolean | undefined;
+    await act(async () => { ready = await shareHandler({ ...input, outputName: undefined, prepare: share.prepare })(); });
+    expect(ready).toBe(false);
+    expect(share.shareReady).toBe(false);
+    expect(await shared()).toEqual([]);
   });
 });

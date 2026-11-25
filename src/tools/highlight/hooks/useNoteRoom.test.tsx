@@ -22,6 +22,7 @@ let marks: ReturnType<typeof useHighlightMarks>;
 let room: ReturnType<typeof useNoteRoom>;
 let wide = true;
 const order: string[] = [];
+// Forced: the zoom's makeRoom needs a laid-out workspace and a PDF; this one records the room it is told to make.
 const makeRoom = vi.fn((noted: boolean) => { order.push(`room:${noted}`); });
 
 function Probe() {

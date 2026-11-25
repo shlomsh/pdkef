@@ -19,7 +19,6 @@ afterEach(() => {
 
 function mount(opts: { enabled?: boolean; field?: boolean; activeId?: string } = {}) {
   vi.useFakeTimers();
-  vi.spyOn(document, 'hasFocus').mockReturnValue(true);
   const onClose = vi.fn();
   function Probe() {
     const ref = useRef<HTMLDivElement>(null);
@@ -96,6 +95,7 @@ describe('useNoteFocusOut', () => {
     const { onClose, q } = mount();
     q('inside').focus();
     q('inside').blur();
+    // Forced: jsdom's document.hasFocus() is always true, even after the window blurs; this is a window that lost focus.
     vi.spyOn(document, 'hasFocus').mockReturnValue(false);
     act(() => { vi.runAllTimers(); });
     expect(onClose).not.toHaveBeenCalled();

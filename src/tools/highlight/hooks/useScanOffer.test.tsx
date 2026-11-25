@@ -14,6 +14,7 @@ import { reportError } from '#lib/telemetry/errorReport.ts';
 import { sendHandoff } from '#lib/handoff/sendHandoff.ts';
 import { sourceIdForBytes } from '#lib/drafts/draftSourceId.ts';
 import { peekHandoff } from '#lib/drafts/draftStore.ts';
+import { openNewerStore } from '#lib/drafts/newerStore.test-helper.ts';
 import { drainPromises } from '../../../test/support/drainPromises.ts';
 import { useScanOffer } from './useScanOffer.ts';
 
@@ -124,7 +125,7 @@ describe('useScanOffer', () => {
   });
 
   it('a failed hand-off sets failed and clears busy', async () => {
-    vi.mocked(sendHandoff).mockRejectedValueOnce(new Error('handoff')); // forced: the hand-off fails, which the real one does not do here
+    await openNewerStore(); // the store is already at a newer version, so the real hand-off cannot open it
     await open('lean');
     act(() => latest.straighten());
     await handoffDone();
@@ -141,20 +142,16 @@ describe('useScanOffer', () => {
     await open('lean', { bytes: () => null }); // the real hash gives no id for bytes that are not a buffer
     expect(latest.verdict).toBeNull();
     await mount({ verdict: null });
-    const err = new Error('hash');
-    vi.mocked(sourceIdForBytes).mockRejectedValueOnce(err); // forced: Web Crypto does not fail on a buffer
-    await open('lean');
+    // Tagged as a buffer but not one: the real hash passes it to Web Crypto, which rejects it.
+    await open('lean', { bytes: () => ({ [Symbol.toStringTag]: 'ArrayBuffer' }) as unknown as ArrayBuffer });
     expect(latest.verdict).toBeNull();
-    expect(reportError).toHaveBeenCalledWith('pdf_tool_run', err, 'scan_offer');
+    expect(reportError).toHaveBeenCalledWith('pdf_tool_run', expect.any(Error), 'scan_offer');
   });
 
   it('ignores a stale hash that lands after a new document opened', async () => {
-    let release: () => void = () => {};
-    const held = new Promise<void>((r) => { release = r; });
-    vi.mocked(sourceIdForBytes).mockImplementationOnce(async (b) => { await held; return (await vi.importActual<typeof import('#lib/drafts/draftSourceId.ts')>('#lib/drafts/draftSourceId.ts')).sourceIdForBytes(b); }); // forced: the first hash is held open, then runs for real
-    await mount({ verdict: 'lean' });
-    await mount({ verdict: null });
-    release(); // the hash of the first document lands now, after the second one opened
+    // The second document opens before the first one's hash (Web Crypto, off the main thread) lands.
+    mount({ verdict: 'lean' });
+    mount({ verdict: null });
     await settle();
     expect(vi.mocked(sourceIdForBytes)).toHaveBeenCalledTimes(1);
     expect(latest.verdict).toBeNull();

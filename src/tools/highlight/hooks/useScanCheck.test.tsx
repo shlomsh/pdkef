@@ -1,9 +1,13 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
+import { PDFDocument } from '@cantoo/pdf-lib';
+import { leaning } from '#lib/pageEnhance/leaning.test-helper.ts';
+import '../../../test/support/realPdfjs.ts';
+import { getPdfjs } from '#lib/pdf/loadPdfjs.js';
 
-// Spy-through: readScan assesses rendered scan pixels, which jsdom cannot paint, so each test forces its verdict on the spy.
+// Spy-through: the real readScan reads real scan pages; the spy shows the call and gives its promise to await.
 vi.mock('../lib/enhance/readScan.ts', { spy: true });
 import { readScan } from '../lib/enhance/readScan.ts';
 vi.mock('#lib/telemetry/errorReport.ts', { spy: true });
@@ -17,29 +21,72 @@ import { useScanCheck } from './useScanCheck.ts';
 let idle: Array<() => void> = [];
 let shown: unknown = 'unset';
 let container: HTMLElement;
+const opened: PDFDocumentProxy[] = [];
 
 function Probe({ doc }: { doc: PDFDocumentProxy | null }) {
   shown = useScanCheck(doc);
   return null;
 }
 const mount = (doc: PDFDocumentProxy | null) => act(() => { render(<Probe doc={doc} />, container); });
-/** Lets the page paint: runs what the hook queued for idle time, then the promises it started. */
-const runIdle = async () => { await act(async () => { idle.splice(0).forEach((run) => run()); await drainPromises(); }); };
-const DOC = { numPages: 3 } as unknown as PDFDocumentProxy;
+/** Lets the page paint: runs what the hook queued for idle time, and the promises it started up to the read. */
+const startIdle = async () => { await act(async () => { idle.splice(0).forEach((run) => run()); await drainPromises(); }); };
+/** Waits for every read the hook started to end, then lets its follow-up state updates land. */
+const readsEnded = () => act(async () => {
+  await Promise.allSettled(vi.mocked(readScan).mock.results.map((r) => r.value));
+  await drainPromises();
+});
+const runIdle = async () => { await startIdle(); await readsEnded(); };
+
+// Two book pages on every sheet of a three-page scan: each page is one picture of a sheet, with a spine in the middle.
+const W = 800;
+const H = 500;
+function spreadPixels(): Uint8ClampedArray {
+  const left = leaning(W, H, -3.5, 0, 360);
+  const right = leaning(W, H, 2.5, 440, W);
+  const data = left.data.map((v, i) => Math.min(v, right.data[i]));
+  for (let y = 0; y < H; y += 1) for (let x = 399; x < 402; x += 1) data.fill(0, (y * W + x) * 4, (y * W + x) * 4 + 3);
+  return new Uint8ClampedArray(data);
+}
+let scanBytes: Uint8Array;
+beforeAll(async () => {
+  const canvas = document.createElement('canvas');
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d')!;
+  const picture = ctx.createImageData(W, H);
+  picture.data.set(spreadPixels());
+  ctx.putImageData(picture, 0, 0);
+  const pdf = await PDFDocument.create();
+  const image = await pdf.embedPng(Buffer.from(canvas.toDataURL('image/png').split(',')[1], 'base64'));
+  for (let i = 0; i < 3; i += 1) pdf.addPage([600, 375]).drawImage(image, { x: 0, y: 0, width: 600, height: 375 });
+  scanBytes = await pdf.save();
+});
+const openScan = async () => {
+  const { getDocument } = await getPdfjs();
+  const doc = await getDocument({ data: scanBytes.slice() }).promise;
+  opened.push(doc);
+  return doc;
+};
 
 beforeEach(() => {
   idle = []; shown = 'unset';
-  vi.mocked(readScan).mockReset().mockResolvedValue('spread');
+  vi.mocked(readScan).mockClear();
   vi.mocked(reportError).mockClear(); vi.mocked(reportMaintenanceEvent).mockClear(); resetMaintenanceEventsForTests();
+  // Forced: jsdom has no requestIdleCallback; this one queues the task for the test to run when the page "idles".
   vi.stubGlobal('requestIdleCallback', (run: () => void) => { idle.push(run); return run; });
+  // Forced: the pair of the line above.
   vi.stubGlobal('cancelIdleCallback', (run: () => void) => { idle = idle.filter((queued) => queued !== run); });
   container = document.createElement('div');
 });
-afterEach(() => { render(null, container); vi.unstubAllGlobals(); });
+afterEach(async () => {
+  render(null, container);
+  vi.unstubAllGlobals();
+  await Promise.all(opened.splice(0).map((doc) => doc.loadingTask.destroy()));
+});
 
 describe('useScanCheck', () => {
   it('does not start reading until the page has had its idle time', async () => {
-    mount(DOC);
+    mount(await openScan());
     expect(vi.mocked(readScan)).not.toHaveBeenCalled();
     expect(shown).toBeNull();
     await runIdle();
@@ -47,52 +94,54 @@ describe('useScanCheck', () => {
   });
 
   it('gives the verdict and reports it once for the document', async () => {
-    mount(DOC);
+    const doc = await openScan();
+    mount(doc);
     await runIdle();
     expect(shown).toBe('spread');
     expect(vi.mocked(reportMaintenanceEvent)).toHaveBeenCalledTimes(1);
     expect(vi.mocked(reportMaintenanceEvent).mock.calls[0][0]).toEqual({ name: 'highlight_scan_check', properties: { outcome: 'spread' } });
-    mount(DOC);
+    mount(doc);
     await runIdle();
     expect(vi.mocked(reportMaintenanceEvent)).toHaveBeenCalledTimes(1);
   });
 
   it('leaves the verdict null and reports the error when the read fails', async () => {
-    const boom = new Error('boom');
-    vi.mocked(readScan).mockRejectedValue(boom);
-    mount(DOC);
+    const doc = await openScan();
+    await doc.loadingTask.destroy(); // a document that was closed under the reader: its pages can no longer be fetched
+    mount(doc);
     await runIdle();
     expect(shown).toBeNull();
-    expect(vi.mocked(reportError)).toHaveBeenCalledWith('pdf_tool_run', boom, 'scan_check');
+    expect(vi.mocked(reportError)).toHaveBeenCalledWith('pdf_tool_run', expect.any(Error), 'scan_check');
     expect(vi.mocked(reportMaintenanceEvent)).not.toHaveBeenCalled();
   });
 
   it('reports nothing for a file that was replaced before the read ended', async () => {
-    let finish: (v: 'spread' | null) => void = () => {};
-    vi.mocked(readScan).mockImplementation(() => new Promise((resolve) => { finish = resolve; }));
-    mount(DOC);
-    await runIdle();
+    mount(await openScan());
+    await startIdle();
     mount(null);
-    await act(async () => { finish('spread'); await drainPromises(); });
+    await readsEnded();
     expect(shown).toBeNull();
     expect(vi.mocked(reportMaintenanceEvent)).not.toHaveBeenCalled();
     expect(vi.mocked(readScan).mock.calls[0][1]()).toBe(false);
   });
 
   it('never starts for a file closed before the idle time came', async () => {
-    mount(DOC);
+    mount(await openScan());
     mount(null);
     await runIdle();
     expect(vi.mocked(readScan)).not.toHaveBeenCalled();
   });
 
   it('falls back to a timer where there is no idle callback', async () => {
+    vi.unstubAllGlobals(); // jsdom has none of its own
+    expect(typeof requestIdleCallback).toBe('undefined');
+    const doc = await openScan();
     vi.useFakeTimers();
-    vi.stubGlobal('requestIdleCallback', undefined);
-    mount(DOC);
+    mount(doc);
     expect(vi.mocked(readScan)).not.toHaveBeenCalled();
     await act(async () => { await vi.advanceTimersByTimeAsync(2000); });
     vi.useRealTimers();
     expect(vi.mocked(readScan)).toHaveBeenCalledTimes(1);
+    await readsEnded();
   });
 });
