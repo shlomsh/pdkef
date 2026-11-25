@@ -155,19 +155,13 @@ export const EXPORT_RENDER_CORPUS = [
   // the script's hard parts in four characters: ্র is a ra-phala conjunct
   // (consonant + virama + RA, drawn as one attached diagonal stroke, not two
   // letters), and ি is a pre-base vowel sign - typed after its consonant,
-  // drawn before it. Both clusters are confirmed inside the *known-good* 259
-  // of bengaliCorpus.js's 262 enumerated cases, not one of the three named
-  // fontkit/Chromium divergences that file excludes
-  // (KNOWN_FONTKIT_DIVERGENCES: ট্র, ঠ্র, ক্ক). Baking a known-divergent
-  // cluster into this guard's baseline would make "wrong" the thing every
-  // future run gets measured against, which a stored baseline must never do.
+  // drawn before it.
   textCase('bengali-noto-sans-bengali', 'প্রিয়া', { fontFamily: 'Noto Sans Bengali' }),
 
   // Bengali, second face (FONT-08b). Hind Siliguri joined Noto Sans Bengali
   // as the catalogue's second Bengali/Assamese font, screened clean: 262/262
-  // of bengaliCorpus.js's generated cases passed against it with ZERO named
-  // divergences (bengali-hind-siliguri-shaping-guard.spec.js), unlike Noto
-  // Sans Bengali's six. স্বাগতম ("shwagotom", "welcome", a common real word)
+  // of bengaliCorpus.js's generated cases passed against it
+  // (bengali-hind-siliguri-shaping-guard.spec.js). স্বাগতম ("shwagotom", "welcome", a common real word)
   // carries স্ব, a conjunct (SA + virama + BA, drawn as one attached cluster,
   // matching the corpus's own `conjunct:sva` case) - confirmed inside that
   // guard's full passing set, not a divergent cluster. Every code point

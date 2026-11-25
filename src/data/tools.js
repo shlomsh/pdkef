@@ -135,12 +135,12 @@ export const tools = [
         {
           native: 'বাংলা 🇧🇩🇮🇳',
           name: 'Bengali',
-          note: "Fill a Bengali form and sign your name in Bengali, in Noto Sans Bengali or Hind Siliguri, either of which also works for a typed signature. Conjunct letters, reph, and vowel signs like ি that you type after a consonant but that belong before it are reordered and reshaped for the download, not just on screen. Noto Sans Bengali has six rare clusters known to draw a little differently in the file than they do on screen, named in the FAQ below rather than left for you to find; Hind Siliguri has none. Both fonts carry Assamese's two extra letters, ৰ and ৱ, so Assamese works too. There is no handwriting-style Bengali face yet, so a typed signature comes out upright rather than cursive.",
+          note: "Fill a Bengali form and sign your name in Bengali, in Noto Sans Bengali or Hind Siliguri, either of which also works for a typed signature. Conjunct letters, reph, and vowel signs like ি that you type after a consonant but that belong before it are reordered and reshaped for the download, not just on screen. Both fonts carry Assamese's two extra letters, ৰ and ৱ, so Assamese works too. There is no handwriting-style Bengali face yet, so a typed signature comes out upright rather than cursive.",
         },
         {
           native: 'తెలుగు 🇮🇳',
           name: 'Telugu',
-          note: "Fill a Telugu form and sign your name in Telugu, in Anek Telugu for plain upright text or Suranna, a serif face with a more traditional, book-like feel. The below-base consonant forms a virama produces, and vowel signs that move around the letter they attach to, are reordered and reshaped for the download rather than only on screen. Worth saying why this is not the Noto face the other scripts here use: Noto Sans Telugu miscrafts the ప్ర cluster badly enough to break the download, and that cluster is in ఆంధ్రప్రదేశ్ itself, so I picked faces that draw it correctly instead. Suranna ships in one weight only, so its bold option renders as regular text. There is no handwriting-style Telugu face yet, so a typed signature comes out upright rather than cursive.",
+          note: "Fill a Telugu form and sign your name in Telugu, in Anek Telugu for plain upright text or Suranna, a serif face with a more traditional, book-like feel. The below-base consonant forms a virama produces, and vowel signs that move around the letter they attach to, are reordered and reshaped for the download rather than only on screen. Suranna ships in one weight only, so its bold option renders as regular text. There is no handwriting-style Telugu face yet, so a typed signature comes out upright rather than cursive.",
         },
         {
           native: 'தமிழ் 🇮🇳🇱🇰🇸🇬',
@@ -150,7 +150,7 @@ export const tools = [
         {
           native: 'ਪੰਜਾਬੀ 🇮🇳🇵🇰',
           name: 'Punjabi',
-          note: "Fill a Punjabi form and sign your name in Gurmukhi, in Mukta Mahee by default or Tiro Gurmukhi, a serif alternative, both checked against the same 500-case corpus. Tippi and addak, the marks ਸਿੰਘ and ਪੱਗ depend on, sit where they belong, the pairin forms that hang below a letter are drawn as such, and ਿ is moved in front of its consonant for the download, in either font. The five letters Gurmukhi gives their own code points (ਖ਼, ਗ਼, ਜ਼, ੜ, ਫ਼) are all there. Neither is the Noto face, for the same reason Telugu is not: Noto Sans Gurmukhi breaks the download on most ordinary words, ਸਿੰਘ included. There is no handwriting-style Gurmukhi face yet, so a typed signature comes out upright rather than cursive.",
+          note: "Fill a Punjabi form and sign your name in Gurmukhi, in Mukta Mahee by default or Tiro Gurmukhi, a serif alternative, both checked against the same 500-case corpus. Tippi and addak, the marks ਸਿੰਘ and ਪੱਗ depend on, sit where they belong, the pairin forms that hang below a letter are drawn as such, and ਿ is moved in front of its consonant for the download, in either font. The five letters Gurmukhi gives their own code points (ਖ਼, ਗ਼, ਜ਼, ੜ, ਫ਼) are all there. There is no handwriting-style Gurmukhi face yet, so a typed signature comes out upright rather than cursive.",
         },
         {
           native: 'Русский, Українська 🇷🇺🇺🇦🇧🇬',
@@ -205,7 +205,7 @@ export const tools = [
         {
           native: 'മലയാളം 🇮🇳🇦🇪',
           name: 'Malayalam',
-          note: "Fill a Malayalam form and sign your name in Malayalam, in Anek Malayalam or Gayathri, a softer, more curved face, either of which also serves the large Malayali community across the UAE and the rest of the Gulf. Vowel signs that move before or wrap around the consonant they attach to are reordered and reshaped for the download, and chillu letters, the consonant-final forms unique to this script (word endings like ...ൻ or ...ൾ), draw and cluster correctly too, in either font. Worth saying why neither is the Noto face the other scripts here use: Noto Sans Malayalam breaks on reph, the RA-plus-virama pattern that spells an initial r before a consonant cluster, so I picked faces that draw it correctly instead. Both are set to modern, reformed spelling (the standard since 1971), not the older traditionally-ligated style. There is no handwriting-style Malayalam face yet, so a typed signature comes out upright rather than cursive.",
+          note: "Fill a Malayalam form and sign your name in Malayalam, in Anek Malayalam or Gayathri, a softer, more curved face, either of which also serves the large Malayali community across the UAE and the rest of the Gulf. Vowel signs that move before or wrap around the consonant they attach to are reordered and reshaped for the download, and chillu letters, the consonant-final forms unique to this script (word endings like ...ൻ or ...ൾ), draw and cluster correctly too, in either font. Both are set to modern, reformed spelling (the standard since 1971), not the older traditionally-ligated style. There is no handwriting-style Malayalam face yet, so a typed signature comes out upright rather than cursive.",
         },
         {
           native: 'Türkçe 🇹🇷',
@@ -301,7 +301,7 @@ export const tools = [
       },
       {
         question: 'Can I fill and sign a PDF in Bengali (পিডিএফে বাংলায় স্বাক্ষর)?',
-        answer: "Yes. Bengali is a complex script, where a vowel sign like ি is typed after its consonant but has to be drawn before it, and consonant clusters form ligatures rather than sitting side by side. Two bundled fonts handle it, Noto Sans Bengali and Hind Siliguri, so what you see on screen is what gets embedded in the file you download either way. Noto Sans Bengali has six clusters that are the exception, and we would rather name them than let you discover them: ট্র, ঠ্র and টি are drawn with one of their parts slightly out of place, ক্ক comes out as two letters with a visible virama instead of a single joined form, স্ক loses the bar across its top, and দ্ধ draws correctly but leaves too little room after itself, so the next letter can sit too close. Everything else in a 262-case check matched the screen exactly, and Hind Siliguri passed that same 262-case check with none of those six. Assamese, which shares almost all of the same script, also works with either font: both carry its two extra letters, ৰ and ৱ. There is no handwriting-style Bengali face yet, so a typed signature comes out upright, not cursive.",
+        answer: "Yes. Bengali is a complex script, where a vowel sign like ি is typed after its consonant but has to be drawn before it, and consonant clusters form ligatures rather than sitting side by side. Two bundled fonts handle it, Noto Sans Bengali and Hind Siliguri, so what you see on screen is what gets embedded in the file you download either way. Both matched the screen on every one of 262 clusters checked, joined forms like ক্ক, ট্র and স্ক included. Assamese, which shares almost all of the same script, also works with either font: both carry its two extra letters, ৰ and ৱ. There is no handwriting-style Bengali face yet, so a typed signature comes out upright, not cursive.",
       },
       {
         question: 'Can I fill and sign a PDF in Chinese (简体中文/繁體中文)?',

@@ -2,7 +2,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PDFDocument, degrees } from '@cantoo/pdf-lib';
-import fontkit from '@pdf-lib/fontkit';
+import * as fontkit from 'fontkit';
 import { getPdfjs } from '#lib/pdf/loadPdfjs.js';
 import { renderPageToCanvas } from '#lib/pdf/renderPage.js';
 import { getPdfLib } from '#lib/pdf/pdfLib.js';

@@ -26,7 +26,7 @@ import {
   rgb,
   degrees,
 } from '@cantoo/pdf-lib';
-import fontkit from '@pdf-lib/fontkit';
+import * as fontkit from 'fontkit';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));

@@ -30,7 +30,7 @@ import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { PDFDocument, rgb } from '@cantoo/pdf-lib';
-import fontkit from '@pdf-lib/fontkit';
+import * as fontkit from 'fontkit';
 import { drawShapedRun } from './textPdf.ts';
 import { HEBREW_CAPABLE_FONTS } from '../text/fonts.js';
 import { CALIBRATION_MARK, COMPOSABLE_BASES, ORDER_VARIANT_GROUPS } from '../text/hebrewCombiningCorpus.js';
@@ -42,7 +42,7 @@ const FONT_DIR = join(process.cwd(), 'public', 'fonts');
  * well as it does an uncomposed one" - found while building this guard, kept
  * narrow and explicit rather than loosening the check for everyone.
  *
- * All eight are the same shape: a presentation form built from a NARROW base
+ * The first eight are the same shape: a presentation form built from a NARROW base
  * letter (yod, vav, zayin, final kaf) plus dagesh, or vav plus holam, changes
  * that glyph's own metrics enough that SHEVA's existing GPOS anchor - tuned
  * for the PLAIN base - lands outside the composed glyph's ink instead. This
@@ -70,6 +70,14 @@ const KNOWN_SHEVA_DIVERGENCE = new Map([
   ['Cousine:U+05D9+U+05BC', 0], // yod+dagesh (FB39)
   ['Cousine:U+05E0+U+05BC', 0.9245283018867925], // nun+dagesh (FB40)
   ['Alef:U+05D5+U+05B9', 0.7289156626506024], // vav+holam (FB4B)
+  // FONT-10: these five are where HarfBuzz 15.0 itself puts SHEVA (same string, same font, equal to
+  // the last digit), so the export now draws them as the editor does.
+  ['Arimo:U+05D0+U+05BC', 0.0875], // alef+mapiq (FB30)
+  ['Cousine:U+05D9+U+05B4', 0], // yod+hiriq (FB1D)
+  // Alef has no rafe (U+05BF); signPdf refuses these three for it, so they never reach a download.
+  ['Alef:U+05D1+U+05BF', 0],
+  ['Alef:U+05DB+U+05BF', 0],
+  ['Alef:U+05E4+U+05BF', 0],
 ]);
 
 async function embedFont(family) {

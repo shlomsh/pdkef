@@ -235,7 +235,7 @@ export default defineConfig({
     inlineStylesheets: 'auto',
   },
   // These are only reachable through dynamic import() inside the Preact
-  // islands (SortableJS in PdfMergeTool, pdfjs-dist/@pdf-lib/fontkit in
+  // islands (SortableJS in PdfMergeTool, pdfjs-dist/fontkit in
   // several tools), so Vite's static startup crawl never finds them. Left
   // unlisted, the *first* real page load after any node_modules/.vite cache
   // clear has to discover and bundle them on the fly — that request 503s
@@ -285,7 +285,7 @@ export default defineConfig({
       include: [
         'sortablejs',
         '@cantoo/pdf-lib',
-        '@pdf-lib/fontkit',
+        'fontkit/core', 'fontkit/formats/TTFFont', 'fontkit/shapers/ArabicShaper', 'fontkit/shapers/HangulShaper', 'fontkit/shapers/HebrewShaper', 'fontkit/shapers/IndicShaper', 'fontkit/shapers/ThaiShaper',
         'pdfjs-dist',
         '@floating-ui/react',
         // Reached only from an island: SignatureDialog.tsx (signature_pad) and

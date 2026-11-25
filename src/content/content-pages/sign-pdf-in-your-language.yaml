@@ -88,14 +88,14 @@ sections:
           - ['Arabic', 'Scheherazade New, or Vazirmatn', 'No', 'Letters join like handwriting; box grows leftward from a fixed right edge, same as Hebrew.']
           - ['Urdu', 'Scheherazade New, or Vazirmatn', 'No', 'Same two fonts as Arabic; both are upright, not Nastaliq, the sloped calligraphic style Urdu is usually set in.']
           - ['Devanagari (Hindi)', 'Mukta, or Kalam for a handwritten look', 'Yes, Kalam or Tillana', 'Conjunct letters and vowel signs reordered and reshaped correctly for the download; the same fonts cover Marathi too.']
-          - ['Bengali (Bangla)', 'Noto Sans Bengali, or Hind Siliguri', 'No', 'Noto Sans Bengali draws six rare conjunct clusters slightly differently in the download than on screen, named below; Hind Siliguri has none of those six.']
-          - ['Punjabi (Gurmukhi)', 'Mukta Mahee, or Tiro Gurmukhi', 'No', 'Ships on these two, not the Noto face: Noto Sans Gurmukhi breaks the download on common words such as the surname Singh, written ਸਿੰਘ.']
-          - ['Telugu', 'Anek Telugu, or Suranna', 'No', 'Ships on these two, not the Noto face: Noto Sans Telugu miscrafts a cluster inside the state name Andhra Pradesh itself, ఆంధ్రప్రదేశ్.']
+          - ['Bengali (Bangla)', 'Noto Sans Bengali, or Hind Siliguri', 'No', 'Conjunct letters, reph and vowel signs reordered and reshaped correctly for the download; the same fonts cover Assamese too.']
+          - ['Punjabi (Gurmukhi)', 'Mukta Mahee, or Tiro Gurmukhi', 'No', 'Tippi and addak sit where they belong, as in the surname Singh, written ਸਿੰਘ, and ਿ moves in front of its consonant for the download.']
+          - ['Telugu', 'Anek Telugu, or Suranna', 'No', 'Below-base consonant forms drawn as such in the download, as in the state name Andhra Pradesh, ఆంధ్రప్రదేశ్.']
           - ['Japanese', 'Noto Sans JP', 'No', 'Covers hiragana, katakana and the two government kanji lists, 2,999 characters, not all of Han; anything outside them is flagged as you type.']
       - kind: 'prose'
         text: >-
           This is a selection, not the full list: it favours the languages with something specific to
-          say, a right-to-left direction, a named divergence, or a script limit, over the ones that
+          say, a right-to-left direction, reordered letters, or a script limit, over the ones that
           simply work end to end. Every one of the 20 languages and scripts has its own row on the
           <a href="/sign/">Sign page's languages card</a>.
   - sketch: 'waves'
@@ -106,14 +106,6 @@ sections:
     blocks:
       - kind: 'checklist'
         items:
-          - >-
-            <strong>Bengali:</strong> Noto Sans Bengali draws six rare conjunct clusters slightly
-            differently in the downloaded file than on screen; Hind Siliguri, the second bundled
-            Bengali font, has none of those six.
-          - >-
-            <strong>Punjabi and Telugu:</strong> both ship on a font other than the default Noto one,
-            because Noto Sans Gurmukhi and Noto Sans Telugu each miscraft a cluster common enough to
-            break ordinary words in that language.
           - >-
             <strong>Urdu:</strong> the two bundled fonts draw every letter and join them correctly, but
             both are upright. Urdu is conventionally set in Nastaliq, a sloped, cascading style, and
@@ -172,11 +164,6 @@ faq:
       No. It grows leftward from a fixed right edge as you type, matching the direction the script
       itself runs, and the exported PDF keeps that same character order rather than reversing it. This
       is native behavior, not a workaround applied after the fact.
-  - question: 'Why don''t Punjabi and Telugu use the standard Noto font?'
-    answer: >-
-      Because the Noto fonts for those two scripts miscraft a cluster common enough to break ordinary
-      words, including a common Punjabi surname and the state name Andhra Pradesh in Telugu. Two other
-      fonts were chosen for each language specifically because they draw those clusters correctly.
   - question: 'Can I sign a PDF in Urdu using the Nastaliq style?'
     answer: >-
       Not yet. Urdu text draws correctly, every letter present and properly joined, but in an upright

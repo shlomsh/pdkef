@@ -578,7 +578,7 @@ ships the layering pattern: comb mode stacks a per-cell display layer over the t
 - **Selection highlight:** the textarea's `::selection` paints behind transparent text, so a highlight
   rectangle still appears, in roughly the right place, off by the same drift.
 - **Bundle:** zero. fontkit is already loaded in the editor
-  (`src/editor/text/textMetrics.ts`) and already 214,606 brotli bytes in a
+  (`src/editor/text/textMetrics.ts`) and in a (214,606 brotli bytes then)
   lazy chunk.
 - **Per-keystroke shaping:** fontkit `layout()` on a short string is microseconds and the gesture golden
   rule does not apply (typing is not a pointer gesture). Must not reshape during drag.
@@ -634,8 +634,8 @@ Shipping HarfBuzz for the export does not give one shaper on both sides. It give
   built on a fontkit instance ([sign.js:74](../src/editor/adapters/pdf/sign.js#L74) registers it), and every metric,
   cmap lookup and glyph outline in the embedding path comes from it.
 
-So the cost is **additive**, not a swap. For scale, fontkit is 214,606 brotli bytes in the editor's lazy
-chunk today; a HarfBuzz WASM build is the same order of magnitude and must be measured before this is
+So the cost is **additive**, not a swap. For scale, fontkit's lazy chunk was 214,606 brotli bytes then and is
+71,041 since FONT-10; a HarfBuzz WASM build is the same order of magnitude and must be measured before this is
 argued either way. It would not register against `check-page-weight.js` (which counts only
 `/_astro/*.js` referenced from the HTML; /sign/ is at 44,230 of 48,000), because it would be a runtime
 `import()` like pdfjs and fontkit already are. **That budget is therefore not the constraint here, and

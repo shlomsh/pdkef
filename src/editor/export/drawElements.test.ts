@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import { PDFDocument, PDFName, PDFNumber, degrees } from '@cantoo/pdf-lib';
-import fontkit from '@pdf-lib/fontkit';
+import * as fontkit from 'fontkit';
 import { drawElements } from './drawElements.ts';
 import { mockFontFetch } from '../adapters/pdf/fontFetch.test-helper.js';
 import { embeddedFontFile } from '../text/fonts.js';

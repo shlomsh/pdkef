@@ -17,6 +17,10 @@ const bidi = bidiFactory();
  * `layout(..., 'rtl')` reverses glyph order but never mirrors, so without
  * this every bracket in a Hebrew or Arabic answer came out flipped (FONT-09).
  * A mirror the font has no glyph for keeps the typed character.
+ *
+ * `composeHebrewClusters` stays although fontkit 3 alone matches HarfBuzz on
+ * Hebrew (FONT-10): the coverage check composes the same way, so what it
+ * promises is drawable is the string that gets drawn. The picture is the same.
  */
 export function layoutRun(fk: FontkitFont, text: string, direction?: BidiDirection): FontkitRun {
   const hasGlyph = (cp: number) => fk.hasGlyphForCodePoint(cp);

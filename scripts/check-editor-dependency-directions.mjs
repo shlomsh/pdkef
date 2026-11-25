@@ -22,7 +22,7 @@ const DEFAULT_ROOT = path.resolve(__dirname, '..');
 // DEBT-12 also moved the box-resize single-owner check here from a `git grep`
 // step in ci.yml's checks job (see singleOwnerViolation() below), so it now
 // runs in check:fast too, not only in CI.
-const PDF_PACKAGES = new Set(['@cantoo/pdf-lib', '@pdf-lib/fontkit', 'pdfjs-dist']);
+const PDF_PACKAGES = new Set(['@cantoo/pdf-lib', 'fontkit', 'pdfjs-dist']);
 
 // These are seams, not broad layer permissions. Keeping them explicit makes a
 // new renderer or framework hook a deliberate architectural decision.

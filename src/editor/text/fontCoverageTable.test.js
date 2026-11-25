@@ -33,7 +33,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import fontkit from '@pdf-lib/fontkit';
+import * as fontkit from 'fontkit';
 import {
   COVERAGE_BITMAP_BLOCKS,
   FONT_COVERAGE,

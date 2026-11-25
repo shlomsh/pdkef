@@ -29,9 +29,9 @@ in TODO.md's internationalization epic for the discipline this is extracted from
    whoever screens it next knows to weight that risk - don't silently note "has calt" and move on.
 4. **Fontkit-crash risk cannot be assessed from a browser alone - flag it as pending, do not guess.** The
    single most expensive lesson on this board: Noto Sans Gurmukhi and Noto Sans Telugu both looked
-   completely normal in a browser and both crashed `@pdf-lib/fontkit`'s `layout()` with an uncaught
+   completely normal in a browser and both crashed the old `@pdf-lib/fontkit` fork's `layout()` with an uncaught
    `Cannot read properties of null (reading 'xCoordinate')` inside `GPOSProcessor.getAnchor` - the same
-   crash later found in Noto Nastaliq Urdu, confirming it's a general fontkit limit, not a one-off. A web
+   crash later found in Noto Nastaliq Urdu (gone in `fontkit` 3, FONT-10; re-screen before using one). A web
    research pass **cannot** run this check (it needs the actual font bytes and this repo's fontkit
    version). Every candidate this brief produces still needs its generated corpus shaped through fontkit
    before it is trusted - say so explicitly in the report rather than implying the candidate is verified.
@@ -363,7 +363,7 @@ LXGW WenKai / WenKai TC (SC/TC, kaiti handwriting style), Gowun Batang (KR, seri
 | Script | Top pick | Runner-up | Top pick's open risk |
 | --- | --- | --- | --- |
 | Arabic family | Vazirmatn | none (Cairo discarded, Amiri set aside) | `calt` + `ss01`; run the 151-case Arabic guard and the Pashto corpus |
-| Bengali | Hind Siliguri | none (Tiro Bangla hangs fontkit) | pixel guard vs Noto's six known divergences |
+| Bengali | Hind Siliguri | none (Tiro Bangla hung the old fork; on `fontkit` 3 it shapes 262/262, FONT-10) | pixel guard |
 | Gurmukhi | Tiro Gurmukhi | none | no Bold; Italic is the only second style |
 | Telugu | Suranna | none | 610KB, no Bold |
 | Tamil | Tiro Tamil | Mukta Malar, Catamaran | no Bold |

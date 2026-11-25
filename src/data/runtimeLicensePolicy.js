@@ -26,10 +26,10 @@ export const APPROVED_RUNTIME_LICENSES = new Set([
 // helpers) is edge/deploy tooling, not "browser-shipped JavaScript" this
 // inventory is scoped to.
 export const RUNTIME_ROOT_PACKAGES = [
-  '@astrojs/preact', '@cantoo/pdf-lib', '@floating-ui/dom', '@floating-ui/react', '@pdf-lib/fontkit',
+  '@astrojs/preact', '@cantoo/pdf-lib', '@floating-ui/dom', '@floating-ui/react', 'fontkit',
   '@vercel/analytics', '@vercel/functions', 'astro', 'bidi-js', 'lucide-preact',
   'country-flag-icons', 'iso-3166-2',
-  'pdfjs-dist', 'preact', 'regenerator-runtime', 'roughjs', 'signature_pad', 'sortablejs',
+  'pdfjs-dist', 'preact', 'roughjs', 'signature_pad', 'sortablejs',
 ];
 
 export const BUILD_ONLY_CLOSURES = new Set(['astro', '@astrojs/preact', '@vercel/functions']);
@@ -40,12 +40,13 @@ export const BUILD_ONLY_CLOSURES = new Set(['astro', '@astrojs/preact', '@vercel
 export const RUNTIME_PACKAGE_NAMES = [
   ...RUNTIME_ROOT_PACKAGES,
   '@preact/signals', '@preact/signals-core',
-  '@floating-ui/core', '@floating-ui/react-dom', '@floating-ui/utils', 'culori', 'fflate',
-  'hachure-fill', 'html-entities', 'node-html-better-parser', 'pako', 'path-data-parser', 'points-on-curve',
+  '@floating-ui/core', '@floating-ui/react-dom', '@floating-ui/utils', 'culori', 'fflate', 'base64-js', 'brotli', 'dfa', 'restructure', 'unicode-properties', 'unicode-trie',
+  'hachure-fill', 'html-entities', 'node-html-better-parser', 'path-data-parser', 'points-on-curve',
   'points-on-path', 'require-from-string', 'tabbable', 'tslib',
 ].sort((a, b) => a.localeCompare(b));
 
 export const LICENSE_URL_OVERRIDES = {
-  // The published tarball declares MIT but does not carry a license file.
-  '@pdf-lib/fontkit': 'https://github.com/Hopding/fontkit/blob/master/LICENSE',
+  // The published tarballs declare MIT but do not carry a license file.
+  'brotli': 'https://github.com/foliojs/brotli.js',
+  'dfa': 'https://github.com/foliojs/dfa',
 };

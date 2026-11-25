@@ -275,7 +275,9 @@ five are narrow, enumerable, and **three of them (ট্র, ঠ্র, টি) 
 weakness** - fontkit misplacing a component part attached to a retroflex
 consonant. All five are named to users in the Sign page's Bengali FAQ.
 
-## 5c. A gap this leaves open, tracked as SIGN-20
+## 5c. A gap this left open (SIGN-20)
+
+*Closed 2026-11-25 by FONT-10: the guards assert the advance beside the pixels, and `fontkit` 3 matches on every case.*
 
 Separately from `স্ক`, the probe found conjuncts where fontkit's **advance** is
 badly wrong while its **ink** matches Chromium closely - `হ্ন` 53.40 vs 74.40px

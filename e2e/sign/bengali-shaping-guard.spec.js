@@ -32,17 +32,7 @@ import { createShapingGuardTest } from './fixtures/shapingGuardHarness.js';
  * reorders and never triggers a conjunct in Bengali either, so it carries
  * no shaping ambiguity and is not circular with anything this guard judges.
  *
- * **Six real, measured fontkit-vs-Chromium disagreements are excluded from
- * the corpus, not tuned away** - see
- * `KNOWN_FONTKIT_DIVERGENCES` in `./fixtures/bengaliCorpus.js` for the exact
- * cases and measurements (three cases where fontkit misplaces a component
- * part attached to a retroflex consonant, one doubled-consonant conjunct
- * fontkit fails to ligate, one conjunct fontkit draws without its headline, and
- * one whose ink is right but whose advance is 18% short). Each was confirmed real by isolating the case with a *fresh*
- * fontkit Font instance (see the next paragraph for why that isolation
- * mattered) before concluding it wasn't the same artifact.
- *
- * **A second, unrelated thing looked like a shaper disagreement and
+ * **One thing looked like a shaper disagreement and
  * was not one.** Building this guard, `ঢা` (a single consonant + the plain
  * AA sign - exactly the shape the calibration set is supposed to have zero
  * ambiguity on) initially failed at 52% diff, with fontkit inserting a
@@ -75,8 +65,7 @@ import { createShapingGuardTest } from './fixtures/shapingGuardHarness.js';
  * **Raising the size surfaced a divergence the old geometry hid**, which is
  * the point of raising it: `preBaseVowel:ট+vowelSignI` sat at 13.78% against a
  * 14.48% tolerance on macOS - passing by 0.7 points, which was never evidence
- * of anything - and it is a real disagreement. It is now a named entry in
- * `KNOWN_FONTKIT_DIVERGENCES` with the rest.
+ * of anything - and it was a real disagreement.
  *
  * **The calibration set now spans the corpus's glyph counts.** It used to be
  * one- and two-glyph strings only while the corpus runs to three, and a floor
@@ -88,8 +77,9 @@ import { createShapingGuardTest } from './fixtures/shapingGuardHarness.js';
  * the harness now asserts that for every calibration string rather than
  * trusting this paragraph.
  *
- * **Result at last run: 256/256 passed** (six known-divergent cases excluded,
- * see `KNOWN_FONTKIT_DIVERGENCES`).
+ * **Result: 262/262 since FONT-10.** On `@pdf-lib/fontkit` six clusters (ট্র,
+ * ঠ্র, টি, ক্ক, স্ক, দ্ধ) were wrong and excluded by name; `fontkit` 3 draws all
+ * of them as Chromium does, so nothing is excluded. Keep it that way.
  */
 
 const CALIBRATION_VOWEL_SIGN = 'া'; // plain post-base AA - not pre-base, not tested by the corpus itself

@@ -26,34 +26,38 @@ The approved runtime licenses are MIT, Apache-2.0, ISC, BSD-2-Clause, BSD-3-Clau
 | [@floating-ui/react](https://floating-ui.com/docs/react) | 0.27.20 | MIT |
 | [@floating-ui/react-dom](https://floating-ui.com/docs/react-dom) | 2.1.9 | MIT |
 | [@floating-ui/utils](https://floating-ui.com) | 0.2.12 | MIT |
-| [@pdf-lib/fontkit](https://github.com/Hopding/fontkit) | 1.1.1 | MIT |
 | [@preact/signals](https://preactjs.com) | 2.11.4 | MIT |
 | [@preact/signals-core](https://preactjs.com) | 1.14.5 | MIT |
 | [@vercel/analytics](https://github.com/vercel/analytics) | 2.0.1 | MIT |
 | [@vercel/functions](https://vercel.com/docs/functions/functions-api-reference/vercel-functions-package) | 3.11.3 | Apache-2.0 |
 | [astro](https://astro.build) | 7.4.12 | MIT |
+| [base64-js](https://github.com/beatgammit/base64-js) | 1.5.1 | MIT |
 | [bidi-js](https://github.com/lojjic/bidi-js) | 1.1.0 | MIT |
+| [brotli](https://github.com/devongovett/brotli.js) | 2.1.0 | MIT |
 | [country-flag-icons](https://gitlab.com/catamphetamine/country-flag-icons#readme) | 1.6.20 | MIT |
 | [culori](git@github.com:Evercoder/culori) | 4.0.2 | MIT |
+| [dfa](https://github.com/devongovett/dfa#readme) | 2.0.0 | MIT |
 | [fflate](https://101arrowz.github.io/fflate) | 0.8.3 | MIT |
+| [fontkit](https://github.com/foliojs/fontkit) | 3.0.0 | MIT |
 | [hachure-fill](https://github.com/pshihn/hachure-fill#readme) | 0.5.2 | MIT |
 | [html-entities](https://github.com/mdevils/html-entities) | 2.6.0 | MIT |
 | [iso-3166-2](http://github.com/olahol/iso-3166-2.js) | 1.0.0 | MIT |
 | [lucide-preact](https://lucide.dev) | 1.73.0 | ISC |
 | [node-html-better-parser](https://github.com/Sharcoux/node-html-parser) | 1.5.9 | MIT |
-| [pako](https://github.com/nodeca/pako) | 1.0.11 | (MIT AND Zlib) |
 | [path-data-parser](https://github.com/pshihn/path-data-parser#readme) | 0.1.0 | MIT |
 | [pdfjs-dist](https://mozilla.github.io/pdf.js/) | 6.5.438 | Apache-2.0 |
 | [points-on-curve](https://github.com/pshihn/bezier-points#readme) | 0.2.0 | MIT |
 | [points-on-path](https://github.com/pshihn/points-on-path#readme) | 0.2.1 | MIT |
 | [preact](https://preactjs.com) | 10.29.8 | MIT |
-| [regenerator-runtime](https://github.com/facebook/regenerator/tree/main/packages/runtime) | 0.14.1 | MIT |
 | [require-from-string](https://github.com/floatdrop/require-from-string) | 2.0.2 | MIT |
+| [restructure](https://github.com/devongovett/restructure) | 3.0.2 | MIT |
 | [roughjs](https://roughjs.com) | 4.6.6 | MIT |
 | [signature_pad](https://github.com/szimek/signature_pad) | 5.1.4 | MIT |
 | [sortablejs](https://github.com/SortableJS/Sortable) | 1.15.7 | MIT |
 | [tabbable](https://github.com/focus-trap/tabbable#readme) | 6.5.0 | MIT |
 | [tslib](https://www.typescriptlang.org/) | 2.8.1 | 0BSD |
+| [unicode-properties](https://github.com/devongovett/unicode-properties) | 2.0.2 | MIT |
+| [unicode-trie](https://github.com/devongovett/unicode-trie) | 3.0.0 | MIT |
 
 ## Runtime package notices
 
@@ -285,12 +289,6 @@ COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
 IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
-
-### @pdf-lib/fontkit (1.1.1) - MIT
-
-Andrew Dillon <andrew.dillon.j@gmail.com>
-
-The published package metadata declares `MIT`. Its upstream license notice is <https://github.com/Hopding/fontkit/blob/master/LICENSE>.
 
 ### @preact/signals (2.11.4) - MIT
 
@@ -650,6 +648,34 @@ SOFTWARE.
 """
 ```
 
+### base64-js (1.5.1) - MIT
+
+T. Jameson Little <t.jameson.little@gmail.com>
+
+```
+The MIT License (MIT)
+
+Copyright (c) 2014 Jameson Little
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+```
+
 ### bidi-js (1.1.0) - MIT
 
 Jason Johnston
@@ -678,6 +704,12 @@ LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
+
+### brotli (2.1.0) - MIT
+
+Devon Govett <devongovett@gmail.com>
+
+The published package metadata declares `MIT`. Its upstream license notice is <https://github.com/foliojs/brotli.js>.
 
 ### country-flag-icons (1.6.20) - MIT
 
@@ -736,6 +768,12 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
+### dfa (2.0.0) - MIT
+
+Devon Govett <devongovett@gmail.com>
+
+The published package metadata declares `MIT`. Its upstream license notice is <https://github.com/foliojs/dfa>.
+
 ### fflate (0.8.3) - MIT
 
 Arjun Barrett <arjunbarrett@gmail.com>
@@ -744,6 +782,34 @@ Arjun Barrett <arjunbarrett@gmail.com>
 MIT License
 
 Copyright (c) 2026 Arjun Barrett
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+### fontkit (3.0.0) - MIT
+
+Devon Govett <devongovett@gmail.com>
+
+```
+MIT License
+
+Copyright (c) 2014-present Devon Govett
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -908,34 +974,6 @@ Permission is hereby granted, free of charge, to any person obtaining a copy of 
 The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-```
-
-### pako (1.0.11) - (MIT AND Zlib)
-
-See upstream notice
-
-```
-(The MIT License)
-
-Copyright (C) 2014-2017 by Vitaly Puzrin and Andrei Tuputcyn
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
 ```
 
 ### path-data-parser (0.1.0) - MIT
@@ -1233,34 +1271,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### regenerator-runtime (0.14.1) - MIT
-
-Ben Newman <bn@cs.stanford.edu>
-
-```
-MIT License
-
-Copyright (c) 2014-present, Facebook, Inc.
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-```
-
 ### require-from-string (2.0.2) - MIT
 
 Vsevolod Strukchinsky
@@ -1287,6 +1297,34 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
+```
+
+### restructure (3.0.2) - MIT
+
+Devon Govett <devongovett@gmail.com>
+
+```
+MIT License
+
+Copyright (c) 2015-present Devon Govett
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 ```
 
 ### roughjs (4.6.6) - MIT
@@ -1418,6 +1456,34 @@ INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
 LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
 OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 PERFORMANCE OF THIS SOFTWARE.
+```
+
+### unicode-properties (2.0.2) - MIT
+
+Devon Govett <devongovett@gmail.com>
+
+```
+Copyright 2018
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+```
+
+### unicode-trie (3.0.0) - MIT
+
+Devon Govett <devongovett@gmail.com>
+
+```
+Copyright 2018
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 <!-- END GENERATED RUNTIME PACKAGE NOTICES -->
 

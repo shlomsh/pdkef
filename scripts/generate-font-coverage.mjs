@@ -23,7 +23,7 @@ import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { brotliCompressSync } from 'node:zlib';
-import fontkit from '@pdf-lib/fontkit';
+import * as fontkit from 'fontkit';
 import { FONT_FILES } from '../src/lib/fonts/fontManifest.ts';
 import { DISPLAY_ONLY_FONTS } from '../src/editor/text/displayOnlyFonts.js';
 

@@ -1,6 +1,3 @@
-// fontkit's Indic syllable-state-machine shaping uses generators. The pinned
-// @pdf-lib/fontkit build needs this polyfill before any `layout()` call.
-import 'regenerator-runtime/runtime.js';
 import type { PDFFont } from '@cantoo/pdf-lib';
 import { findMissingGlyphs } from './textTransforms.js';
 

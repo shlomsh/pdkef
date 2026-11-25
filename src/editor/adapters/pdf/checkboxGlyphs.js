@@ -50,7 +50,7 @@ const ZAPF_DINGBATS_CHECKBOX_CODES = new Set([0x6f, 0x71]);
 // shadow (SNG-09, measured 2026-09-26: ~0.6pt right, ~0.6pt low on form 101).
 // Provenance: the inner (hole) contour of a74/a75 in the ZapfDingbats subset
 // embedded in income-tax-101-2024.pdf (UIVCMF+ZapfDingbats, read with
-// @pdf-lib/fontkit). The outer contour, x[35,725] y[0,692] for ❑, includes
+// fontkit). The outer contour, x[35,725] y[0,692] for ❑, includes
 // the shadow. pdf.js's FoxitDingbats, drawn when a file does not embed the
 // font, agrees: ❑ exactly, ❏ within 8/1000 em (x[64,597] y[126,662]).
 /** @type {Map<number, GlyphSquare>} */

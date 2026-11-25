@@ -4,7 +4,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { PDFDocument, rgb } from '@cantoo/pdf-lib';
-import fontkit from '@pdf-lib/fontkit';
+import * as fontkit from 'fontkit';
 
 const W = 612;
 const H = 792;

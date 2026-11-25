@@ -28,10 +28,18 @@
  * editor via `src/editor/text/textMetrics.ts`), bundled fresh
  * via esbuild in a Playwright `beforeAll` rather than checked in as a
  * generated artifact - no network dependency, no stale-bundle risk. The
- * bundle includes `regenerator-runtime/runtime.js`, which Devanagari's
- * shaping needs (see `src/editor/registry/text.ts`) and Arabic's does not,
- * but importing it unconditionally is cheap and keeps one bundle recipe
- * instead of a per-script branch.
+ * bundle is the app's own engine (`src/tools/sign/lib/fontkitEngine.ts`), so
+ * a script whose shaper is not registered there fails its guard here.
+ *
+ * **Native text is drawn with `textRendering = 'geometricPrecision'`
+ * (FONT-10).** The editor's DOM text shapes a whole run; plain canvas
+ * `fillText` shapes word by word and drops the kerning and contextual forms
+ * that cross a space. That difference, not a shaper disagreement, was what
+ * kept Caveat red for months.
+ *
+ * **Every case also compares the total advance (SIGN-20).** A pixel diff of
+ * one string alone cannot see a wrong advance: the error is in the empty
+ * space after the ink, and shows up in whatever follows.
  *
  * **Why a `<script src>` fetch, not `page.addScriptTag({ content })`.** The
  * app's CSP (`script-src 'self'` plus per-script hashes, no
@@ -135,7 +143,7 @@ import { build } from 'esbuild';
 import { useTemporaryBundle } from './temporaryBundle.js';
 
 /**
- * Bundles fontkit (+ regenerator-runtime) for the browser and writes it into
+ * Bundles the export's fontkit engine for the browser and writes it into
  * the built `dist/` so a same-origin `<script src>` can fetch it under CSP.
  * Pass this as `build` to `useTemporaryBundle`, alongside
  * `removeFontkitBundle`. The fixture owns creation, same-origin routing, and
@@ -156,8 +164,7 @@ export async function buildFontkitBundle(bundleFilename) {
   const result = await build({
     stdin: {
       contents: `
-        import 'regenerator-runtime/runtime.js';
-        import fontkit from '@pdf-lib/fontkit';
+        import * as fontkit from './src/tools/sign/lib/fontkitEngine.ts';
         window.__fontkit = fontkit;
       `,
       resolveDir: process.cwd(),
@@ -314,6 +321,7 @@ export async function runShapingGuardInPage({
   function drawNative(text) {
     const ctx = makeCanvas();
     ctx.fillStyle = 'white'; ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+    ctx.textRendering = 'geometricPrecision';
     ctx.font = `${size}px "${family}"`;
     if (rtl) { ctx.direction = 'rtl'; ctx.textAlign = 'right'; }
     ctx.textBaseline = 'alphabetic';
@@ -325,6 +333,7 @@ export async function runShapingGuardInPage({
   // One context kept only for `measureText`, so measuring a glyph's advance
   // does not allocate and clear a full-size canvas per glyph.
   const measureCtx = makeCanvas();
+  measureCtx.textRendering = 'geometricPrecision';
   measureCtx.font = `${size}px "${family}"`;
 
   // The browser's own advance for one glyph, measured rather than modelled.
@@ -478,11 +487,13 @@ export async function runShapingGuardInPage({
     // residual on one where some were modelled says how much the
     // round-to-nearest fallback misses). Never enters the judgment.
     const quantisedWidth = glyphs.reduce((sum, g) => sum + quantisedAdvancePx(g), 0);
+    const shapedWidth = glyphs.reduce((sum, g) => sum + g.pos.xAdvance * (size / fk.unitsPerEm), 0);
     return {
       text,
       diffPct,
       widthDiff: Math.abs(native.width - recon.width),
       quantisedWidthResidual: Math.abs(native.width - quantisedWidth),
+      shapedAdvanceDiff: Math.abs(native.width - shapedWidth),
       glyphCount: glyphs.length,
       nativeWidth: native.width,
       reconWidth: recon.width,
@@ -721,6 +732,15 @@ export function createShapingGuardTest({
           expect(result.substitutingCount, `${scriptName}/${candidateName}: 0 of ${corpus.length} corpus strings trigger any contextual substitution in fontkit, so this guard has nothing to test for this face - it is not proof of agreement. Extend the corpus with strings known to trigger this face's calt/liga features, or drop this face from the guard with that reasoning recorded.`).toBeGreaterThan(0);
         }
       }
+
+      // Whole-pixel advances can move a run by at most half a pixel per glyph;
+      // without them both engines read the same font units, so nothing may move.
+      const advanceFailures = [...result.cases, ...result.calibrationCases]
+        .filter((c) => c.shapedAdvanceDiff > (result.quantizesAdvances ? c.glyphCount * 0.5 : 0.05));
+      expect.soft(
+        advanceFailures.map((c) => `${c.id} "${c.text}": off by ${c.shapedAdvanceDiff.toFixed(2)}px of ${c.nativeWidth.toFixed(2)}px`),
+        `${scriptName}/${candidateName}: fontkit's total advance differs from the browser's`,
+      ).toEqual([]);
 
       // The floor is the worse of the two measured artefacts, each of which is
       // measured rather than declared and each of which is zero on a platform

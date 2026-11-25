@@ -43,12 +43,6 @@ export const RUNTIME_LICENSE_PACKAGES = [
     "url": "https://floating-ui.com"
   },
   {
-    "name": "@pdf-lib/fontkit",
-    "version": "1.1.1",
-    "license": "MIT",
-    "url": "https://github.com/Hopding/fontkit"
-  },
-  {
     "name": "@preact/signals",
     "version": "2.11.4",
     "license": "MIT",
@@ -79,10 +73,22 @@ export const RUNTIME_LICENSE_PACKAGES = [
     "url": "https://astro.build"
   },
   {
+    "name": "base64-js",
+    "version": "1.5.1",
+    "license": "MIT",
+    "url": "https://github.com/beatgammit/base64-js"
+  },
+  {
     "name": "bidi-js",
     "version": "1.1.0",
     "license": "MIT",
     "url": "https://github.com/lojjic/bidi-js"
+  },
+  {
+    "name": "brotli",
+    "version": "2.1.0",
+    "license": "MIT",
+    "url": "https://github.com/devongovett/brotli.js"
   },
   {
     "name": "country-flag-icons",
@@ -97,10 +103,22 @@ export const RUNTIME_LICENSE_PACKAGES = [
     "url": "git@github.com:Evercoder/culori"
   },
   {
+    "name": "dfa",
+    "version": "2.0.0",
+    "license": "MIT",
+    "url": "https://github.com/devongovett/dfa#readme"
+  },
+  {
     "name": "fflate",
     "version": "0.8.3",
     "license": "MIT",
     "url": "https://101arrowz.github.io/fflate"
+  },
+  {
+    "name": "fontkit",
+    "version": "3.0.0",
+    "license": "MIT",
+    "url": "https://github.com/foliojs/fontkit"
   },
   {
     "name": "hachure-fill",
@@ -133,12 +151,6 @@ export const RUNTIME_LICENSE_PACKAGES = [
     "url": "https://github.com/Sharcoux/node-html-parser"
   },
   {
-    "name": "pako",
-    "version": "1.0.11",
-    "license": "(MIT AND Zlib)",
-    "url": "https://github.com/nodeca/pako"
-  },
-  {
     "name": "path-data-parser",
     "version": "0.1.0",
     "license": "MIT",
@@ -169,16 +181,16 @@ export const RUNTIME_LICENSE_PACKAGES = [
     "url": "https://preactjs.com"
   },
   {
-    "name": "regenerator-runtime",
-    "version": "0.14.1",
-    "license": "MIT",
-    "url": "https://github.com/facebook/regenerator/tree/main/packages/runtime"
-  },
-  {
     "name": "require-from-string",
     "version": "2.0.2",
     "license": "MIT",
     "url": "https://github.com/floatdrop/require-from-string"
+  },
+  {
+    "name": "restructure",
+    "version": "3.0.2",
+    "license": "MIT",
+    "url": "https://github.com/devongovett/restructure"
   },
   {
     "name": "roughjs",
@@ -209,5 +221,17 @@ export const RUNTIME_LICENSE_PACKAGES = [
     "version": "2.8.1",
     "license": "0BSD",
     "url": "https://www.typescriptlang.org/"
+  },
+  {
+    "name": "unicode-properties",
+    "version": "2.0.2",
+    "license": "MIT",
+    "url": "https://github.com/devongovett/unicode-properties"
+  },
+  {
+    "name": "unicode-trie",
+    "version": "3.0.0",
+    "license": "MIT",
+    "url": "https://github.com/devongovett/unicode-trie"
   }
 ];

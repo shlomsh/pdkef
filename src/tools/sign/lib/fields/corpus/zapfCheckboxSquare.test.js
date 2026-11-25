@@ -5,7 +5,7 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { PDFDocument, PDFDict, PDFName, PDFStream, decodePDFRawStream } from '@cantoo/pdf-lib';
-import fontkit from '@pdf-lib/fontkit';
+import * as fontkit from 'fontkit';
 import { detectFormFields, pageGeometry, toPageTextRuns } from '../detectFormFields.ts';
 import { pageCropBox } from '../pageInk.js';
 

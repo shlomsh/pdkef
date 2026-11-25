@@ -40,8 +40,9 @@ reviewNotes: >-
   10-15: hash moved only for h1Name; translation unchanged.
   10-27: lead is "חתימה על מסמך PDF" (LOC-03).
   11-03: Drive FAQ is an AI draft (MERGE-27).
-  11-12: Mark, SIGN-48.
-sourceHash: 'fnv1a64:c864589dbc509e3b'
+  11-12: Mark, SIGN-48. 11-25: hash moved only for the English Bengali and
+  Noto wording, which Hebrew never had (FONT-10).
+sourceHash: 'fnv1a64:8b06e6f0586aa9ed'
 seoTitle: 'חתימה על מסמך PDF ומילוי טפסים בחינם, גם בעברית | PDkef'
 seoDescription: >-
   חתמו על מסמך PDF והוסיפו חתימה, טקסט וסימוני וי לטפסים, אונליין ובחינם,

@@ -74,10 +74,7 @@ describe('Sign Languages card: "supported" claims match the generated coverage r
 
   it('Thai: Mali, Sriracha and IBM Plex Sans Thai, matching LANGUAGE_COVERAGE.thai.full', () => {
     // FONT-08b: Sriracha joined Mali as Thai's second handwriting face
-    // (2026-09-12) - screened per Guard A (fontkit-vs-browser advance
-    // parity), every Thai sample clean at 0.000px, landed with a recorded
-    // Latin-kerning delta (1.024px on "Sarah Levi") in the same debt class
-    // as Caveat's own known-red Latin case (SIGN-20).
+    // (2026-09-12).
     expect(LANGUAGE_COVERAGE.thai.full.map((f) => f.family).sort()).toEqual(['IBM Plex Sans Thai', 'Mali', 'Sriracha']);
     const note = supportedNote('Thai');
     expect(note).toContain('Mali');
@@ -388,11 +385,9 @@ describe('Sign page: the guarantees SEO-07 brought up out of the design docs', (
     expect(faq).not.toContain('comb');
   });
 
-  it('keeps the six Bengali shaper divergences named in the FAQ', () => {
-    const bengali = faqAnswer('Bengali');
-    for (const cluster of ['ট্র', 'ঠ্র', 'টি', 'ক্ক', 'স্ক', 'দ্ধ']) {
-      expect(bengali).toContain(cluster);
-    }
+  it('claims no Bengali divergence between the screen and the download (FONT-10)', () => {
+    expect(faqAnswer('Bengali')).toContain('262 clusters');
+    expect(supportedNote('Bengali')).not.toMatch(/differently/);
   });
 });
 
@@ -438,34 +433,24 @@ describe('Chinese, Simplified and Traditional', () => {
  * Punjabi, Telugu and Tamil (landed 2026-08-28). Each is an upright text
  * face with no handwriting counterpart, the same shape of pin as the
  * Japanese/Bengali/Korean blocks above.
- *
- * Two of the three are pinned on something the others are not: the family is
- * deliberately NOT that script's Noto Sans face, because fontkit crashes
- * shaping Noto Sans Gurmukhi and Noto Sans Telugu (see the module docs in
- * e2e/sign/fixtures/gurmukhiCorpus.js and teluguCorpus.js for the
- * measurements, and TODO.md's entry for the decision). The card says so in
- * its own words rather than quietly shipping a different font than a reader
- * would expect, so these assert the card keeps explaining it.
  */
 describe('Punjabi, Telugu and Tamil', () => {
-  it('Telugu: Anek Telugu and Suranna, and the card explains why neither is the Noto face', () => {
+  it('Telugu: Anek Telugu and Suranna', () => {
     expect(LANGUAGE_COVERAGE.telugu.full.map((f) => f.family)).toEqual(['Anek Telugu', 'Suranna']);
     const note = supportedNote('Telugu');
     expect(note).toContain('Anek Telugu');
     expect(note).toContain('Suranna');
-    expect(note).toContain('Noto Sans Telugu');
     // Suranna (FONT-08b) ships Regular only - the card says so plainly rather
     // than letting a user discover it by finding the Bold button does nothing.
     expect(note.toLowerCase()).toContain('one weight');
     expect(note.toLowerCase()).toContain('no handwriting-style telugu face');
   });
 
-  it('Punjabi: Mukta Mahee and Tiro Gurmukhi, and the card explains why neither is the Noto face', () => {
+  it('Punjabi: Mukta Mahee and Tiro Gurmukhi', () => {
     expect(LANGUAGE_COVERAGE.punjabi.full.map((f) => f.family)).toEqual(['Mukta Mahee', 'Tiro Gurmukhi']);
     const note = supportedNote('Punjabi');
     expect(note).toContain('Mukta Mahee');
     expect(note).toContain('Tiro Gurmukhi');
-    expect(note).toContain('Noto Sans Gurmukhi');
     expect(note.toLowerCase()).toContain('no handwriting-style gurmukhi face');
   });
 
@@ -489,20 +474,14 @@ describe('Punjabi, Telugu and Tamil', () => {
 /**
  * Malayalam (FONT-03, landed after Punjabi/Telugu/Tamil; FONT-08 added
  * Gayathri as a second upright choice next to Anek Malayalam). Same shape of
- * pin as Telugu/Punjabi above: neither family is Noto Sans Malayalam,
- * because fontkit's GPOSProcessor.getAnchor crashes on 33/35 reph cases
- * (RA+virama+consonant, syllable-initial - not a rare pattern, see
- * e2e/sign/fixtures/malayalamCorpus.js's module doc for the measurements).
- * Gayathri crashes 0/478 on the same corpus - see
- * e2e/sign/malayalam-gayathri-shaping-guard.spec.js.
+ * pin as Telugu/Punjabi above.
  */
 describe('Malayalam', () => {
-  it('Malayalam: Anek Malayalam and Gayathri, and the card explains why neither is the Noto face and names the UAE/Gulf audience', () => {
+  it('Malayalam: Anek Malayalam and Gayathri, and the card names the UAE/Gulf audience', () => {
     expect(LANGUAGE_COVERAGE.malayalam.full.map((f) => f.family)).toEqual(['Anek Malayalam', 'Gayathri']);
     const note = supportedNote('Malayalam');
     expect(note).toContain('Anek Malayalam');
     expect(note).toContain('Gayathri');
-    expect(note).toContain('Noto Sans Malayalam');
     expect(note).toContain('UAE');
     expect(note.toLowerCase()).toContain('no handwriting-style malayalam face');
   });

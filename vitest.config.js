@@ -109,7 +109,7 @@ export default defineConfig({
         plugins: [serveMswWorker],
         // Found only partway through a run, these made Vite re-optimize and reload the test page, and the file
         // it was loading then failed with "Failed to fetch dynamically imported module" (LAND-04 wave 6).
-        optimizeDeps: { include: ['@cantoo/pdf-lib', 'pdfjs-dist/build/pdf.worker.min.mjs'] },
+        optimizeDeps: { include: ['@cantoo/pdf-lib', 'fontkit', 'fontkit/core', 'fontkit/formats/TTFFont', 'fontkit/shapers/ArabicShaper', 'fontkit/shapers/HangulShaper', 'fontkit/shapers/HebrewShaper', 'fontkit/shapers/IndicShaper', 'fontkit/shapers/ThaiShaper', 'pdfjs-dist/build/pdf.worker.min.mjs'] },
         test: {
           name: 'browser',
           include: [BROWSER_TESTS],

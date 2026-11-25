@@ -2,7 +2,7 @@
 // its own makePdfBuffer; each variant is expressible through `opts`.
 import fs from 'node:fs';
 import { PDFDocument, PDFInvalidObject, PDFName, PDFString, StandardFonts, rgb } from '@cantoo/pdf-lib';
-import fontkit from '@pdf-lib/fontkit';
+import * as fontkit from 'fontkit';
 
 const publicFont = (name) => fs.readFileSync(new URL(`../../public/fonts/${name}`, import.meta.url));
 

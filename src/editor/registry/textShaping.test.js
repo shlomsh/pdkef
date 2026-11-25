@@ -11,7 +11,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { PDFDocument, PDFName, StandardFonts, rgb } from '@cantoo/pdf-lib';
-import fontkit from '@pdf-lib/fontkit';
+import * as fontkit from 'fontkit';
 import { normalizeTabsForBidi, stripInvisibleFormatting, unrepresentableCharacters } from './text.ts';
 import { shapedWidth } from '../text/shapeRun.ts';
 import { drawShapedRun, serializeText } from './textPdf.ts';

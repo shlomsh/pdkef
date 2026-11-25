@@ -7,14 +7,7 @@ import { createShapingGuardTest } from './fixtures/shapingGuardHarness.js';
  * second Bengali/Assamese face, added alongside the existing Noto Sans
  * Bengali). Reuses the exact case-generation logic bengaliCorpus.js already
  * has for the five shaping axes (preBaseVowel, reph, raphala, yaphala,
- * conjuncts - see that file's module doc for the full derivation), but
- * imports the raw per-group arrays rather than `BENGALI_CORPUS` itself:
- * `BENGALI_CORPUS` already excludes the six `KNOWN_FONTKIT_DIVERGENCES`
- * measured against Noto Sans Bengali, and per .claude/rules/fonts-and-text.md's
- * Bengali paragraph, "those are Noto's, not yours" - inheriting that filter
- * here would silently exempt Hind Siliguri from exactly the cases most likely
- * to expose a font-specific disagreement, rather than measuring its own.
- * This file's corpus is therefore the full, unfiltered 262 cases.
+ * conjuncts - see that file's module doc for the full derivation): all 262 cases.
  *
  * Bengali is Bidi_Class L, so this guard anchors at a fixed left pen position
  * with no RTL handling - same as the Noto Sans Bengali guard.
@@ -60,10 +53,6 @@ import { createShapingGuardTest } from './fixtures/shapingGuardHarness.js';
  * 60 non-substituting (calibration set: rasteriser floor 0.00%,
  * advance-quantisation floor 0.00% - this platform does not quantise
  * advances), 262 substituting and under test, all at the 4% tolerance floor.
- * Unlike Noto Sans Bengali's six named divergences, Hind Siliguri produced no
- * narrow, isolated disagreement to name - every generated case matched
- * Chromium's own rendering, on all five shaping axes (pre-base vowel
- * reordering, reph, ra-phala, ya-phala, conjuncts).
  *
  * **Sabotage control, run once while authoring this guard (not a shipped
  * assertion - see malayalam-shaping-guard.spec.js's module doc for the same

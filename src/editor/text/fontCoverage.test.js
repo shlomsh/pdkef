@@ -27,7 +27,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-import fontkit from '@pdf-lib/fontkit';
+import * as fontkit from 'fontkit';
 import {
   HANDWRITING_FONTS,
   HEBREW_CAPABLE_FONTS,

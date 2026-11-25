@@ -106,12 +106,9 @@ export const LANGUAGE_ACCEPTANCE_MATRIX = [
     order: 13, status: 'shipped', id: 'thai', languages: ['Thai'], regions: ['Thailand'],
     coverageIds: ['thai'], families: ['Mali', 'Sriracha', 'IBM Plex Sans Thai'], sample: 'สวัสดี ๒๐๒๖', direction: 'ltr',
     // FONT-08b, 2026-09-12: Sriracha joined Mali as Thai's second handwriting
-    // face. Guard A (thai-sriracha-font-parity.spec.js) is clean on every
-    // Thai sample (0.000px); it landed with one recorded Latin-kerning delta
-    // (1.024px on "Sarah Levi", test.fixme, same debt class as Caveat's own
-    // known-red Latin case under SIGN-20) - see backlog/tasks/FONT-08.md.
-    shaping: { status: 'guarded', guards: ['e2e/sign/thai-font-parity.spec.js', 'e2e/sign/thai-sriracha-font-parity.spec.js'] },
-    visual: { guards: ['e2e/sign/thai-font-parity.spec.js', 'e2e/sign/thai-sriracha-font-parity.spec.js', 'e2e/export/export-render-guard.spec.js'], cases: ['thai-mali', 'thai-sriracha'] },
+    // face. Mark placement, which no advance can see, is thai-shaping-guard (FONT-10).
+    shaping: { status: 'guarded', guards: ['e2e/sign/thai-shaping-guard.spec.js', 'e2e/sign/thai-font-parity.spec.js', 'e2e/sign/thai-sriracha-font-parity.spec.js'] },
+    visual: { guards: ['e2e/sign/thai-shaping-guard.spec.js', 'e2e/sign/thai-font-parity.spec.js', 'e2e/sign/thai-sriracha-font-parity.spec.js', 'e2e/export/export-render-guard.spec.js'], cases: ['thai-mali', 'thai-sriracha'] },
   },
   {
     order: 14, status: 'shipped', id: 'telugu', languages: ['Telugu'], regions: ['India'],

@@ -5,6 +5,11 @@ says what to do; this record says what was measured, on which font, and why the 
 does. Add a section here when a screening produces a number worth keeping; do not put the number in
 the rule.
 
+**Everything below dated before 2026-11-25 was measured on the `@pdf-lib/fontkit` 1.1.1 fork.** FONT-10 moved the
+export to `fontkit` 3: the six Bengali clusters, the Caveat and Sriracha kerning gaps and the
+`GPOSProcessor.getAnchor` crashes described here are gone, and the guards exclude nothing. The entries stay as the
+record of why each face was chosen.
+
 ## Bengali: six named shaper disagreements (Noto Sans Bengali)
 
 

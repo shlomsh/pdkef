@@ -132,32 +132,28 @@ Text pipeline map, verified from code: [docs/wysiwyg-text-architecture.md](../..
 A candidate that clears one has not been screened.
 
 1. **Does fontkit crash on it?** Shape the whole generated corpus through fontkit and count uncaught
-   throws. Noto Sans Gurmukhi (203 of 500 cases) and Noto Sans Telugu (4 of 630) throw
-   `Cannot read properties of null (reading 'xCoordinate')` in `GPOSProcessor.getAnchor`, the same
-   crash that blocks Noto Nastaliq Urdu. It reaches the export as a raw `TypeError` instead of a clean
-   `UnrepresentableTextError`, and nothing else detects it: coverage is full, `glyf` alignment passes,
-   Chromium renders it fine. Punjabi ships Mukta Mahee and Telugu Anek Telugu for this reason, and the
-   Sign card says so (`languageCoverage.test.js` pins the explanation).
+   throws. A throw reaches the export as a raw `TypeError` instead of a clean `UnrepresentableTextError`,
+   and nothing else detects it. The old `@pdf-lib/fontkit` fork crashed on Noto Sans Gurmukhi, Telugu,
+   Malayalam and Noto Nastaliq Urdu and hung on Tiro Bangla, which is why those scripts ship other faces;
+   `fontkit` 3 guards the missing anchor, so those faces may be screened again.
 2. **Does fontkit pick the same glyphs as Chromium?** The per-script pixel guard, rendered **above
    ~256px**: below Skia's bitmap-glyph limit `fillText` draws cached bitmaps while the guard fills
    outlines through `Path2D`, and the difference swamps real findings. Every guard accepted before
    2026-08-29 ran at the small size with a loose tolerance (Arabic 22.33%, Bengali 14.48%); fixing the
-   geometry took Bengali's known divergences from three to six with no font change. Arabic, Pashto and
-   Bengali are re-measured; **Devanagari, Tamil, Telugu and Gurmukhi are not**, so re-screen before
-   leaning on them.
-3. **Does fontkit report the same advances as Chromium?** **Nothing checks this yet (SIGN-20).** A
-   pixel diff is nearly blind to it because the error lives in trailing space: Bengali হ্ন is 21px (28%)
-   short at a 6.16% diff and ক্ত 20px short at 7.27%, and both pass. Rounding bound from SIGN-19,
-   confirmed per glyph on the runner in §5d (max 0.50px across every guard): browser advance rounding
-   moves a cluster by at most `glyphCount x 0.5px`; anything past that is the font or the shaper. Handwriting faces add kerning: Caveat's `measureText` disagrees with fontkit by
-   5.1px on "Sarah Levi", so screen handwriting candidates for **kerning parity** too. The Latin/Caveat
-   guard is `test.skip`ped as red; the other Latin greens do not cover it.
+   geometry took Bengali's known divergences from three to six with no font change. **Tamil, Telugu and Gurmukhi (Mukta Mahee)
+   still render small**, so re-screen before leaning on their floors.
+3. **Does fontkit report the same advances as Chromium?** The guard checks this beside the pixels
+   (SIGN-20), because a pixel diff is blind to an error that lives in trailing space. Browser advance
+   rounding moves a cluster by at most `glyphCount x 0.5px`; anything past that is the font or the shaper.
+   Screen handwriting candidates on whole Latin names, kerning across the space included.
 
-Bengali ships with **six named divergences** in `KNOWN_FONTKIT_DIVERGENCES`
-(`e2e/sign/fixtures/bengaliCorpus.js`): ট্র, ঠ্র, টি (component placement on a retroflex) and ক্ক, স্ক, দ্ধ
-(conjunct assembly), 256 of 262 matching. The Sign page's Bengali FAQ names all six. **A seventh should
-change the drop-or-keep answer, not extend the list.** Bengali's calibration set is fixed (259/259);
-Gurmukhi (140), Telugu (486) and Tamil (265) use `autoCalibrate`, because hand-classifying
+**The engine is `fontkit` 3 (FONT-10), through `src/tools/sign/lib/fontkitEngine.ts`**, which registers only
+the shapers our scripts use: a new script registers its shaper there or silently gets the default one. The
+guards bundle that file. A fixed-glyph test must import it and never main `fontkit`, which registers every
+shaper for `fontkit/core` too. Every shaping guard matches Chromium with no excluded case: an exclusion list
+is a finding that re-opens the keep-or-drop question. Native text in a guard is drawn with
+`textRendering = 'geometricPrecision'`, because plain canvas text shapes word by word and the DOM does not.
+Bengali's calibration set is fixed; Gurmukhi, Telugu and Tamil use `autoCalibrate`, because hand-classifying
 "unambiguous" cases without an in-house reference would produce a falsely wide tolerance. Keep it.
 
 ## Adding a font: nine steps, as one unit

@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import fontkit from '@pdf-lib/fontkit';
+import * as fontkit from 'fontkit';
 import { resolveBidiRuns } from '../../src/editor/text/bidiRuns.js';
 import { requestedFontFile } from '../../src/editor/text/fonts.js';
 

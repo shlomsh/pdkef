@@ -1,5 +1,5 @@
 import { degrees } from '@cantoo/pdf-lib';
-import fontkit from '@pdf-lib/fontkit';
+import * as fontkit from './fontkitEngine.ts';
 import { resolveCommentBoxes } from '#editor/comments/anchors.ts';
 import { drawElements } from '#editor/export/drawElements.ts';
 import { findUnrepresentableCharacters } from './textCoverage.js';
