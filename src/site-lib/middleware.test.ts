@@ -2,11 +2,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { answerNetwork, server } from '../test/support/network.ts';
 
-// next() from @vercel/functions returns a Response carrying the extra headers, which is all this test reads.
-vi.mock('@vercel/functions', () => ({
-  next: (init?: { headers?: Headers }) => new Response('page', { headers: init?.headers }),
-}));
-
 import middleware from '../../middleware.ts';
 
 answerNetwork();

@@ -1,5 +1,6 @@
 // oxlint-disable landmines/colocated-tests -- the subject is the report contract with api/report.ts (landmines PR 33)
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { installBeaconRecorder, type BeaconRecorder } from '../test/support/beaconRecorder.ts';
 import { http, HttpResponse } from 'msw';
 import { answerNetwork, server } from '../test/support/network.ts';
 import { POST } from '../../api/report.ts';
@@ -17,11 +18,11 @@ import { reportToolLifecycleEvent, resetUsageEventsForTests } from '#lib/telemet
 
 answerNetwork();
 
-const beacons: Blob[] = [];
+let recorder: BeaconRecorder;
 let pipelineCommands: unknown[][] = [];
 
 const deliver = async (): Promise<unknown[][]> => {
-  for (const blob of beacons.splice(0)) {
+  for (const { blob } of recorder.calls.splice(0)) {
     await POST(new Request('https://pdkef.com/api/report', { method: 'POST', body: await blob.text() }));
   }
   return pipelineCommands;
@@ -38,14 +39,9 @@ beforeEach(() => {
   }));
   process.env.KV_REST_API_URL = 'https://store.invalid';
   process.env.KV_REST_API_TOKEN = 'test-token';
-  vi.stubGlobal('navigator', {
-    onLine: true,
-    sendBeacon: (_url: string, blob: Blob) => (beacons.push(blob), true),
-  });
+  recorder = installBeaconRecorder();
+  // Forced: a Server-Timing header with the build commit, which Node has no page for
   vi.stubGlobal('performance', { getEntriesByType: () => [{ serverTiming: [{ name: 'build', description: '08e10cf' }] }] });
-  vi.stubGlobal('document', {
-    documentElement: { className: '' },
-  });
   setReportingEnabledForTests(true);
   resetErrorReportingForTests();
   resetUsageEventsForTests();
@@ -56,7 +52,7 @@ afterEach(() => {
   delete process.env.KV_REST_API_TOKEN;
   vi.unstubAllGlobals();
   setReportingEnabledForTests(false);
-  beacons.length = 0;
+  recorder.restore();
 });
 
 describe('what the browser sends is what the endpoint stores (DEBT-44)', () => {

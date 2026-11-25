@@ -6,6 +6,7 @@ import 'fake-indexeddb/auto';
 import { IDBFactory } from 'fake-indexeddb';
 import { sendHandoff } from '#lib/handoff/sendHandoff.ts';
 import { peekHandoff } from '#lib/drafts/draftStore.ts';
+import { holdDraftStore } from '#lib/drafts/heldStore.test-helper.ts';
 import { drainPromises } from '../test/support/drainPromises.ts';
 import { waitUntil } from '../test/support/waitUntil.ts';
 
@@ -14,6 +15,15 @@ vi.mock('#lib/handoff/sendHandoff.ts', { spy: true });
 
 type Consumer = (params: { files: { getFile: () => Promise<File> }[] }) => void | Promise<void>;
 const launchHost = window as Window & { launchQueue?: { setConsumer: (fn: Consumer) => void } };
+
+const upgradeWorkspaceDb = () => new Promise<void>((resolve, reject) => {
+  const request = indexedDB.open('pdf-toolkit-workspace', 2);
+  request.onupgradeneeded = () => {
+    if (!request.result.objectStoreNames.contains('workspace')) request.result.createObjectStore('workspace', { keyPath: 'tool' });
+  };
+  request.onsuccess = () => { request.result.close(); resolve(); };
+  request.onerror = () => reject(request.error);
+});
 
 const flush = () => act(async () => { await drainPromises(); });
 // The real hand-off marks its page pending (sessionStorage) once it has parked the file: that is the signal.
@@ -112,16 +122,20 @@ describe('OpenWithChooser', () => {
   });
 
   it('says so, and offers a retry, when the hand-off fails', async () => {
-    vi.mocked(sendHandoff).mockRejectedValueOnce(new Error('handoff')); // forced: a store that refuses the file
+    // The database moves to version 2 behind the product's back, so the real store's open fails for real.
+    await upgradeWorkspaceDb();
     await launch(pdf());
     await act(async () => { button('Sign').click(); });
+    // The real hand-off rejects because the store refused the file, then the line appears.
+    await waitUntil(() => expect(container!.querySelector('[role="alert"]')).toBeTruthy(), { timeout: 2000 });
     await flush();
     expect(container!.querySelector('[role="alert"]')).toBeTruthy();
     expect(button('Sign').disabled).toBe(false);
   });
 
   it('sends one hand-off when a second file launches while the first is being handed over', async () => {
-    vi.mocked(sendHandoff).mockReturnValueOnce(new Promise(() => {})); // forced: a hand-off held in flight
+    // A real write transaction holds the store, so the first hand-off stays in flight.
+    await holdDraftStore();
     await launch(pdf('first.pdf'));
     await act(async () => { button('Sign').click(); });
     await flush();

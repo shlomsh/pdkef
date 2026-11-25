@@ -1,4 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('#lib/telemetry/errorReport.ts', { spy: true });
+
+import { reportError } from '#lib/telemetry/errorReport.ts';
 import { drainPromises } from '../test/support/drainPromises.ts';
 import {
   CHUNK_RELOAD_WINDOW_MS,
@@ -74,9 +78,12 @@ function setup(opts: { held?: boolean; online?: boolean; heldAfterFlush?: boolea
     : opts.storage;
   const win = {
     addEventListener: (type: string, fn: (event: any) => void) => { listeners.set(type, fn); },
+    // Forced: location.reload cannot run in a test, the mock records the order
     location: { reload: vi.fn(() => { calls.push('reload'); }) },
   };
-  const report = vi.fn((_area: string, _err: unknown, step: string) => { calls.push(`report:${step}`); });
+  // The real reportError, reached through the default lazy import; its calls are what the tests read.
+  const report = vi.mocked(reportError);
+  report.mockClear();
   let held = !!opts.held;
   const flush = opts.flush ?? (async () => { calls.push('flush'); if (opts.heldAfterFlush) held = true; });
   let t = 5_000_000;
@@ -84,7 +91,6 @@ function setup(opts: { held?: boolean; online?: boolean; heldAfterFlush?: boolea
     win: win as any,
     storage: () => storage,
     now: () => t,
-    report: report as any,
     flush,
     isHeld: () => held,
     isOnline: () => opts.online !== false,
