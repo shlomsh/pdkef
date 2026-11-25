@@ -117,6 +117,8 @@ export default defineConfig({
           // Each parallel session gets its own Playwright context, so files running at once have their own IndexedDB, localStorage, locks and service worker.
           fileParallelism: true,
           maxWorkers: 3,
+          // Vitest runs projects with different worker counts in separate groups: the browser's after the rest.
+          sequence: { groupOrder: 1 },
           browser: {
             enabled: true,
             provider: playwright(),
