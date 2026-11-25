@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { holdUpdate, registerBeforeUpdateReload } from '#lib/appUpdate/updateHolds.ts';
+import { flushBeforeUpdateReload, holdUpdate, isExportInFlight, onExportInFlightChange, registerBeforeUpdateReload } from '#lib/appUpdate/updateHolds.ts';
 import {
   BUSY_QUERY,
   CHECK_EVERY_MS,
@@ -585,31 +585,37 @@ function sendCritical(tab: ReturnType<typeof makeTab>) {
 const holdOpen = () => { const release = holdUpdate('open'); releases.push(release); return release; };
 
 describe('respondToCriticalUpdate', () => {
+  // The real registry the page wires in; `listening` counts the export listeners it holds.
   function makeDeps(over: Partial<Parameters<typeof respondToCriticalUpdate>[0]> = {}) {
-    let inFlight = false;
-    const listeners = new Set<(v: boolean) => void>();
+    const listening = new Set<unknown>();
+    const flush = vi.fn();
+    releases.push(registerBeforeUpdateReload(flush));
     const deps = {
-      // Forced: a counted input; the real flush needs IndexedDB, which jsdom lacks.
-      flushDrafts: vi.fn(async () => {}),
-      exportInFlight: () => inFlight,
-      onExportChange: (l: (v: boolean) => void) => { listeners.add(l); return () => listeners.delete(l); },
+      flushDrafts: () => flushBeforeUpdateReload(),
+      exportInFlight: isExportInFlight,
+      onExportChange: (l: (v: boolean) => void) => {
+        const stop = onExportInFlightChange(l);
+        listening.add(l);
+        return () => { stop(); listening.delete(l); };
+      },
       capMs: 1000,
       setTimeout: (fn: () => void, ms: number) => setTimeout(fn, ms),
       clearTimeout: (id: unknown) => clearTimeout(id as any),
       ...over,
     };
-    return { deps, listeners, setInFlight: (v: boolean) => { inFlight = v; listeners.forEach((l) => l(v)); } };
+    return { deps, flush, listening };
   }
 
   it('flushes and replies at once with no export in flight', async () => {
-    const { deps } = makeDeps();
+    const { deps, flush } = makeDeps();
     await expect(respondToCriticalUpdate(deps)).resolves.toEqual({ ready: true });
-    expect(deps.flushDrafts).toHaveBeenCalledTimes(1);
+    expect(flush).toHaveBeenCalledTimes(1);
   });
 
   it('does not look at exports until the flush has settled', async () => {
     let finish!: () => void;
-    const { deps } = makeDeps({ flushDrafts: () => new Promise<void>((r) => { finish = r; }) });
+    const { deps } = makeDeps();
+    releases.push(registerBeforeUpdateReload(() => new Promise<void>((r) => { finish = r; })));
     let replied = false;
     void respondToCriticalUpdate(deps).then(() => { replied = true; });
     await settle();
@@ -620,30 +626,30 @@ describe('respondToCriticalUpdate', () => {
   });
 
   it('waits for an export to end, then replies and stops listening', async () => {
-    const { deps, listeners, setInFlight } = makeDeps();
-    setInFlight(true);
+    const { deps, listening } = makeDeps();
+    const endExport = hold();
     let replied = false;
     void respondToCriticalUpdate(deps).then(() => { replied = true; });
     await settle();
     expect(replied).toBe(false);
-    expect(listeners.size).toBe(1);
-    setInFlight(false);
+    expect(listening.size).toBe(1);
+    endExport();
     await settle();
     expect(replied).toBe(true);
-    expect(listeners.size).toBe(0);
+    expect(listening.size).toBe(0);
     expect(vi.getTimerCount()).toBe(0);
   });
 
   it('gives up at the cap', async () => {
-    const { deps, listeners, setInFlight } = makeDeps();
-    setInFlight(true);
+    const { deps, listening } = makeDeps();
+    hold();
     let replied = false;
     void respondToCriticalUpdate(deps).then(() => { replied = true; });
     await vi.advanceTimersByTimeAsync(999);
     expect(replied).toBe(false);
     await vi.advanceTimersByTimeAsync(1);
     expect(replied).toBe(true);
-    expect(listeners.size).toBe(0);
+    expect(listening.size).toBe(0);
   });
 });
 
