@@ -93,7 +93,8 @@ describe('ci.yml browser tests', () => {
   it('the count reads every shard, and only after all of them passed', () => {
     const job = jobs['browser-test-count'];
     expect(job.needs).toBe('units-browser');
-    expect(job.if).toBeUndefined();
+    // No implicit success(): it is false whenever an ancestor was skipped, and scope is on a manual run.
+    expect(job.if).toBe("always() && needs.units-browser.result == 'success'");
     const download = stepsOf('browser-test-count').find((s) => String(s.uses ?? '').startsWith('actions/download-artifact'));
     expect(download.with).toEqual({ pattern: 'browser-tests-*', 'merge-multiple': true, path: 'test-results' });
     expect(runs('browser-test-count').at(-1)).toBe(
