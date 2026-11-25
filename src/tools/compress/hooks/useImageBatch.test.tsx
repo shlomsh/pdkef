@@ -82,11 +82,13 @@ describe('useImageBatch', () => {
     expect(isUpdateHeld()).toBe(false);
   });
 
-  it('revokes a result URL once a new target replaces the result', async () => {
+  it('keeps a result URL while its result is shown, and revokes it once a new target replaces the result', async () => {
     act(() => api.current!.choose([photo('a.jpg')], 50));
     await waitUntil(() => expect(api.current!.prepared.parts).not.toBeNull());
     const part = api.current!.prepared.parts![0];
     expect(part.url).toBe('blob:u0');
+    await flush();
+    expect(URL.revokeObjectURL).not.toHaveBeenCalled();
     act(() => api.current!.setTarget(20, { immediate: true }));
     await waitUntil(() => expect(api.current!.prepared.parts).not.toBeNull());
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:u0');

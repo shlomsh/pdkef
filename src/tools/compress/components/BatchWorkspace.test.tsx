@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { render } from 'preact';
-import { useRef } from 'preact/hooks';
+import { useRef, useState } from 'preact/hooks';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { waitUntil } from '../../../test/support/waitUntil.ts';
@@ -31,6 +31,8 @@ function Workspace({ apiRef }: { apiRef: { current: Api | null } }) {
   const compare = useComparePreviews({ runTokenRef: useRef(0) });
   const { flow, batch, batchName } = useCompressFinish({ t, kind: 'image', prepared: idle, fileName: '', setAnnouncement: () => {}, analyticsTool: 'compress-image' });
   apiRef.current = batch;
+  // As in the island: the field's own value, which the batch's target trails while a typed one settles.
+  const [targetKB, setTargetKB] = useState(100);
   return (
     <BatchWorkspace
       t={t}
@@ -39,9 +41,9 @@ function Workspace({ apiRef }: { apiRef: { current: Api | null } }) {
       flow={flow}
       notes={(className) => <IntakeNotes t={t} rejected={[]} leftOutPdfs={batch.leftOutPdfs} className={className} />}
       name={batchName}
-      targetKB={batch.state.targetKB}
+      targetKB={targetKB}
       presets={[50, 100, 200]}
-      onTargetKBChange={() => {}}
+      onTargetKBChange={setTargetKB}
       arrow="→"
     />
   );
@@ -111,6 +113,19 @@ describe('BatchWorkspace', () => {
     act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); });
     expect(host!.querySelector('[data-batch-preview-bar]')).toBeNull();
     expect(document.activeElement).toBe(opens()[1]);
+  });
+
+  it('the target field shows a typed size at once and widens for it, before the set takes it', async () => {
+    await finished();
+    const field = host!.querySelector<HTMLInputElement>('#image-target-size-input')!;
+    expect(field.style.width).toBe('3.5ch');
+    act(() => {
+      field.value = '10240';
+      field.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    expect(api.current!.state.targetKB).toBe(100);
+    expect(field.value).toBe('10240');
+    expect(field.style.width).toBe('5.5ch');
   });
 
   it('back from a photo whose new run has not reached it yet still lands focus in the set', async () => {

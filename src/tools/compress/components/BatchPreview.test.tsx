@@ -108,7 +108,9 @@ describe('BatchPreview', () => {
     act(() => prev().click());
     expect(first.onOpen).not.toHaveBeenCalled();
     act(() => next().click());
-    expect(first.onOpen).toHaveBeenCalledWith(state.rows[1].file);
+    // `toBe`: two jsdom Files count as equal, whatever their names.
+    expect(first.onOpen).toHaveBeenCalledTimes(1);
+    expect(first.onOpen.mock.calls[0][0]).toBe(state.rows[1].file);
     act(() => save().click());
     expect(first.onSaved).toHaveBeenCalledTimes(1);
 
@@ -125,6 +127,7 @@ describe('BatchPreview', () => {
     expect(document.activeElement).toBe(next());
     expect(save().getAttribute('aria-label')).toBe('Save b.jpg');
     act(() => prev().click());
-    expect(second.onOpen).toHaveBeenCalledWith(state.rows[0].file);
+    expect(second.onOpen).toHaveBeenCalledTimes(1);
+    expect(second.onOpen.mock.calls[0][0]).toBe(state.rows[0].file);
   });
 });
