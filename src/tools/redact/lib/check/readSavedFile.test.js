@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeAll } from 'vitest';
 import path from 'path';
-import { pathToFileURL } from 'url';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
+import { pointAtLegacyWorker } from '../../../../test/support/realPdfjs.ts';
 import { PDFDocument, PDFString, StandardFonts } from '@cantoo/pdf-lib';
 import { readSavedFile } from './readSavedFile.ts';
 import { PDFJS_WASM_URL } from '#lib/pdf/pdfjsWasm.js';
@@ -11,14 +11,7 @@ const PNG_1X1_BASE64 =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
 
 beforeAll(() => {
-  const workerPath = path.resolve(process.cwd(), 'node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs');
-  const workerUrl = pathToFileURL(workerPath).href;
-
-  Object.defineProperty(pdfjs.GlobalWorkerOptions, 'workerSrc', {
-    get() { return workerUrl; },
-    set() { /* ignore - keep it pointed at the real worker file */ },
-    configurable: true,
-  });
+  pointAtLegacyWorker(pdfjs);
 });
 
 async function buildFixture() {

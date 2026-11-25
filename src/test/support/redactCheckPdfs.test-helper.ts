@@ -5,6 +5,7 @@
  */
 import { createCanvas } from '@napi-rs/canvas';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
+import { pointAtLegacyWorker } from './realPdfjs.ts';
 import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import type { DocumentInitParameters } from 'pdfjs-dist/types/src/display/api';
@@ -52,9 +53,7 @@ export async function buildPdf(pages: PageSpec[], options: { title?: string } = 
   return new Uint8Array(await doc.save());
 }
 
-// Node has no bundled worker URL; point pdf.js at the legacy build's own.
-const workerUrl = new URL('../../../node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs', import.meta.url).href;
-Object.defineProperty(pdfjs.GlobalWorkerOptions, 'workerSrc', { get: () => workerUrl, set() {}, configurable: true });
+pointAtLegacyWorker(pdfjs);
 
 /** Every loading task the check opened through `legacyPdfjs`, so a test can see it was destroyed. */
 export const openedTasks: ReturnType<typeof pdfjs.getDocument>[] = [];

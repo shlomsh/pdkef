@@ -16,9 +16,9 @@
  */
 import fs from 'fs';
 import path from 'path';
-import { pathToFileURL } from 'url';
 import { beforeAll, describe, expect, it } from 'vitest';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
+import { pointAtLegacyWorker } from '../../../../test/support/realPdfjs.ts';
 import { readGlyphs } from '../readGlyphs.js';
 import { wordsUnderBoxes } from '../textLayer.ts';
 import { applyAffineTransform, composeAffineTransforms, pageGeometryFromPdfJsPage } from '#editor/geometry/coords.ts';
@@ -29,8 +29,7 @@ import { matchBoxes } from './matchBoxes.ts';
 import { buildPageText } from './pageText.ts';
 
 beforeAll(() => {
-  const workerUrl = pathToFileURL(path.resolve(process.cwd(), 'node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs')).href;
-  Object.defineProperty(pdfjs.GlobalWorkerOptions, 'workerSrc', { get: () => workerUrl, set() {}, configurable: true });
+  pointAtLegacyWorker(pdfjs);
 });
 
 const CORPUS_DIR = path.resolve(__dirname, '../../../../../spikes/red-01/corpus');

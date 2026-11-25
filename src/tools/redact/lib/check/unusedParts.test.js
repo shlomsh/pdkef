@@ -1,8 +1,7 @@
 // RED-49: the saved-file check also reads the parts of the file no page shows.
 import { describe, expect, it, beforeAll } from 'vitest';
-import path from 'path';
-import { pathToFileURL } from 'url';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
+import { pointAtLegacyWorker } from '../../../../test/support/realPdfjs.ts';
 import { PDFDocument, PDFString, StandardFonts } from '@cantoo/pdf-lib';
 import { unreachableRefs } from '../reachability.js';
 import { termFinder } from '../find/finders.ts';
@@ -15,8 +14,7 @@ import { dropUnreachable } from '../reachability.js';
 import { PDFJS_WASM_URL } from '#lib/pdf/pdfjsWasm.js';
 
 beforeAll(() => {
-  const workerUrl = pathToFileURL(path.resolve(process.cwd(), 'node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs')).href;
-  Object.defineProperty(pdfjs.GlobalWorkerOptions, 'workerSrc', { get() { return workerUrl; }, set() {}, configurable: true });
+  pointAtLegacyWorker(pdfjs);
 });
 
 async function build({ leftovers }) {

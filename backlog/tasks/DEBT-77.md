@@ -1,10 +1,9 @@
 ---
 id: "DEBT-77"
 title: "Tests that run real pdf.js in Node share one worker setup"
-status: "open"
+status: "done"
 priority: "P3"
 epic: "honest-tests"
-horizon: "later"
 depends_on: []
 ---
 

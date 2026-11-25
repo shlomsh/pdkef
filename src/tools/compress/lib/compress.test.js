@@ -1,8 +1,8 @@
 import fs from 'fs';
 import path from 'path';
-import { pathToFileURL } from 'url';
 import { describe, expect, it, vi, beforeAll, afterAll } from 'vitest';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
+import { pointAtLegacyWorker } from '../../../test/support/realPdfjs.ts';
 import { compressPdf, compressPdfToTarget, pickStartScaleIndex, MAX_RENDER_MEMORY_BYTES } from './compress.js';
 
 vi.mock('pdfjs-dist', async () => {
@@ -37,14 +37,8 @@ describe('compressPdf library integration with real fixtures', () => {
 
   beforeAll(() => {
     // Resolve absolute path to the node_modules legacy worker file with file:// protocol
-    const workerPath = path.resolve(process.cwd(), 'node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs');
-    const workerUrl = pathToFileURL(workerPath).href;
 
-    Object.defineProperty(pdfjs.GlobalWorkerOptions, 'workerSrc', {
-      get() { return workerUrl; },
-      set() { /* ignore */ },
-      configurable: true,
-    });
+    pointAtLegacyWorker(pdfjs);
 
     // Stub canvas methods since jsdom does not support canvas drawing/export
     originalToBlob = HTMLCanvasElement.prototype.toBlob;

@@ -8,9 +8,9 @@
  */
 import fs from 'fs';
 import path from 'path';
-import { pathToFileURL } from 'url';
 import { describe, expect, it, beforeAll } from 'vitest';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
+import { pointAtLegacyWorker } from '../../../../test/support/realPdfjs.ts';
 import { readGlyphs } from '../readGlyphs.js';
 import { pageGeometryFromPdfJsPage } from '#editor/geometry/coords.ts';
 import { PDFJS_WASM_URL } from '#lib/pdf/pdfjsWasm.js';
@@ -22,14 +22,7 @@ import { checkSavedFile } from './checkSavedFile.ts';
 import { coveredTerms, MIN_COVERED_CHARS } from './coveredTerms.ts';
 
 beforeAll(() => {
-  const workerPath = path.resolve(process.cwd(), 'node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs');
-  const workerUrl = pathToFileURL(workerPath).href;
-
-  Object.defineProperty(pdfjs.GlobalWorkerOptions, 'workerSrc', {
-    get() { return workerUrl; },
-    set() { /* ignore - keep it pointed at the real worker file */ },
-    configurable: true,
-  });
+  pointAtLegacyWorker(pdfjs);
 });
 
 const CORPUS_DIR = path.resolve(__dirname, '../../../../../spikes/red-01/corpus');

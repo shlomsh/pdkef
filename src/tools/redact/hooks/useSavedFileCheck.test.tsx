@@ -5,6 +5,7 @@ import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { PDFDocument, PDFName } from '@cantoo/pdf-lib';
 import { PDFJS_WASM_URL } from '#lib/pdf/pdfjsWasm.js';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
+import { pointAtLegacyWorker } from '../../../test/support/realPdfjs.ts';
 import { buildPdf, openOriginal } from '../../../test/support/redactCheckPdfs.test-helper.ts';
 
 import { reportError } from '#lib/telemetry/errorReport.ts';
@@ -30,9 +31,7 @@ const toBuffer = (data: Uint8Array) => data.slice().buffer as ArrayBuffer;
 // Real files: the original as the island holds it (open in pdf.js, its bytes kept) and a plain saved export.
 declare const process: { cwd(): string };
 
-// jsdom resolves the helper's worker URL to http; point pdf.js at the legacy build's own file.
-const workerUrl = `file://${process.cwd()}/node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs`;
-Object.defineProperty(pdfjs.GlobalWorkerOptions, 'workerSrc', { get: () => workerUrl, set() {}, configurable: true });
+pointAtLegacyWorker(pdfjs);
 
 let originalBytes: Uint8Array;
 let savedPlain: Uint8Array;

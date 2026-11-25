@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
+import { pointAtLegacyWorker } from '../../test/support/realPdfjs.ts';
 import { loadPdf, type PdfLoadController } from '#editor/workspace/loadPdf.ts';
 import { useDocumentRetirement } from './useDocumentRetirement.ts';
 import { getPdfjs } from '#lib/pdf/loadPdfjs.js';
@@ -14,9 +15,7 @@ import { buildPdf, legacyPdfjs } from '../../test/support/redactCheckPdfs.test-h
 vi.mock('#lib/pdf/loadPdfjs.js', { spy: true });
 
 declare const process: { cwd(): string };
-// jsdom resolves the helper's worker URL to http; point pdf.js at the legacy build's own file.
-const workerUrl = `file://${process.cwd()}/node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs`;
-Object.defineProperty(pdfjs.GlobalWorkerOptions, 'workerSrc', { get: () => workerUrl, set() {}, configurable: true });
+pointAtLegacyWorker(pdfjs);
 
 /** Every loading task the loader opened, in order, each with its destroy watched (the real destroy still runs). */
 let tasks: ReturnType<ReturnType<typeof legacyPdfjs>['getDocument']>[];

@@ -1,14 +1,11 @@
-import path from 'path';
-import { pathToFileURL } from 'url';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
+import { pointAtLegacyWorker } from '../../../test/support/realPdfjs.ts';
 import { PDFJS_WASM_URL } from '#lib/pdf/pdfjsWasm.js';
 import { pageGeometryFromPdfJsPage } from '#editor/geometry/coords.ts';
 import { previewTexts } from './deletePreviews.ts';
 import { readGlyphs } from './readGlyphs.js';
 
-// Node has no bundled worker URL; point pdf.js at the legacy build's own.
-const workerUrl = pathToFileURL(path.resolve(process.cwd(), 'node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs')).href;
-Object.defineProperty(pdfjs.GlobalWorkerOptions, 'workerSrc', { get: () => workerUrl, set() {}, configurable: true });
+pointAtLegacyWorker(pdfjs);
 
 /**
  * RED-16: `objects` (as `extractPageObjects`/`listDeletableObjects` report

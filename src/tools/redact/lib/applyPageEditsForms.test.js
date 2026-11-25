@@ -5,9 +5,9 @@
 // the delete elements useDeleteTool.markObjects builds, into applyPageEdits.
 // Runs the real deleteObjectsFromPdf and (for the cover path) redactPdf.
 import path from 'path';
-import { pathToFileURL } from 'url';
 import { describe, expect, it, vi, beforeAll, afterAll } from 'vitest';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
+import { pointAtLegacyWorker } from '../../../test/support/realPdfjs.ts';
 import { applyPageEdits } from './applyPageEdits.js';
 import { listDeletableObjects } from './deleteObjects.js';
 import { withPreviews } from './objectPreviews.test-helper.js';
@@ -43,13 +43,7 @@ beforeAll(() => {
       },
     });
   };
-  const workerPath = path.resolve(process.cwd(), 'node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs');
-  const workerUrl = pathToFileURL(workerPath).href;
-  Object.defineProperty(pdfjs.GlobalWorkerOptions, 'workerSrc', {
-    get() { return workerUrl; },
-    set() { /* keep it pointed at the real worker file */ },
-    configurable: true,
-  });
+  pointAtLegacyWorker(pdfjs);
 });
 
 async function pageText(blob, pageIndex) {

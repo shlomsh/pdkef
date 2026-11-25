@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 187 live: 83 up next, 24 then, 26 waiting, 54 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 186 live: 83 up next, 24 then, 26 waiting, 53 parked.
 
 ## Redact: finish removal
 
@@ -338,12 +338,6 @@ One landmines rule at a time: fix its sites, turn it on in CI. Where a rule miss
 | LAND-04 | P3 | [LAND-04](backlog/tasks/LAND-04.md) · Fewer replaced dependencies in unit tests | In progress |
 | LAND-05 | P3 | [LAND-05](backlog/tasks/LAND-05.md) · Tests live beside what they test | In progress |
 
-### Parked
-
-| ID | P | Task | Note |
-| --- | --- | --- | --- |
-| DEBT-77 | P3 | [DEBT-77](backlog/tasks/DEBT-77.md) · Tests that run real pdf.js in Node share one worker setup |  |
-
 ## Polish
 
 Small, independent, good for a spare hour.
@@ -395,7 +389,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Robustness and debt: 102 done, 4 retired
 - Unify the tools, narrow the graph: 100 done, 0 retired
 - Search and languages: 18 done, 0 retired
-- Honest tests: adopt landmines: 2 done, 0 retired
+- Honest tests: adopt landmines: 3 done, 0 retired
 - Polish: 36 done, 2 retired
 - Sign tool architecture: 37 done, 1 retired
 - Editor architecture: 14 done, 0 retired

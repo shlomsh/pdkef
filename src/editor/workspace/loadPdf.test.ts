@@ -5,6 +5,7 @@ import { getPdfjs } from '#lib/pdf/loadPdfjs.js';
 import { reportError } from '#lib/telemetry/errorReport.ts';
 import { buildPdf, legacyPdfjs, openedTasks } from '../../test/support/redactCheckPdfs.test-helper.ts';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
+import { pointAtLegacyWorker } from '../../test/support/realPdfjs.ts';
 import { drainPromises } from '../../test/support/drainPromises.ts';
 
 // The shipped pdf.js loader points at a browser Worker, which node does not have. Forced: the same pdf.js, its
@@ -12,10 +13,7 @@ import { drainPromises } from '../../test/support/drainPromises.ts';
 vi.mock('#lib/pdf/loadPdfjs.js', { spy: true });
 vi.mock('#lib/telemetry/errorReport.ts', { spy: true });
 
-// jsdom resolves the helper's worker URL to http; point pdf.js at the legacy build's own file.
-declare const process: { cwd(): string };
-const workerUrl = `file://${process.cwd()}/node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs`;
-Object.defineProperty(pdfjs.GlobalWorkerOptions, 'workerSrc', { get: () => workerUrl, set() {}, configurable: true });
+pointAtLegacyWorker(pdfjs);
 
 // Real PDFs: built with pdf-lib, and the repo's encrypted fixtures.
 const fixture = (name: string) => new Uint8Array(readFileSync(`${process.cwd()}/src/lib/__fixtures__/encrypted/${name}.pdf`));

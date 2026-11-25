@@ -1,7 +1,6 @@
 import { describe, expect, it, beforeAll } from 'vitest';
-import path from 'path';
-import { pathToFileURL } from 'url';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
+import { pointAtLegacyWorker } from '../../../../test/support/realPdfjs.ts';
 import { PDFArray, PDFDict, PDFDocument, PDFHexString, PDFName, PDFStream, PDFString, StandardFonts } from '@cantoo/pdf-lib';
 import { readSavedFile } from './readSavedFile.ts';
 import { removePlaces } from './removePlaces.ts';
@@ -10,12 +9,7 @@ import { locatePlaces } from './placeLocator.ts';
 import { PDFJS_WASM_URL } from '#lib/pdf/pdfjsWasm.js';
 
 beforeAll(() => {
-  const workerUrl = pathToFileURL(path.resolve(process.cwd(), 'node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs')).href;
-  Object.defineProperty(pdfjs.GlobalWorkerOptions, 'workerSrc', {
-    get() { return workerUrl; },
-    set() {},
-    configurable: true,
-  });
+  pointAtLegacyWorker(pdfjs);
 });
 
 const PNG_1X1_BASE64 =

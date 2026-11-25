@@ -3,6 +3,7 @@ import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
+import { pointAtLegacyWorker } from '../../../test/support/realPdfjs.ts';
 import type { PageGlyph } from '../lib/pageGlyphs.ts';
 import type { DeletablePdfObject } from '../components/DeletableObjectOverlay.tsx';
 import * as errorReport from '#lib/telemetry/errorReport.ts';
@@ -26,9 +27,7 @@ vi.mock('#editor/adapters/pdf/pdfjsLoader.js', async () => {
 // Spy-through: the real glyph reader runs on real pages; the spy shows which pages were read.
 vi.mock('../lib/readGlyphs.js', { spy: true });
 
-// jsdom resolves the helper's worker URL to http; point pdf.js at the legacy build's own file.
-const workerUrl = `file://${process.cwd()}/node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs`;
-Object.defineProperty(pdfjs.GlobalWorkerOptions, 'workerSrc', { get: () => workerUrl, set() {}, configurable: true });
+pointAtLegacyWorker(pdfjs);
 
 /** A real file, opened in pdf.js, and the text objects Delete itself finds in it. */
 async function openFile(pages: PageSpec[]) {

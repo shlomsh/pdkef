@@ -5,6 +5,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
+import { pointAtLegacyWorker } from '../../test/support/realPdfjs.ts';
 import { useEditorFileSession, type EditorFileSessionOptions } from './useEditorFileSession.ts';
 import { loadPdf as loadEditorPdf } from '#editor/workspace/loadPdf.ts';
 import { useEditorDraftPersistence } from '#editor/workspace/useEditorDraftPersistence.ts';
@@ -23,9 +24,7 @@ vi.mock('#lib/drafts/draftStore.ts', { spy: true });
 vi.mock('#lib/pdf/loadPdfjs.js', { spy: true });
 
 declare const process: { cwd(): string };
-// jsdom resolves the helper's worker URL to http; point pdf.js at the legacy build's own file.
-const workerUrl = `file://${process.cwd()}/node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs`;
-Object.defineProperty(pdfjs.GlobalWorkerOptions, 'workerSrc', { get: () => workerUrl, set() {}, configurable: true });
+pointAtLegacyWorker(pdfjs);
 
 const mockedLoad = vi.mocked(loadEditorPdf);
 const mockedDraft = vi.mocked(useEditorDraftPersistence);

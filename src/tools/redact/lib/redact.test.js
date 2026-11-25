@@ -1,8 +1,8 @@
 import fs from 'fs';
 import path from 'path';
-import { pathToFileURL } from 'url';
 import { describe, expect, it, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
+import { pointAtLegacyWorker } from '../../../test/support/realPdfjs.ts';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { redactPdf } from './redact.js';
 import { MAX_CANVAS_AREA, RASTER_SCALE } from '#editor/adapters/pdf/rasterPage.js';
@@ -16,14 +16,7 @@ vi.mock('pdfjs-dist', async () => {
 });
 
 beforeAll(() => {
-  const workerPath = path.resolve(process.cwd(), 'node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs');
-  const workerUrl = pathToFileURL(workerPath).href;
-
-  Object.defineProperty(pdfjs.GlobalWorkerOptions, 'workerSrc', {
-    get() { return workerUrl; },
-    set() { /* ignore - keep it pointed at the real worker file */ },
-    configurable: true,
-  });
+  pointAtLegacyWorker(pdfjs);
 });
 
 function getFixtureFile(name) {

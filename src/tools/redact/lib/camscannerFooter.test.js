@@ -10,7 +10,6 @@
 // redactPdf - see applyPageEdits.js's own docstring), reusing the read-back
 // helpers redact.test.js and deleteObjects.test.js already established.
 import path from 'path';
-import { pathToFileURL } from 'url';
 import { describe, expect, it, vi, beforeAll, afterAll } from 'vitest';
 import {
   PDFDocument,
@@ -21,6 +20,7 @@ import {
   decodePDFRawStream,
 } from '@cantoo/pdf-lib';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
+import { pointAtLegacyWorker } from '../../../test/support/realPdfjs.ts';
 import { extractPageObjects } from '#editor/adapters/pdf/pdfObjects.js';
 import { applyPageEdits } from './applyPageEdits.js';
 
@@ -32,13 +32,7 @@ vi.mock('pdfjs-dist', async () => {
 });
 
 beforeAll(() => {
-  const workerPath = path.resolve(process.cwd(), 'node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs');
-  const workerUrl = pathToFileURL(workerPath).href;
-  Object.defineProperty(pdfjs.GlobalWorkerOptions, 'workerSrc', {
-    get() { return workerUrl; },
-    set() { /* ignore - keep it pointed at the real worker file */ },
-    configurable: true,
-  });
+  pointAtLegacyWorker(pdfjs);
 });
 
 // A real, valid 1x1 transparent PNG (67 bytes) - same constant deleteObjects.test.js uses.
