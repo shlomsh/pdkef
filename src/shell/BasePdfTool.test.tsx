@@ -6,15 +6,10 @@ import BasePdfTool from './BasePdfTool.tsx';
 // Assert state classes on purpose (Dropzone's is-dragover, ToolShell's icon-loaded); the tool card, drop overlay, identity, meta and note have no role, label or text, so they are found by class.
 import { reportToolLifecycleEvent, resetUsageEventsForTests } from '#lib/telemetry/productAnalytics.ts';
 import { takeArrival } from '#lib/handoff/fileArrival.ts';
-import { renderThumbnail } from '#lib/pdf/thumbnails.js';
 import { setInputFiles } from '../test/support/setInputFiles.js';
 
 vi.mock('#lib/telemetry/productAnalytics.ts', { spy: true });
 // The real arrival marker runs: a test reads the mark with `takeArrival()` (as productAnalytics does).
-// jsdom has no canvas to paint a page on, so the real thumbnail renderer stays a spy and its answer is forced:
-// it never settles, since the preview is not under test here.
-vi.mock('#lib/pdf/thumbnails.js', { spy: true });
-vi.mocked(renderThumbnail).mockImplementation(() => new Promise(() => {}));
 
 // The tests below are written with flat props; BasePdfTool takes them grouped.
 const GROUPS = {
@@ -88,44 +83,6 @@ describe('BasePdfTool', () => {
       );
     });
   }
-
-  describe('old browser notice', () => {
-    const OLD_CHROME = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36';
-
-    afterEach(() => vi.unstubAllGlobals());
-
-    it('stays off the empty page, so an old browser can still read it', () => {
-      vi.stubGlobal('navigator', { ...navigator, userAgent: OLD_CHROME });
-      mount({ hasFiles: false, onFilesAdded: vi.fn() });
-      expect(container.textContent).not.toContain('needs Chrome 109');
-    });
-
-    it('appears once a file is added, naming the version to update to', () => {
-      vi.stubGlobal('navigator', { ...navigator, userAgent: OLD_CHROME });
-      mount({ hasFiles: true, onFilesAdded: vi.fn() });
-      expect(container.textContent).toContain('needs Chrome 109 or newer');
-    });
-
-    const IOS_17 = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1';
-
-    it('is skipped for a tool that never loads pdf.js (needsPdfjs false)', () => {
-      vi.stubGlobal('navigator', { ...navigator, userAgent: IOS_17 });
-      mount({ hasFiles: true, onFilesAdded: vi.fn(), needsPdfjs: false });
-      expect(container.textContent).not.toContain('or newer to open PDFs');
-    });
-
-    it('still appears on iOS 17 by default', () => {
-      vi.stubGlobal('navigator', { ...navigator, userAgent: IOS_17 });
-      mount({ hasFiles: true, onFilesAdded: vi.fn() });
-      expect(container.textContent).toContain('needs iOS 18.4 or newer');
-    });
-
-    it('does not appear in a current browser', () => {
-      vi.stubGlobal('navigator', { ...navigator, userAgent: OLD_CHROME.replace('108', '143') });
-      mount({ hasFiles: true, onFilesAdded: vi.fn() });
-      expect(container.textContent).not.toContain('or newer to open PDFs');
-    });
-  });
 
   it('renders initial state without files', () => {
     mount({ hasFiles: false, onFilesAdded: vi.fn() });
@@ -581,8 +538,7 @@ describe('BasePdfTool', () => {
   // prop reaches the shell and renders something in place of the glyph -
   // FilePreview.test.tsx owns the image/PDF/reject/no-file behaviour itself.
   it('passes a `file` prop through to the shell, which renders a preview instead of the glyph', () => {
-    const originalCreateObjectURL = window.URL.createObjectURL;
-    window.URL.createObjectURL = vi.fn(() => 'blob:base-pdf-tool-preview');
+    const createObjectURL = vi.spyOn(URL, 'createObjectURL');
 
     const file = new File(['fake-image-bytes'], 'photo.jpg', { type: 'image/jpeg' });
     mount({ hasFiles: true, onFilesAdded: vi.fn(), multiple: false, fileLabel: 'photo.jpg', file });
@@ -592,9 +548,8 @@ describe('BasePdfTool', () => {
     expect(icon.hasAttribute('data-loaded')).toBe(true);
     const img = icon.querySelector('img');
     expect(img).not.toBeNull();
-    expect(img.getAttribute('src')).toBe('blob:base-pdf-tool-preview');
-
-    window.URL.createObjectURL = originalCreateObjectURL;
+    expect(img.getAttribute('src')).toBe(createObjectURL.mock.results[0].value);
+    createObjectURL.mockRestore();
   });
 
   it('passes fileNote and fileMetaExtra through to the rendered shell', () => {

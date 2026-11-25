@@ -1,28 +1,10 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import type { ComponentProps } from 'preact';
-import { describe, expect, it, vi, afterEach } from 'vitest';
+import { describe, expect, it, afterEach } from 'vitest';
 import DropzoneEmptyState from './DropzoneEmptyState.tsx';
 // Asserts the sheet-end, file-input, pick-row and privacy-line classes: the layout hooks CSS waits on and keeps off display:none.
 import { hebrewShellMessages } from './shellMessages';
-
-const IPHONE_NAVIGATOR = {
-  platform: 'iPhone',
-  userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1',
-  maxTouchPoints: 5,
-};
-
-const ANDROID_NAVIGATOR = {
-  platform: 'Linux armv8l',
-  userAgent: 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36',
-  maxTouchPoints: 5,
-};
-
-const DESKTOP_NAVIGATOR = {
-  platform: 'MacIntel',
-  userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
-  maxTouchPoints: 0,
-};
 
 type Props = Partial<ComponentProps<typeof DropzoneEmptyState>>;
 
@@ -39,7 +21,6 @@ describe('DropzoneEmptyState', () => {
       mounted.remove();
       mounted = null;
     }
-    vi.unstubAllGlobals();
   });
 
   function mount(props: Props = {}) {
@@ -60,37 +41,12 @@ describe('DropzoneEmptyState', () => {
     });
   }
 
-  it('shows no iOS notice on the first render, regardless of platform', () => {
-    vi.stubGlobal('navigator', IPHONE_NAVIGATOR);
-    mount();
-    expect(host().textContent).not.toContain(IOS_HINT_TEXT);
-  });
-
-  it('shows the notice after mount on a stubbed iOS navigator', async () => {
-    vi.stubGlobal('navigator', IPHONE_NAVIGATOR);
-    mount();
-    await flushMountEffect();
-    expect(host().textContent).toContain(IOS_HINT_TEXT);
-  });
-
-  it('never shows the notice on a stubbed Android navigator', async () => {
-    vi.stubGlobal('navigator', ANDROID_NAVIGATOR);
-    mount();
-    await flushMountEffect();
-    expect(host().textContent).not.toContain(IOS_HINT_TEXT);
-  });
-
+  // The iPhone and Android user agents are in DropzoneEmptyState.iphone.test.tsx and .android.test.tsx.
   it('never shows the notice on a stubbed desktop navigator', async () => {
-    vi.stubGlobal('navigator', DESKTOP_NAVIGATOR);
+    // Live control: jsdom's own user agent is a desktop one, neither iOS nor Android.
+    expect(navigator.userAgent).not.toMatch(/iPhone|iPad|iPod|Android/);
     mount();
     await flushMountEffect();
-    expect(host().textContent).not.toContain(IOS_HINT_TEXT);
-  });
-
-  it('never shows the notice when the tool has not opted in, even on iOS', async () => {
-    vi.stubGlobal('navigator', IPHONE_NAVIGATOR);
-    mount({ showIosFilesHint: false });
-    await flushMountEffect({ showIosFilesHint: false });
     expect(host().textContent).not.toContain(IOS_HINT_TEXT);
   });
 
@@ -207,33 +163,6 @@ describe('DropzoneEmptyState', () => {
       const row = host().querySelector('[data-pick-row]');
       expect(row.hasAttribute('data-action-leads')).toBe(false);
       expect(order()).toEqual(['LABEL', 'BUTTON']);
-    });
-  });
-
-  describe('the cloud drive hint names the button on show', () => {
-    const hint = () => host().querySelector('[data-cloud-drive-hint]');
-    const showHint = async (props: Props) => {
-      vi.stubGlobal('navigator', IPHONE_NAVIGATOR);
-      mount({ showIosFilesHint: false, showCloudDriveHint: true, ...props });
-      await flushMountEffect({ showIosFilesHint: false, showCloudDriveHint: true, ...props });
-    };
-
-    it("says Scan's own button and offers no PDF how-to for photos", async () => {
-      await showHint({ accept: 'image/jpeg,image/png,application/pdf', pickLabel: 'Choose photos' });
-      expect(hint().textContent).toContain('Choose photos can open');
-      expect(hint().textContent).not.toContain('Choose files');
-      expect(hint().querySelector('a')).toBeNull();
-    });
-
-    it('offers no PDF how-to on a picker that only takes images', async () => {
-      await showHint({ accept: 'image/jpeg,image/png' });
-      expect(hint().querySelector('a')).toBeNull();
-    });
-
-    it('says Choose file on a one-file PDF tool and keeps the how-to', async () => {
-      await showHint({ multiple: false });
-      expect(hint().textContent).toContain('Choose file can open');
-      expect(hint().querySelector('a').getAttribute('href')).toBe('/how-to-open-a-pdf-from-google-drive/');
     });
   });
 
