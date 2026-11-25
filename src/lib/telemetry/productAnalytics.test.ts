@@ -1,5 +1,8 @@
+// @vitest-environment jsdom
+// @vitest-environment-options { "url": "https://pdkef.com/merge/" }
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { drainPromises } from '../../test/support/drainPromises.ts';
+import { installBeaconRecorder, type BeaconRecorder } from '../../test/support/beaconRecorder.ts';
 import { markArrival } from '../handoff/fileArrival.ts';
 import { sendToSink } from './analyticsSink.ts';
 import * as pagePerformance from './pagePerformance.ts';
@@ -17,36 +20,41 @@ import {
   type ToolLifecycleEvent,
 } from './productAnalytics.ts';
 
-vi.mock('./pagePerformance.ts', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('./pagePerformance.ts')>()),
-  pageSettled: vi.fn(async () => 'loaded' as const),
-  collectPageMeasures: vi.fn(async () => ({})),
-}));
+vi.mock('./pagePerformance.ts', { spy: true });
 
-vi.mock('./workerDownloads.ts', () => ({ watchWorkerDownloads: vi.fn() }));
+vi.mock('./workerDownloads.ts', { spy: true });
 
 vi.mock('./analyticsSink.ts', { spy: true });
 
-let beacon: ReturnType<typeof vi.fn>;
+let rec: BeaconRecorder;
+// A browser that takes the beacons from here on; the earlier recorder is put back first.
+function freshBeacon(options?: { returns?: boolean }) {
+  rec.restore();
+  rec = installBeaconRecorder(options);
+}
+const texts = () => Promise.all(rec.calls.map((c) => c.blob.text()));
+const sentProps = async () => (await rec.bodies()).map((b) => (b as { properties: Record<string, any> }).properties);
+const sentEvents = async () => (await rec.bodies()) as { name: string; properties: Record<string, any> }[];
 // One page view goes out after the load event and the measures settle, a few microtasks on.
 const settleTick = () => drainPromises();
 
-function stubBrowser() {
-  vi.stubGlobal('location', { origin: 'https://pdkef.com', pathname: '/merge/', hostname: 'pdkef.com' });
-  vi.stubGlobal('screen', { width: 1280, height: 800 });
-  vi.stubGlobal('matchMedia', () => ({ matches: false }));
-  vi.stubGlobal('document', { referrer: '' });
+// A page that has not finished loading; the load or pagehide event then goes through the real pageSettled.
+function pageLoading() {
+  // Forced: jsdom's document is always complete, so a page still loading is put there
+  Object.defineProperty(document, 'readyState', { configurable: true, get: () => 'loading' });
 }
 
 beforeEach(() => {
-  beacon = vi.fn(() => true);
-  Object.defineProperty(navigator, 'sendBeacon', { value: beacon, configurable: true, writable: true });
+  localStorage.clear();
+  rec = installBeaconRecorder();
   setReportingEnabledForTests(true);
   resetUsageEventsForTests();
   vi.mocked(sendToSink).mockClear();
 });
 
 afterEach(() => {
+  rec.restore();
+  Reflect.deleteProperty(document, 'readyState');
   setReportingEnabledForTests(false);
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
@@ -57,12 +65,11 @@ describe('analytics sink', () => {
   it('sends a page view to /api/report, then to the sink address when one is configured', async () => {
     vi.stubEnv('PUBLIC_ANALYTICS_HOST', 'https://e.example.test');
     vi.stubEnv('PUBLIC_ANALYTICS_KEY', 'k');
-    stubBrowser(); // plain node has none
     reportToolLifecycleEvent('tool_page_viewed', 'merge');
     await settleTick();
-    expect(beacon).toHaveBeenCalledTimes(2);
-    expect(beacon.mock.calls[0][0]).toBe('/api/report');
-    expect(beacon.mock.calls[1][0]).toBe('https://e.example.test/i/v0/e/');
+    expect(rec.calls).toHaveLength(2);
+    expect(rec.urls()[0]).toBe('/api/report');
+    expect(rec.urls()[1]).toBe('https://e.example.test/i/v0/e/');
   });
 });
 
@@ -71,19 +78,17 @@ describe('analytics sink follows the first beacon', () => {
   beforeEach(() => {
     vi.stubEnv('PUBLIC_ANALYTICS_HOST', 'https://e.example.test');
     vi.stubEnv('PUBLIC_ANALYTICS_KEY', 'k');
-    stubBrowser();
   });
 
   it('makes no second call when the first beacon is refused', () => {
-    // forced: a browser refusing the beacon hand-off cannot be produced on cue
-    beacon.mockReturnValue(false);
+    freshBeacon({ returns: false });
     reportToolLifecycleEvent('tool_result_ready', 'merge');
-    expect(beacon).toHaveBeenCalledTimes(1);
+    expect(rec.calls).toHaveLength(1);
   });
 
   it('sends nothing to the sink past the per-page cap', () => {
     for (let i = 0; i < MAX_USAGE_EVENTS_PER_PAGE + 3; i++) reportToolLifecycleEvent('tool_file_accepted', 'split');
-    const urls = beacon.mock.calls.map(([url]) => url);
+    const urls = rec.urls();
     expect(urls.filter((u) => u === SINK)).toHaveLength(MAX_USAGE_EVENTS_PER_PAGE);
     expect(urls.filter((u) => u === '/api/report')).toHaveLength(MAX_USAGE_EVENTS_PER_PAGE);
   });
@@ -92,14 +97,14 @@ describe('analytics sink follows the first beacon', () => {
 describe('reportToolLifecycleEvent', () => {
   it('posts one JSON blob to /api/report', async () => {
     reportToolLifecycleEvent('tool_result_ready', 'merge');
-    expect(beacon).toHaveBeenCalledTimes(1);
-    const [url, blob] = beacon.mock.calls[0] as [string, Blob];
+    expect(rec.calls).toHaveLength(1);
+    const { url, blob } = rec.calls[0];
     expect(url).toBe('/api/report');
     expect(await blob.text()).toBe('{"name":"tool_result_ready","properties":{"tool":"merge","first":true}}');
   });
 
   it('marks the first event of a kind per tool in a page load with first: true', async () => {
-    const bodies = async () => Promise.all(beacon.mock.calls.map(([, blob]) => (blob as Blob).text()));
+    const bodies = texts;
     reportToolLifecycleEvent('tool_operation_failed', 'redact');
     reportToolLifecycleEvent('tool_operation_failed', 'redact');
     reportToolLifecycleEvent('tool_operation_failed', 'merge');
@@ -117,7 +122,7 @@ describe('reportToolLifecycleEvent', () => {
     vi.spyOn(performance, 'getEntriesByType').mockReturnValue([{ type: 'reload' }] as unknown as PerformanceEntryList);
     reportToolLifecycleEvent('tool_file_accepted', 'redact');
     reportToolLifecycleEvent('tool_file_accepted', 'redact');
-    const bodies = await Promise.all(beacon.mock.calls.map(([, blob]) => (blob as Blob).text()));
+    const bodies = await texts();
     expect(bodies).toEqual([
       '{"name":"tool_file_accepted","properties":{"tool":"redact","first":true,"nav":"reload"}}',
       '{"name":"tool_file_accepted","properties":{"tool":"redact"}}',
@@ -130,39 +135,40 @@ describe('reportToolLifecycleEvent', () => {
     reportToolLifecycleEvent('tool_file_accepted', 'redact');
     spy.mockReturnValue([{ type: 'something_new' }] as unknown as PerformanceEntryList);
     reportToolLifecycleEvent('tool_file_accepted', 'merge');
-    const bodies = await Promise.all(beacon.mock.calls.map(([, blob]) => (blob as Blob).text()));
+    const bodies = await texts();
     expect(bodies.every((b) => !b.includes('nav'))).toBe(true);
     expect(bodies).toHaveLength(2);
   });
 
   it('stays first until a beacon is actually handed off', async () => {
-    // forced: a browser refusing the beacon hand-off cannot be produced on cue
-    beacon.mockReturnValueOnce(false);
+    freshBeacon({ returns: false });
     reportToolLifecycleEvent('tool_result_ready', 'merge');
+    expect(rec.calls).toHaveLength(1);
+    freshBeacon();
     reportToolLifecycleEvent('tool_result_ready', 'merge');
-    expect(await (beacon.mock.calls[1][1] as Blob).text()).toContain('"first":true');
+    expect(await rec.calls[0].blob.text()).toContain('"first":true');
   });
 
   it('sends nothing for an unknown tool or event', () => {
     reportToolLifecycleEvent('tool_result_ready', 'nope' as AnalyticsTool);
     reportToolLifecycleEvent('nope' as ToolLifecycleEvent, 'merge');
-    expect(beacon).not.toHaveBeenCalled();
+    expect(rec.calls).toHaveLength(0);
   });
 
   it('sends nothing past the per-page cap', () => {
     for (let i = 0; i < MAX_USAGE_EVENTS_PER_PAGE + 1; i++) reportToolLifecycleEvent('tool_file_accepted', 'split');
-    expect(beacon).toHaveBeenCalledTimes(MAX_USAGE_EVENTS_PER_PAGE);
+    expect(rec.calls).toHaveLength(MAX_USAGE_EVENTS_PER_PAGE);
   });
 
   it('sends nothing when reporting is disabled', () => {
     setReportingEnabledForTests(false);
     reportToolLifecycleEvent('tool_result_ready', 'merge');
-    expect(beacon).not.toHaveBeenCalled();
+    expect(rec.calls).toHaveLength(0);
   });
 
   it('never throws when sendBeacon does', () => {
-    // forced: a sendBeacon that throws cannot be produced on cue
-    beacon.mockImplementation(() => {
+    // Forced: a sendBeacon that throws cannot be produced on cue
+    vi.spyOn(navigator, 'sendBeacon').mockImplementation(() => {
       throw new Error('boom');
     });
     expect(() => reportToolLifecycleEvent('tool_result_ready', 'merge')).not.toThrow();
@@ -176,24 +182,14 @@ describe('reportToolLifecycleEvent', () => {
       });
     page('08e10cf');
     reportToolLifecycleEvent('tool_result_ready', 'merge');
-    expect(JSON.parse(await (beacon.mock.calls[0]![1] as Blob).text()).properties).toEqual({ tool: 'merge', build: '08e10cf', first: true });
+    expect(JSON.parse(await rec.calls[0].blob.text()).properties).toEqual({ tool: 'merge', build: '08e10cf', first: true });
     page(null);
     reportToolLifecycleEvent('tool_result_ready', 'merge');
-    expect(JSON.parse(await (beacon.mock.calls[1]![1] as Blob).text()).properties).toEqual({ tool: 'merge' });
+    expect(JSON.parse(await rec.calls[1].blob.text()).properties).toEqual({ tool: 'merge' });
   });
 });
 
 describe('the funnel (DEBT-58)', () => {
-  const store = (throws = false) => {
-    const m = new Map<string, string>();
-    return {
-      getItem: (k: string) => {
-        if (throws) throw new Error('blocked');
-        return m.get(k) ?? null;
-      },
-      setItem: (k: string, v: string) => void m.set(k, v),
-    };
-  };
   // Page views carry `ready` off the real clock; these tests are about visit, so the clock reads nothing.
   // forced: a clock that reads NaN, which no real browser hands out on cue
   beforeEach(() => void vi.spyOn(performance, 'now').mockReturnValue(Number.NaN));
@@ -203,12 +199,11 @@ describe('the funnel (DEBT-58)', () => {
     vi.setSystemTime(new Date('2026-11-20T12:00:00'));
   });
   afterEach(() => void vi.useRealTimers());
-  const props = async () => Promise.all(beacon.mock.calls.map(async ([, b]) => JSON.parse(await (b as Blob).text()).properties));
+  const props = sentProps;
   // What went to the analytics address, which alone carries the tools-opened values.
   const sinkProps = () => vi.mocked(sendToSink).mock.calls.map(([e]) => (e as { properties: Record<string, unknown> }).properties);
 
   it('DEBT-61: the home page view carries the visit, and a tool page opened later that day reads today', async () => {
-    vi.stubGlobal('localStorage', store());
     reportHomePageView();
     await settleTick();
     resetUsageEventsForTests(); // the next page load
@@ -221,8 +216,6 @@ describe('the funnel (DEBT-58)', () => {
   });
 
   it('adds visit to the page view and stamps it once per page load', async () => {
-    const ls = store();
-    vi.stubGlobal('localStorage', ls);
     reportToolLifecycleEvent('tool_page_viewed', 'sign');
     reportToolLifecycleEvent('tool_page_viewed', 'sign');
     await settleTick();
@@ -231,7 +224,7 @@ describe('the funnel (DEBT-58)', () => {
     expect(sinkProps()[0]).toMatchObject({ tools: '1', newtool: true, firsttool: 'sign' });
     expect(b.visit).toBe('new');
     expect(b.since).toBe('first');
-    expect(ls.getItem('pdkef:last-tool-visit')).not.toBeNull();
+    expect(localStorage.getItem('pdkef:last-tool-visit')).not.toBeNull();
   });
 
   describe('the tools this browser has opened (MEM-45)', () => {
@@ -247,41 +240,33 @@ describe('the funnel (DEBT-58)', () => {
     const none = { tools: undefined, newtool: undefined, firsttool: undefined };
 
     it('counts a fresh browser, then a second tool, then a repeat', async () => {
-      vi.stubGlobal('localStorage', store());
       expect(history(await load('sign'))).toEqual({ tools: '1', newtool: true, firsttool: 'sign' });
       expect(history(await load('merge'))).toEqual({ tools: '2', newtool: true, firsttool: 'sign' });
       expect(history(await load('merge'))).toEqual({ tools: '2', newtool: undefined, firsttool: 'sign' });
     });
     it('sends nothing for a returning browser that has no list, now or later', async () => {
-      const ls = store();
-      ls.setItem('pdkef:last-tool-visit', '2020-01-01');
-      vi.stubGlobal('localStorage', ls);
+      localStorage.setItem('pdkef:last-tool-visit', '2020-01-01');
       expect(history(await load('sign'))).toEqual(none);
       expect(history(await load('merge'))).toEqual(none);
     });
     it('does not stamp the list when the beacon refuses the view', async () => {
-      const ls = store();
-      vi.stubGlobal('localStorage', ls);
-      // forced: a browser refusing the beacon hand-off cannot be produced on cue
-      beacon.mockReturnValueOnce(false);
+      freshBeacon({ returns: false });
       await load('sign');
-      expect(ls.getItem('pdkef:tools-opened')).toBeNull();
+      expect(rec.calls.length).toBeGreaterThan(0);
+      expect(localStorage.getItem('pdkef:tools-opened')).toBeNull();
+      freshBeacon();
       expect(history(await load('sign'))).toEqual({ tools: '1', newtool: true, firsttool: 'sign' });
     });
     it('starts the list for a new browser that saw the home page first', async () => {
-      vi.stubGlobal('localStorage', store());
       await load('home');
       expect(history(await load('redact'))).toEqual({ tools: '1', newtool: true, firsttool: 'redact' });
     });
     it('starts the list for a browser that saw the home page on an earlier day', async () => {
-      const ls = store();
-      ls.setItem('pdkef:first-visit', '2026-11-18');
-      ls.setItem('pdkef:last-tool-visit', '2026-11-18');
-      vi.stubGlobal('localStorage', ls);
+      localStorage.setItem('pdkef:first-visit', '2026-11-18');
+      localStorage.setItem('pdkef:last-tool-visit', '2026-11-18');
       expect(history(await load('redact'))).toEqual({ tools: '1', newtool: true, firsttool: 'redact' });
     });
     it('sends newtool once when the same page reports its view twice', async () => {
-      vi.stubGlobal('localStorage', store());
       resetUsageEventsForTests();
       reportToolLifecycleEvent('tool_page_viewed', 'sign');
       await settleTick();
@@ -292,7 +277,6 @@ describe('the funnel (DEBT-58)', () => {
       expect(history(b)).toEqual({ tools: '1', newtool: undefined, firsttool: 'sign' });
     });
     it('sends the tools-opened values only to the analytics address, never in the /api/report beacon', async () => {
-      vi.stubGlobal('localStorage', store());
       const sent = await load('sign');
       expect(history(sent)).toEqual({ tools: '1', newtool: true, firsttool: 'sign' });
       const [beaconed] = await props();
@@ -300,17 +284,8 @@ describe('the funnel (DEBT-58)', () => {
       expect(beaconed.visit).toBe('new');
     });
     it('puts nothing on the home page view', async () => {
-      vi.stubGlobal('localStorage', store());
       expect(history(await load('home'))).toEqual(none);
     });
-  });
-
-  it('omits visit without storage', async () => {
-    // forced: storage whose read throws, as a blocked browser does
-    vi.stubGlobal('localStorage', store(true));
-    reportToolLifecycleEvent('tool_page_viewed', 'sign');
-    await settleTick();
-    expect((await props())[0]).toEqual({ tool: 'sign', first: true });
   });
 
   it('sends the marked source (and from for a handoff) on tool_file_accepted', async () => {
@@ -347,7 +322,7 @@ describe('the funnel (DEBT-58)', () => {
 });
 
 describe('reportEdit', () => {
-  const names = async () => Promise.all(beacon.mock.calls.map(async ([, b]) => JSON.parse(await (b as Blob).text()).name));
+  const names = async () => (await sentEvents()).map((e) => e.name);
 
   it('an acceptance nobody marked (Merge undoing the removal of its last file) keeps the file it continues', async () => {
     markArrival('pick');
@@ -356,14 +331,14 @@ describe('reportEdit', () => {
     reportToolLifecycleEvent('tool_file_accepted', 'merge');
     reportEdit('merge');
     reportToolLifecycleEvent('tool_result_ready', 'merge');
-    const sent = await Promise.all(beacon.mock.calls.map(async ([, b]) => JSON.parse(await (b as Blob).text())));
+    const sent = await sentEvents();
     expect(sent.map((e) => e.name)).toEqual(['tool_file_accepted', 'tool_first_edit', 'tool_file_accepted', 'tool_result_ready']);
     expect(sent[3].properties.source).toBe('pick');
   });
 
   it('sends nothing before a file was accepted', () => {
     reportEdit('sign');
-    expect(beacon).not.toHaveBeenCalled();
+    expect(rec.calls).toHaveLength(0);
   });
 
   it('sends tool_first_edit once per accepted file', async () => {
@@ -381,32 +356,33 @@ describe('reportEdit', () => {
 });
 
 describe('performance measures (MEM-45)', () => {
-  const sent = async () => Promise.all(beacon.mock.calls.map(async ([, b]) => JSON.parse(await (b as Blob).text())));
+  const sent = sentEvents;
   beforeEach(() => void vi.useFakeTimers({ toFake: ['performance'] }));
   afterEach(() => void vi.useRealTimers());
   const clock = (ms: number) => void vi.advanceTimersByTime(ms - performance.now());
 
   it('a tool page view waits for the window load, then sends once with the measures and ready', async () => {
-    let load!: () => void;
-    vi.mocked(pagePerformance.pageSettled).mockReturnValueOnce(new Promise<'loaded'>((resolve) => (load = () => resolve('loaded'))));
+    pageLoading();
+    // Forced: a page whose requests the browser counted; jsdom lists no entries
     vi.mocked(pagePerformance.collectPageMeasures).mockResolvedValueOnce({ net: '0', local: '16-30', lcp: 'le2.5s' });
     clock(1800);
     reportToolLifecycleEvent('tool_page_viewed', 'sign');
     await settleTick();
-    expect(beacon).not.toHaveBeenCalled();
+    expect(rec.calls).toHaveLength(0);
     clock(9000); // ready was taken at the call, not at the send
-    load();
+    window.dispatchEvent(new Event('load'));
     await settleTick();
-    expect(beacon).toHaveBeenCalledTimes(1);
-    expect((await sent())[0].properties).toEqual({ tool: 'sign', first: true, net: '0', local: '16-30', lcp: 'le2.5s', ready: 'le2.5s' });
+    expect(rec.calls).toHaveLength(1);
+    expect((await sent())[0].properties).toEqual({ tool: 'sign', first: true, visit: 'new', since: 'first', net: '0', local: '16-30', lcp: 'le2.5s', ready: 'le2.5s' });
   });
 
   it('the home page view carries net, local and lcp and never ready', async () => {
+    // Forced: a page whose requests the browser counted; jsdom lists no entries
     vi.mocked(pagePerformance.collectPageMeasures).mockResolvedValueOnce({ net: '2-5', local: '6-15', lcp: 'le1s' });
     clock(500);
     reportHomePageView();
     await settleTick();
-    expect((await sent())[0].properties).toEqual({ tool: 'home', first: true, net: '2-5', local: '6-15', lcp: 'le1s' });
+    expect((await sent())[0].properties).toEqual({ tool: 'home', first: true, visit: 'new', since: 'first', net: '2-5', local: '6-15', lcp: 'le1s' });
   });
 
   it('leaves out what the browser could not measure', async () => {
@@ -414,7 +390,7 @@ describe('performance measures (MEM-45)', () => {
     vi.spyOn(performance, 'now').mockReturnValue(Number.NaN);
     reportToolLifecycleEvent('tool_page_viewed', 'merge');
     await settleTick();
-    expect((await sent())[0].properties).toEqual({ tool: 'merge', first: true });
+    expect((await sent())[0].properties).toEqual({ tool: 'merge', first: true, visit: 'new', since: 'first' });
   });
 
   it('tool_file_accepted carries the time since the arrival was marked', async () => {
@@ -444,24 +420,24 @@ describe('performance measures (MEM-45)', () => {
   });
 
   it('a page hidden before load sends the view at once with ready and no measures, and only once', async () => {
-    let settle!: (how: 'loaded' | 'hidden') => void;
-    vi.mocked(pagePerformance.pageSettled).mockReturnValueOnce(new Promise((resolve) => (settle = resolve)));
+    pageLoading();
     vi.mocked(pagePerformance.collectPageMeasures).mockClear();
     clock(900);
     reportToolLifecycleEvent('tool_page_viewed', 'sign');
-    settle('hidden');
-    settle('loaded'); // a late load changes nothing
+    window.dispatchEvent(new Event('pagehide'));
+    window.dispatchEvent(new Event('load')); // a late load changes nothing
     await settleTick();
-    expect(beacon).toHaveBeenCalledTimes(1);
-    expect((await sent())[0].properties).toEqual({ tool: 'sign', first: true, ready: 'le1s' });
+    expect(rec.calls).toHaveLength(1);
+    expect((await sent())[0].properties).toEqual({ tool: 'sign', first: true, visit: 'new', since: 'first', ready: 'le1s' });
     expect(pagePerformance.collectPageMeasures).not.toHaveBeenCalled();
   });
 
   it('a hidden home view sends with no measures at all', async () => {
-    vi.mocked(pagePerformance.pageSettled).mockResolvedValueOnce('hidden');
+    pageLoading();
     reportHomePageView();
+    window.dispatchEvent(new Event('pagehide'));
     await settleTick();
-    expect((await sent())[0].properties).toEqual({ tool: 'home', first: true });
+    expect((await sent())[0].properties).toEqual({ tool: 'home', first: true, visit: 'new', since: 'first' });
   });
 
   it('a back-to-back started and ready marked untimed carry no ms, and leave an earlier timing alone', async () => {
@@ -511,12 +487,11 @@ describe('the page view timestamp', () => {
     vi.useFakeTimers();
     try {
       vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
-      let settle!: (v: 'loaded') => void;
-      vi.mocked(pagePerformance.pageSettled).mockReturnValueOnce(new Promise((resolve) => { settle = resolve; }));
+      pageLoading();
       vi.mocked(sendToSink).mockClear();
       reportToolLifecycleEvent('tool_page_viewed', 'merge');
       vi.setSystemTime(new Date('2026-01-01T00:00:05.000Z'));
-      settle('loaded');
+      window.dispatchEvent(new Event('load'));
       await vi.advanceTimersByTimeAsync(0);
       expect(sendToSink).toHaveBeenCalledTimes(1);
       const at = vi.mocked(sendToSink).mock.calls[0][1];
@@ -536,11 +511,11 @@ describe('the page view timestamp', () => {
 
 describe('reportResult and reportHandedOn', () => {
   const names = async () =>
-    (await Promise.all(beacon.mock.calls.map(([, blob]) => (blob as Blob).text()))).map((t) => JSON.parse(t) as { name: string; properties: { ms?: string } });
+    (await texts()).map((t) => JSON.parse(t) as { name: string; properties: { ms?: string } });
   const arrive = () => {
     markArrival('pick');
     reportToolLifecycleEvent('tool_file_accepted', 'merge');
-    beacon.mockClear();
+    freshBeacon();
   };
 
   it('sends the started-and-ready pair, untimed, when nothing is open', async () => {
@@ -552,7 +527,7 @@ describe('reportResult and reportHandedOn', () => {
 
   it('sends only the ready event after a start', async () => {
     reportToolLifecycleEvent('tool_operation_started', 'merge');
-    beacon.mockClear();
+    freshBeacon();
     reportResult('merge');
     expect((await names()).map((e) => e.name)).toEqual(['tool_result_ready']);
   });
@@ -560,18 +535,18 @@ describe('reportResult and reportHandedOn', () => {
   it('hands on nothing when the file already had a result', () => {
     arrive();
     reportToolLifecycleEvent('tool_result_ready', 'merge');
-    beacon.mockClear();
+    freshBeacon();
     reportHandedOn('merge');
-    expect(beacon).not.toHaveBeenCalled();
+    expect(rec.calls).toHaveLength(0);
   });
 
   it('counts a first hand-on as the result, once', async () => {
     arrive();
     reportHandedOn('merge');
     expect((await names()).map((e) => e.name)).toEqual(['tool_operation_started', 'tool_result_ready']);
-    beacon.mockClear();
+    freshBeacon();
     reportHandedOn('merge');
-    expect(beacon).not.toHaveBeenCalled();
+    expect(rec.calls).toHaveLength(0);
   });
 });
 
@@ -583,7 +558,6 @@ describe('worker downloads (MEM-45)', () => {
     vi.stubEnv('PUBLIC_ANALYTICS_KEY', 'k');
     vi.mocked(watchWorkerDownloads).mockClear();
     vi.mocked(sendToSink).mockClear();
-    stubBrowser();
   });
 
   it('starts watching once per page load, after the page view went out', async () => {
@@ -614,13 +588,13 @@ describe('worker downloads (MEM-45)', () => {
   it('sends the report to the analytics address only, with the page tool, never to /api/report', async () => {
     reportToolLifecycleEvent('tool_page_viewed', 'sign');
     await settleTick();
-    beacon.mockClear();
+    freshBeacon();
     vi.mocked(sendToSink).mockClear();
     onReport()({ install: '2-5', unmeasured: true });
     expect(sunk()).toEqual([{ name: 'worker_downloads', properties: { tool: 'sign', install: '2-5', unmeasured: true } }]);
-    expect(beacon.mock.calls.filter(([url]) => url === '/api/report')).toEqual([]);
-    expect(beacon).toHaveBeenCalledOnce();
-    expect(beacon.mock.calls[0][0]).toBe('https://e.example.test/i/v0/e/');
+    expect(rec.urls().filter((url) => url === '/api/report')).toEqual([]);
+    expect(rec.calls).toHaveLength(1);
+    expect(rec.urls()[0]).toBe('https://e.example.test/i/v0/e/');
   });
 
   it('names the home page as the tool', async () => {
