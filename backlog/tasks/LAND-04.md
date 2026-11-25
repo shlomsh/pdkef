@@ -355,3 +355,6 @@ count). The rule is off meanwhile.
   a camera, a worker, a photo decode or a trace, which jsdom lacks, so most of the wave is `// Forced:` lines. The restore check is held
   by the real store and a failing run is the real one. A fresh review checked every reason and the rewritten tests: no coverage
   lost, and the camera guard, never caught before, now is.
+- Sign (2026-11-25): 574 sites down to 540 in 170 files, 46 left in the tool. Opening, export, sharing, the draft store and the ink
+  sampler run for real in the tests; what is left needs layout, a share sheet, a held moment or a failure the page cannot make.
+  A fresh review ran 76 mutations: no coverage lost, 24 never caught by either version.
