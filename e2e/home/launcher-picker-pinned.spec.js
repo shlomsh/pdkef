@@ -1,3 +1,4 @@
+import http from 'node:http';
 import { test, expect } from '@playwright/test';
 
 // Guards MOBI-35 (backlog/tasks/MOBI-35.md): the desktop home launcher
@@ -73,6 +74,51 @@ async function installShiftSampler(page, { recentsCount = 0 } = {}) {
     };
     requestAnimationFrame(sample);
   }, recentsCount);
+}
+
+// The home page streams, so a browser can paint after the launcher is parsed and before
+// `<nav class="home-dock">` is. This is a tiny proxy of `/` that sends the HTML up to the dock and
+// holds the rest until `release()`. `stylesheetsDone` resolves once the browser has fetched every
+// stylesheet linked in the part already sent, so the page has all it needs to paint a launcher-only
+// frame.
+async function startHeldHome(baseURL) {
+  const pending = new Set();
+  let release;
+  const released = new Promise((resolve) => { release = resolve; });
+  let markDone;
+  const stylesheetsDone = new Promise((resolve) => { markDone = resolve; });
+  const server = http.createServer(async (req, res) => {
+    const upstream = await fetch(new URL(req.url, baseURL), { headers: { 'accept-encoding': 'identity' } });
+    const body = Buffer.from(await upstream.arrayBuffer());
+    const headers = Object.fromEntries(upstream.headers);
+    for (const name of ['content-length', 'content-encoding', 'transfer-encoding']) delete headers[name];
+    if (req.url !== '/') {
+      res.writeHead(upstream.status, headers);
+      res.end(body);
+      if (pending.delete(req.url) && pending.size === 0) markDone();
+      return;
+    }
+    const html = body.toString();
+    const cut = html.search(/<nav\b[^>]*class="home-dock"/);
+    if (cut < 0) throw new Error('home dock nav not found in the HTML of /');
+    const first = html.slice(0, cut);
+    for (const match of first.matchAll(/<link rel="stylesheet" href="([^"]+)"/g)) pending.add(match[1]);
+    res.writeHead(200, headers);
+    res.write(first);
+    await released;
+    res.end(html.slice(cut));
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  return {
+    url: `http://127.0.0.1:${server.address().port}/`,
+    stylesheetsDone,
+    release,
+    close: async () => {
+      release();
+      server.closeAllConnections();
+      await new Promise((resolve) => server.close(resolve));
+    },
+  };
 }
 
 // Fonts loaded, recent thumbnails decoded, then two frames: the condition the late-reflow
@@ -276,6 +322,54 @@ test.describe('home launcher picker and recents stay pinned as recents load', ()
         expect(pickerHit.bottom).toBeLessThanOrEqual(pickerHit.innerHeight);
       });
     }
+  }
+
+  // The page streams: the launcher can be parsed, and the browser can paint, before the dock below
+  // it has arrived. The hero grid's dock row is then empty and the launcher row too tall, so the
+  // picker jumps up once the dock lands. The first painted frame must already have the settled
+  // layout. The dock's HTML is held until the browser has every stylesheet and has had paint
+  // opportunities (two animation frames) with the launcher parsed and the dock absent. Where
+  // rendering is held back instead (the fix), no frame can run, so the opportunity wait ends at its
+  // one second cap and the first frame comes after the release. It cannot pass vacuously: the test
+  // fails unless the picker was in the DOM and the dock was not at the moment of release, and
+  // without the fix the sampler's first frame is the short-layout one.
+  for (const viewport of [{ width: 1280, height: 720 }, { width: 1280, height: 600 }]) {
+    test(`picker is where it settles on the first painted frame while the dock is still streaming at ${viewport.width}x${viewport.height}`, async ({ page, baseURL }, testInfo) => {
+      await page.setViewportSize(viewport);
+      await installShiftSampler(page);
+      const held = await startHeldHome(baseURL);
+      try {
+        await page.goto(held.url, { waitUntil: 'commit' });
+        await held.stylesheetsDone;
+        await page.waitForFunction(() => document.querySelector('[data-home-picker]') && !document.querySelector('nav.home-dock'));
+        const framesRan = await page.evaluate(() => new Promise((resolve) => {
+          const cap = setTimeout(() => resolve(false), 1000);
+          let frames = 0;
+          const tick = () => {
+            if (++frames === 2) { clearTimeout(cap); resolve(true); } else requestAnimationFrame(tick);
+          };
+          requestAnimationFrame(tick);
+        }));
+        const heldState = await page.evaluate(() => ({
+          picker: document.querySelector('[data-home-picker]') != null,
+          dock: document.querySelector('nav.home-dock') != null,
+        }));
+        expect(heldState).toEqual({ picker: true, dock: false });
+        held.release();
+        await page.waitForLoadState('load');
+        await expect(page.locator('#home-files li')).toHaveCount(1);
+        await settleLayout(page);
+
+        const result = await readRects(page);
+        testInfo.annotations.push({ type: 'streamed-dock-rects', description: JSON.stringify({ framesRan, ...result }) });
+
+        expect(result.firstRects).not.toBeNull();
+        expectStableBox(result.settledRects.picker, result.firstRects.picker);
+        expect(result.clsSum).toBeLessThan(0.005);
+      } finally {
+        await held.close();
+      }
+    });
   }
 
   // Phones don't reserve two rows (their first screen grows instead), so only
