@@ -151,7 +151,7 @@ describe('a hand-off from the home page (SITE-42)', () => {
     await seedDraft(old);
     expect(await saveHandoff('merge', await handoffOf(await Promise.all(['new1.pdf', 'new2.pdf'].map(twoPages))))).toBe(true);
     mount();
-    await waitUntil(() => names().length === 2 && inspected() && view.draft !== null);
+    await waitUntil(() => names().includes('new1.pdf') && inspected() && view.draft !== null);
     expect(names()).toEqual(['new1.pdf', 'new2.pdf']);
     act(() => view.draft?.props.onRestore(restoreOf(old), 'restore'));
     expect(names()).toEqual(['new1.pdf', 'new2.pdf']);
