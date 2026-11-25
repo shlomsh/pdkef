@@ -483,6 +483,7 @@ describe('FileDropzone', () => {
       const area = mountTarget();
       await dropOn(area, [pdf()]);
       await chooseSign();
+      expect(await vi.mocked(saveHandoff).mock.results[0].value).toBe(false);
       expect(container.querySelector('[data-home-picker] [data-tone="note"]')?.textContent).toContain('could not save this file');
       expect(container.querySelector('[role="alert"]')).toBeNull();
     });
@@ -920,7 +921,6 @@ describe('FileDropzone', () => {
         expect(saveHandoff).toHaveBeenCalledTimes(1);
         await restore();
         await pick([pdf('b.pdf')]);
-        indexedDB = new IDBFactory(); // the store is back
         await clickLink('sign');
         expect(saveHandoff).toHaveBeenCalledTimes(2);
       });
@@ -1108,9 +1108,9 @@ describe('FileDropzone', () => {
       await act(async () => { container.querySelector('button[aria-label^="Remove first.pdf"]').click(); });
       await confirm('Remove');
       expect(removeRecentEntry).toHaveBeenCalledWith('sha256:first');
-      expect(await vi.mocked(removeRecentEntry).mock.results[0].value).toBe(false);
-      await waitUntil(() => expect(container.textContent).toContain("That didn't work. Please try again."), { timeout: 2000 });
+      await act(async () => { expect(await vi.mocked(removeRecentEntry).mock.results[0].value).toBe(false); });
       expect(tiles()).toHaveLength(2);
+      expect(container.textContent).toContain("That didn't work. Please try again.");
     });
 
     it('drops the tile when the removal succeeds', async () => {
