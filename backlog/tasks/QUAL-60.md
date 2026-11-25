@@ -48,6 +48,9 @@ The whole CI shard (2 of 2, three workers) held down the same way:
 | adds the photos of the native input | 7.2, 5.6 s | 4.9, 6.2 s |
 
 With the limit lifted in a scratch copy, the same load ended the wait after 12.5 s with both pages made, so no page is lost.
+With the fix, the same wait took 4.5, 4.8, 5.2 and 3.6 s in four loaded runs, every camera photo 640x480, all 74 tests passed.
+That load is heavier than CI's (the old test took 15.4 s in it, 6.7 to 9.9 s on CI). In the loaded trace before the fix the
+first inspection alone took 3 s, and 640x480 does little for it (alone, both inspections went from about 1.2 to 0.9 s): look there if this comes back.
 On the failing CI run, `idle()` in `afterEach` also settled.
 
 The fix: `cameraLive` in the test sets the real track to 640x480 with `applyConstraints`, as the product does when a phone
