@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { typecheckSteps, parseArgs, summaryLine, unitsDetail, GUARD_STEPS, guardSteps } from './check-fast.mjs';
+import { typecheckSteps, parseArgs, summaryLine, unitsDetail, GUARD_STEPS, guardSteps, lintScope, lintCommand, guardJobs } from './check-fast.mjs';
 import { ALWAYS_GUARD_STEPS } from './check-push.mjs';
 import { ORACLE_FILES } from './unit-scope.mjs';
 
@@ -90,5 +90,62 @@ describe('guardSteps (QUAL-41, QUAL-39)', () => {
   it('leaves it out for a diff that cannot change what a spec reads or which rule selects it', () => {
     expect(guardSteps(['src/lib/foo.js', 'docs/a.md'])).not.toContain(SPEC_READS);
     expect(guardSteps([])).toEqual(GUARD_STEPS);
+  });
+});
+
+describe('lintScope (check:fast lints only the changed files)', () => {
+  const m = (path, status = 'M') => ({ path, status });
+
+  it('lints the changed lintable files, without deleted ones or other extensions', () => {
+    expect(lintScope([m('src/a.ts'), m('src/b.tsx', 'A'), m('src/gone.ts', 'D'), m('docs/x.md'), m('scripts/c.mjs'), m('src/p.astro')])).toEqual(['src/a.ts', 'src/b.tsx', 'scripts/c.mjs', 'src/p.astro'].filter((f) => !f.endsWith('.astro')));
+  });
+
+  it('lints everything when the diff touches the oxlint config, package.json, the lockfile or a plugin patch', () => {
+    for (const f of ['.oxlintrc.json', 'package.json', 'package-lock.json', 'patches/@interfere+landmines+0.3.1.patch']) {
+      expect(lintScope([m('src/a.ts'), m(f)])).toBeNull();
+    }
+    expect(lintScope([m('package.json', 'D')])).toBeNull();
+  });
+
+  it('lints everything when there is no usable base or too many files', () => {
+    expect(lintScope(null)).toBeNull();
+    expect(lintScope(Array.from({ length: 400 }, (_, i) => m(`src/f${i}.ts`)))).toBeNull();
+  });
+
+  it('is an empty list when nothing lintable changed', () => {
+    expect(lintScope([m('docs/x.md'), m('src/gone.ts', 'D')])).toEqual([]);
+    expect(lintScope([])).toEqual([]);
+  });
+});
+
+describe('lintCommand', () => {
+  it('lints everything when there is no file list', () => {
+    expect(lintCommand(null)).toBe('oxlint');
+  });
+
+  it('passes quoted files and keeps ignorePatterns files from failing the run', () => {
+    expect(lintCommand(['src/a b.ts'])).toBe(`oxlint --no-error-on-unmatched-pattern 'src/a b.ts'`);
+  });
+
+  it('says it has nothing to lint for an empty list', () => {
+    expect(lintCommand([])).toMatch(/^echo '.*nothing to lint/);
+  });
+});
+
+describe('guardJobs', () => {
+  const scripts = Object.fromEntries(GUARD_STEPS.filter((s) => s !== 'check-orphaned-selectors' && s !== 'check-class-resolution').map((s) => [s, 'echo ' + s]));
+  it('keeps the guard order and swaps in the lint and unscripted commands', () => {
+    const jobs = guardJobs({ steps: GUARD_STEPS, base: 'abc', lint: ['src/a.ts'], scripts });
+    expect(jobs.map((j) => j.name ?? j)).toEqual(GUARD_STEPS);
+    const byName = Object.fromEntries(jobs.map((j) => [j.name, j.command]));
+    expect(byName['lint:landmines']).toBe(`oxlint --no-error-on-unmatched-pattern 'src/a.ts'`);
+    expect(byName['check-orphaned-selectors']).toBe('node scripts/check-orphaned-selectors.mjs --base abc');
+    expect(byName['check-class-resolution']).toBe('node scripts/check-class-resolution.js');
+    expect(byName['test:module-boundaries']).toBe('echo test:module-boundaries');
+  });
+
+  it('leaves --base off when there is none', () => {
+    const jobs = guardJobs({ steps: ['check-orphaned-selectors'], base: null, lint: null, scripts });
+    expect(jobs[0].command).toBe('node scripts/check-orphaned-selectors.mjs');
   });
 });
