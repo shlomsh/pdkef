@@ -21,7 +21,13 @@ describe('PdfScanTool camera', () => {
   const { s, step, mount, startScanning, tableTiles, click, pagesMade, byText, openPage, viewer } = suite;
   const camera = () => s.container.querySelector<HTMLDialogElement>('dialog[aria-label="Start scanning"]');
   const cameraButton = (label: string) => camera()?.querySelector<HTMLElement>(`button[aria-label="${label}"]`);
-  const cameraLive = () => until(() => cameraButton('Take this page') != null);
+  const video = () => camera().querySelector<HTMLVideoElement>('video');
+  const videoTrack = () => (video().srcObject as MediaStream).getVideoTracks()[0];
+  // Chromium's fake camera runs at 3840x2160, and page work on such a photo takes seconds on CI; nothing here is about its size.
+  const cameraLive = async () => {
+    await until(() => cameraButton('Take this page') != null);
+    await act(() => videoTrack().applyConstraints({ width: 640, height: 480 }));
+  };
   const doneButton = () => [...camera().querySelectorAll('button')].find((b) => b.textContent === 'Done');
   const stack = () => camera().querySelector('[data-stack]');
   const stackLabel = () => stack()?.getAttribute('aria-label');
@@ -32,10 +38,7 @@ describe('PdfScanTool camera', () => {
     await click(cameraButton('Take this page'), 'the shutter');
   };
   const cameraPaused = () => vi.mocked(useCamera).mock.calls.at(-1)[0].paused;
-  const streamLive = () => {
-    const video = camera().querySelector<HTMLVideoElement>('video');
-    return (video.srcObject as MediaStream).getVideoTracks()[0].readyState === 'live' && !video.paused;
-  };
+  const streamLive = () => videoTrack().readyState === 'live' && !video().paused;
   const accepted = () => s.harness.usageEvents('tool_file_accepted').map((e) => e.properties.source);
 
   it('opens the viewfinder from Start scanning without opening the input; a first photo is accepted as camera, a second sends none and leaves no mark', async () => {
