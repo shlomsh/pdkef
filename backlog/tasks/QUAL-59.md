@@ -1,10 +1,9 @@
 ---
 id: "QUAL-59"
 title: "The note writer's lamp spec taps the mark where it is, not where it was"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "robustness"
-horizon: "now"
 depends_on: []
 ---
 
@@ -21,7 +20,7 @@ focus") failed once on Linux WebKit (CI run 45679879163, attempt 1): for 10 s th
 
 ## Result
 
-*Fixed 2026-11-25; it closes once Linux WebKit on CI has run it.* The spec was at fault. When the lamp opens, the page holds still for 220 ms and then rises to its
+*Closed 2026-11-25.* The spec was at fault. When the lamp opens, the page holds still for 220 ms and then rises to its
 place, 82 px higher at this viewport, by 1 s (the `board` track of `enterPlan`). `pullCord` returned at once, so the spec
 measured the mark 20 to 60 ms into that entrance, 82 px from where it ends. The test passed only when its first tap
 arrived inside the hold. A later first tap missed, and `tapUntil` repeated the same stale point until it timed out.
@@ -35,6 +34,7 @@ click had `detail` 1, so it was no double click. A scratch copy whose first tap 
 start from a page at rest. After: the slow-tap copy 4 of 4, the real test 120 of 120 with 10 workers. The five lamp specs
 on Chromium and WebKit, twice each: 62 passed and 2 failed, both "Edit from the card menu" on macOS WebKit,
 which opens no lamp and fails the same way without this change (it passes on CI's Linux WebKit).
+Linux CI run 45693201902 is green, with this test run once on WebKit; the flake was rare, so one pass is a check, not a rate.
 
 The product is left as it is: a press during the one-second rise acts on what is under it then. A tap whose press and
 click straddle the start of the rise can miss, as one of the traces did; that window is a few milliseconds.
