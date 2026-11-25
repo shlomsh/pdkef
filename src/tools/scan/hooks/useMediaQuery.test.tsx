@@ -17,6 +17,7 @@ describe('useMediaQuery', () => {
   const original = window.matchMedia;
   let container: HTMLElement;
   afterEach(() => {
+    // Forced: setup.js matchMedia always matches and cannot be flipped
     window.matchMedia = original;
     render(null, container);
     container.remove();
@@ -24,6 +25,7 @@ describe('useMediaQuery', () => {
 
   it('says whether the query matches, and follows it when the window crosses it', () => {
     const q = fakeQuery(true);
+    // Forced: setup.js matchMedia always matches and cannot be flipped
     window.matchMedia = (() => q.list) as unknown as typeof window.matchMedia;
     let seen: boolean[] = [];
     function Probe() { seen.push(useMediaQuery('(min-width: 1024px)')); return null; }

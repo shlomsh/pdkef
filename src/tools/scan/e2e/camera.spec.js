@@ -217,6 +217,7 @@ test('a phone that cannot keep up steps down, then hands over to the native came
       return realApply.call(this, constraints);
     };
     const RealWorker = window.Worker;
+    // Forced: a slow camera worker, to bring on the step-down a slow phone makes
     window.Worker = class extends RealWorker {
       constructor(url, options) {
         super(url, options);
