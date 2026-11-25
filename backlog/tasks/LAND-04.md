@@ -365,3 +365,7 @@ count). The rule is off meanwhile.
 - Fonts and test support (2026-11-25): 501 sites down to 490 in 157 files. Bundled fonts are fetched for real and answered by MSW from
   public/fonts (jsdom gives a relative URL its origin, so the old reason was wrong), and the Redact check paints jsdom's canvas.
   A fresh review ran 39 mutations: no coverage lost.
+- Service worker (2026-11-25): 490 sites down to 423 in 157 files, 17 left in `scripts/sw.test.mjs`. The worker runs on real Cache
+  Storage, IndexedDB and fetch (the new dev dependency `undici`), answered by MSW; what is left is the worker scope, its windows and
+  storage faults. A fresh review ran 97 mutations: no coverage lost, 11 never caught by either version (the font-pack list checks, the
+  observer's type check and the tally's timer guard among them). Four fell only by timing out; they now fail on an assertion.
