@@ -48,6 +48,19 @@ after release. None reproduced the line 79 failure; an earlier plain run failed 
 
 Next step: log `selectedTool` inside that handler and run under a throttled CPU, to confirm or clear it.
 
+## Seen again (2026-11-25)
+
+Four more CI runs failed at line 79, all in product shard 4 of 4: 44535809489 (a dependency update branch,
+2026-11-19) and, on `landmines-all`, 45261132549, 45503165684 and 45507290587. Each failure comes after about
+1.5 s of work, before the 10 s wait runs out, so a slow machine alone does not explain it.
+
+- **Not reproduced on a Mac**: 6 plain repeats, then 72 under CPU throttling (4, 8 and 20 times slower).
+- **A second suspect, from reading only**: `src/lib/gestures/controller.ts` cancels a gesture on window
+  `blur`. A cancel removes the new mark, leaves the tool armed and Undo disabled, which is what the failure
+  snapshot shows. Not measured.
+
+Left open on purpose: no retry, wait or skip was added for it.
+
 ## Done when
 
 - The cause is named, with a run that reproduces the failure on demand (for example `--repeat-each`).
