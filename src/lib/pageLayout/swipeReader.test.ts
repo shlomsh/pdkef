@@ -69,6 +69,7 @@ describe('createSwipeReader', () => {
   });
 
   it('does not re-read the canvas while the swipe stays inside the cached window', () => {
+    // Forced: jsdom has no canvas pixels
     const getImageData = vi.fn(fakeImage);
     const reader = createSwipeReader(canvasWith(getImageData), 400)!;
     reader.bandsBetween(px(30, 107), px(60, 107));

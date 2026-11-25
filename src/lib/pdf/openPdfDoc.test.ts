@@ -2,7 +2,6 @@ import { readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { openPdfDoc } from './openPdfDoc';
 import { healthy, noPagesKey } from '../../test/support/pdfPageTreeFixtures';
-import { getPdfLib } from './pdfLib.js';
 
 const fixture = (name: string) => new Uint8Array(readFileSync(new URL(`../__fixtures__/encrypted/${name}.pdf`, import.meta.url)));
 
@@ -57,16 +56,17 @@ describe('openPdfDoc', () => {
   });
 
   it('"empty-password" rethrows a real parse error from the retry, and only swallows a password failure', async () => {
-    const lib = await getPdfLib();
-    const load = lib.PDFDocument.load.bind(lib.PDFDocument);
-    const failRetryWith = (message: string) =>
-      vi.spyOn(lib.PDFDocument, 'load').mockImplementation(((bytes: never, options: { password?: string } = {}) =>
-        options.password === '' ? Promise.reject(new Error(message)) : load(bytes, options)) as never);
-    failRetryWith('Invalid object ref: 7 0 R');
-    await expect(openPdfDoc(fixture('owner-only'), { encryption: 'empty-password' })).rejects.toThrow('Invalid object ref');
-    vi.restoreAllMocks();
-    failRetryWith('Password incorrect');
-    expect((await openPdfDoc(fixture('owner-only'), { encryption: 'empty-password' })).unlocked).toBe(false);
+    // An owner-only file whose /Encrypt names an algorithm pdf-lib cannot run: the first read ignores
+    // encryption and passes, the empty-password retry throws an error that is not about a password.
+    const unsupported = fixture('owner-only');
+    const text = Buffer.from(unsupported).toString('latin1');
+    expect(text.split('/V 5')).toHaveLength(2);
+    const damaged = new Uint8Array(Buffer.from(text.replace('/V 5', '/V 9'), 'latin1'));
+    expect((await openPdfDoc(damaged, { encryption: 'ignore' })).doc.isEncrypted).toBe(true);
+    await expect(openPdfDoc(damaged, { encryption: 'empty-password' })).rejects.toThrow('unsupported encryption algorithm');
+    // A real user password: the retry fails with pdf-lib's own password error, which is swallowed.
+    await expect(openPdfDoc(fixture('needs-password'), { password: '' })).rejects.toThrow(/password/i);
+    expect((await openPdfDoc(fixture('needs-password'), { encryption: 'empty-password' })).unlocked).toBe(false);
   });
 
   it('leaves an encrypted file with a lost page tree to the encryption gate: it throws, it is not repaired', async () => {

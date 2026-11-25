@@ -49,22 +49,27 @@ class MockPDFWorker {
   }
 }
 
+// Forced: jsdom has no canvas to render pdf.js pages or decode images
 vi.mock('pdfjs-dist', () => ({
   GlobalWorkerOptions: {},
   PDFWorker: MockPDFWorker,
+  // Forced: jsdom has no canvas to render pdf.js pages or decode images
   getDocument: vi.fn((options) => {
     mockState.getDocumentCalls.push(options);
     return {
       promise: Promise.resolve({
         numPages: mockState.numPages,
+        // Forced: jsdom has no canvas to render pdf.js pages or decode images
         getPage: vi.fn((pageNumber) => {
           mockState.getPageCalls.push(pageNumber);
           return Promise.resolve({
             getViewport: ({ scale }) => ({ width: PAGE_WIDTH * scale, height: PAGE_HEIGHT * scale }),
+            // Forced: jsdom has no canvas to render pdf.js pages or decode images
             render: vi.fn(() => (mockState.renderTasks[pageNumber] ?? defaultRenderTask)()),
           });
         }),
       }),
+      // Forced: jsdom has no canvas to render pdf.js pages or decode images
       destroy: vi.fn(() => {
         mockState.destroyCalls += 1;
         return Promise.resolve();
@@ -322,6 +327,7 @@ describe('thumbnails.js', () => {
     beforeEach(() => {
       closeSpy.mockClear();
       toDataUrlArgs = [];
+      // Forced: jsdom has no canvas to render pdf.js pages or decode images
       decodeSpy = vi.fn(() => Promise.resolve({ width: 400, height: 200, close: closeSpy }));
       globalThis.createImageBitmap = decodeSpy;
       HTMLCanvasElement.prototype.toDataURL = function toDataURL(type, quality) {
@@ -397,6 +403,7 @@ describe('thumbnails.js', () => {
 
     it('falls back to a plain decode when the engine rejects the resize options', async () => {
       const { renderThumbnailWithMeta } = await import('./thumbnails.js');
+      // Forced: jsdom has no canvas to render pdf.js pages or decode images
       decodeSpy.mockImplementationOnce(() => Promise.reject(new TypeError('unsupported')));
       const result = await renderThumbnailWithMeta(photo(), { width: 100 });
       expect(decodeSpy).toHaveBeenLastCalledWith(expect.any(File), { imageOrientation: 'from-image' });

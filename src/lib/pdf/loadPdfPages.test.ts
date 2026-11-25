@@ -18,6 +18,14 @@ import {
 const widths = async (bytes: ArrayBuffer | Uint8Array) =>
   (await lib.PDFDocument.load(bytes, { ignoreEncryption: true })).getPages().map((p) => p.getSize().width);
 
+// A file whose page list is lost and whose trailer names an /Encrypt dictionary: pdf-lib opens it with
+// ignoreEncryption and reports isEncrypted, and the one surviving /Pages root would repair it if it were not encrypted.
+const encryptedNoPages = () => {
+  const plain = new TextDecoder('latin1').decode(noPagesKey());
+  const withEncrypt = plain.replace('endobj\nxref', 'endobj\n6 0 obj\n<< /Filter /Standard /V 1 /R 2 /P -4 >>\nendobj\nxref').replace('/Root 1 0 R', '/Root 1 0 R /Encrypt 6 0 R');
+  return Uint8Array.from(withEncrypt, (c) => c.charCodeAt(0));
+};
+
 const sent = () => vi.mocked(reportMaintenanceEvent).mock.calls.map(([event]) => event);
 
 beforeEach(() => {
@@ -57,18 +65,11 @@ describe('loadPdfWithPages', () => {
   });
 
   it('rethrows an encrypted document without an event', async () => {
-    // isEncrypted is an instance field set at load; flag the loaded doc instead of building an encrypted file.
-    const realLoad = lib.PDFDocument.load.bind(lib.PDFDocument);
-    const spy = vi.spyOn(lib.PDFDocument, 'load').mockImplementation(async (...args) => {
-      const doc = await realLoad(...args);
-      (doc as { isEncrypted: boolean }).isEncrypted = true;
-      return doc;
-    });
-    try {
-      await expect(loadPdfWithPages(new Uint8Array(noPagesKey()))).rejects.toThrow();
-    } finally {
-      spy.mockRestore();
-    }
+    // Live control: the file really opens as encrypted, with its page list lost.
+    const control = await lib.PDFDocument.load(encryptedNoPages(), { ignoreEncryption: true });
+    expect(control.isEncrypted).toBe(true);
+    expect(() => control.getPageCount()).toThrow();
+    await expect(loadPdfWithPages(encryptedNoPages())).rejects.toThrow();
     expect(sent()).toEqual([]);
   });
 });

@@ -1,3 +1,5 @@
+import { Blob as NodeBlob } from 'node:buffer';
+import { URL as NodeURL } from 'node:url';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
@@ -17,6 +19,9 @@ function Harness({ apiRef, input }: { apiRef: Api; input: Input }) {
 }
 
 describe('usePreparedOutput', () => {
+  // Node's own blob URLs: jsdom has no URL.createObjectURL, and Node's takes a node:buffer Blob.
+  let create: ReturnType<typeof vi.spyOn>;
+  let revoke: ReturnType<typeof vi.spyOn>;
   let root: HTMLDivElement;
   let api: Api;
   const out = (): PreparedOutput => {
@@ -25,18 +30,24 @@ describe('usePreparedOutput', () => {
   };
   beforeEach(() => {
     vi.useFakeTimers();
+    URL.createObjectURL = NodeURL.createObjectURL;
+    URL.revokeObjectURL = NodeURL.revokeObjectURL;
+    create = vi.spyOn(URL, 'createObjectURL');
+    revoke = vi.spyOn(URL, 'revokeObjectURL');
     root = document.createElement('div');
     api = { current: null };
-    URL.createObjectURL = vi.fn(() => `blob:fake-${Math.random()}`);
-    URL.revokeObjectURL = vi.fn();
   });
   afterEach(() => {
     render(null, root);
     vi.useRealTimers();
+    create.mockRestore();
+    revoke.mockRestore();
+    delete (URL as Partial<typeof URL>).createObjectURL;
+    delete (URL as Partial<typeof URL>).revokeObjectURL;
   });
 
   const mount = (input: Omit<Input, 'quietPolicy'>) => act(() => render(<Harness apiRef={api} input={{ quietPolicy: FAST, ...input }} />, root));
-  const built = (n = 2) => ({ blob: new Blob(['x'.repeat(n)]), pageCount: n });
+  const built = (n = 2) => ({ blob: new NodeBlob(['x'.repeat(n)]) as unknown as Blob, pageCount: n });
 
   it('is idle on a null key and never builds', async () => {
     const build = vi.fn();
@@ -86,8 +97,8 @@ describe('usePreparedOutput', () => {
 
   const builtParts = () => ({
     parts: [
-      { blob: new Blob(['aa']), filename: 'a-page-1.pdf' },
-      { blob: new Blob(['bbb']), filename: 'a-page-2.pdf' },
+      { blob: new NodeBlob(['aa']) as unknown as Blob, filename: 'a-page-1.pdf' },
+      { blob: new NodeBlob(['bbb']) as unknown as Blob, filename: 'a-page-2.pdf' },
     ],
     pageCount: 2,
   });
@@ -123,7 +134,6 @@ describe('usePreparedOutput', () => {
     expect(builds).toHaveLength(2);
     await mount({ key: null, build });
     expect(out().parts).toBeNull();
-    vi.spyOn(console, 'error').mockImplementation(() => {});
     await mount({ key: 'c', build: async () => { throw new Error('boom'); } });
     await settle();
     expect(out().status).toBe('error');
@@ -161,7 +171,6 @@ describe('usePreparedOutput', () => {
       expect(out().meta).toBe(1);
       await mount({ key: null, build: vi.fn() });
       expect(out().meta).toBeNull();
-      vi.spyOn(console, 'error').mockImplementation(() => {});
       await mount({ key: 'c', build: async () => { throw new Error('boom'); } });
       await settle();
       expect(out().meta).toBeNull();
@@ -231,7 +240,7 @@ describe('usePreparedOutput', () => {
   it('turns a failed build into error and reports it', async () => {
     const failure = new Error('boom');
     const onBuildError = vi.fn();
-    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const spy = vi.spyOn(console, 'error');
     await mount({ key: 'a', build: async () => { throw failure; }, onBuildError });
     await settle();
     expect(out().status).toBe('error');
@@ -241,7 +250,7 @@ describe('usePreparedOutput', () => {
   });
 
   it('prepareNow rebuilds the current key after a failed build', async () => {
-    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const spy = vi.spyOn(console, 'error');
     const builds: number[] = [];
     const build = async () => {
       builds.push(1);
@@ -259,24 +268,20 @@ describe('usePreparedOutput', () => {
   });
 
   describe('part urls', () => {
-    let made: string[];
-    beforeEach(() => {
-      made = [];
-      URL.createObjectURL = vi.fn(() => { const u = `blob:part-${made.length}`; made.push(u); return u; });
-    });
+    const made = () => create.mock.results.map((r) => String(r.value));
     const partsOf = () => ({
       parts: [
-        { blob: new Blob(['aa']), filename: 'a-1.png', pageNumber: 1 },
-        { blob: new Blob(['bb']), filename: 'a-2.png', pageNumber: 2 },
+        { blob: new NodeBlob(['aa']) as unknown as Blob, filename: 'a-1.png', pageNumber: 1 },
+        { blob: new NodeBlob(['bb']) as unknown as Blob, filename: 'a-2.png', pageNumber: 2 },
       ],
       pageCount: 2,
     });
-    const revoked = () => vi.mocked(URL.revokeObjectURL).mock.calls.map((c) => c[0]);
+    const revoked = () => revoke.mock.calls.map((c) => c[0]);
 
     it('gives each part an object url and carries its page number', async () => {
       await mount({ key: 'a', build: async () => partsOf() });
       await settle();
-      expect(out().parts?.map((p) => p.url)).toEqual(made);
+      expect(out().parts?.map((p) => p.url)).toEqual(made());
       expect(out().parts?.map((p) => p.pageNumber)).toEqual([1, 2]);
       expect(revoked()).toEqual([]);
     });
@@ -286,16 +291,16 @@ describe('usePreparedOutput', () => {
       const build = async () => { builds.push(1); return partsOf(); };
       await mount({ key: 'a', build });
       await settle();
-      const first = [...made];
+      const first = made();
       await mount({ key: 'b', build });
       expect(revoked()).toEqual(expect.arrayContaining(first));
       await settle();
-      const second = made.slice(first.length);
+      const second = made().slice(first.length);
       await mount({ key: null, build });
       expect(revoked()).toEqual(expect.arrayContaining(second));
       await mount({ key: 'c', build });
       await settle();
-      const third = made.slice(first.length + second.length);
+      const third = made().slice(first.length + second.length);
       await act(() => render(null, root));
       expect(revoked()).toEqual(expect.arrayContaining(third));
     });
@@ -309,7 +314,7 @@ describe('usePreparedOutput', () => {
       await settle();
       await mount({ key: 'a', build });
       expect(out().status).toBe('ready');
-      expect(out().parts?.every((p) => made.includes(p.url) && !revoked().includes(p.url))).toBe(true);
+      expect(out().parts?.every((p) => made().includes(p.url) && !revoked().includes(p.url))).toBe(true);
       expect(builds).toHaveLength(2);
     });
   });

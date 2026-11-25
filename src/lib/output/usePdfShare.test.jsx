@@ -53,6 +53,7 @@ describe('usePdfShare sharePrepared', () => {
   it('opens the native sheet once when Share is tapped twice before the first settles', async () => {
     prepareSignedPdf();
     let finishFirst;
+    // Forced: jsdom has no navigator.share, a held share promise stands for the open sheet
     nativeShare.share.mockImplementationOnce(() => new Promise((resolve) => { finishFirst = resolve; }));
 
     let first;
@@ -79,6 +80,7 @@ describe('usePdfShare sharePrepared', () => {
   it('reports a dismissed share sheet as canceled, with the rejection attached', async () => {
     prepareSignedPdf();
     const abort = new DOMException('Share canceled', 'AbortError');
+    // Forced: jsdom has no navigator.share, a rejected sheet is the dismissed case
     nativeShare.share.mockRejectedValueOnce(abort);
 
     let result;
@@ -91,6 +93,7 @@ describe('usePdfShare sharePrepared', () => {
   it('reports any other share failure as an error', async () => {
     prepareSignedPdf();
     const denied = new DOMException('Permission denied', 'NotAllowedError');
+    // Forced: jsdom has no navigator.share, a rejected sheet is the denied case
     nativeShare.share.mockRejectedValueOnce(denied);
 
     let result;
