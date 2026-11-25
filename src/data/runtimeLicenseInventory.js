@@ -2,7 +2,7 @@
 export const RUNTIME_LICENSE_PACKAGES = [
   {
     "name": "@astrojs/preact",
-    "version": "6.1.1",
+    "version": "6.1.6",
     "license": "MIT",
     "url": "https://docs.astro.build/en/guides/integrations-guide/preact/"
   },
@@ -50,13 +50,13 @@ export const RUNTIME_LICENSE_PACKAGES = [
   },
   {
     "name": "@preact/signals",
-    "version": "2.11.3",
+    "version": "2.11.4",
     "license": "MIT",
     "url": "https://preactjs.com"
   },
   {
     "name": "@preact/signals-core",
-    "version": "1.14.4",
+    "version": "1.14.5",
     "license": "MIT",
     "url": "https://preactjs.com"
   },
@@ -68,13 +68,13 @@ export const RUNTIME_LICENSE_PACKAGES = [
   },
   {
     "name": "@vercel/functions",
-    "version": "3.10.6",
+    "version": "3.11.3",
     "license": "Apache-2.0",
     "url": "https://vercel.com/docs/functions/functions-api-reference/vercel-functions-package"
   },
   {
     "name": "astro",
-    "version": "7.4.5",
+    "version": "7.4.12",
     "license": "MIT",
     "url": "https://astro.build"
   },
@@ -122,7 +122,7 @@ export const RUNTIME_LICENSE_PACKAGES = [
   },
   {
     "name": "lucide-preact",
-    "version": "1.67.0",
+    "version": "1.73.0",
     "license": "ISC",
     "url": "https://lucide.dev"
   },

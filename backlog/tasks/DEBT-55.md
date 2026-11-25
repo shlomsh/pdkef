@@ -27,3 +27,7 @@ Progress (2026-11-17): Sign's form-field detection (`useFormFieldRegions.ts`, th
 (`sign.js`, `openPdfDoc` with `repair`) now repair a lost page list. Production had shown it the same day: two
 `sign_form_detection` reports on build bef6c54, `TypeError` at pdf-lib's `catalog.Pages().traverse`, on a file pdf.js
 displayed. Merge, Compress, Unlock/Protect, Redact and the `tool` property on `pdf_page_tree` remain.
+
+Progress (2026-11-22): the Sign part holds in production. The daily error read shows no `sign_form_detection`
+report since the 17 Nov fix went live, five full clean days (18 to 22 Nov). Merge, Compress, Unlock/Protect, Redact and
+the `tool` property on `pdf_page_tree` still remain, so the ticket stays in progress.

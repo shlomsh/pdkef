@@ -12,7 +12,10 @@ The repository maintainer (currently [@shlomsh](https://github.com/shlomsh))
 owns dependency-alert triage. A contributor who opens or receives an update PR
 owns its review through merge, but cannot self-approve a security exception.
 
-- Dependabot checks npm every Monday at 09:00 Asia/Jerusalem. It groups
+- Dependabot checks npm on the first of each month at 09:00 Asia/Jerusalem,
+  and proposes a release only once it has been out for 14 days. Monthly, not
+  weekly, because every merged bump is a production deploy that resets Vercel's
+  edge cache. It groups
   minor/patch browser-runtime updates (including the PDF stack) separately from
   patch-only build-tool updates. Minor and major build-tool updates, and major
   runtime updates, remain individual pull requests.

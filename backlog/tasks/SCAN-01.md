@@ -124,3 +124,10 @@ band along one edge still defeats the edge guess; an edge-line detector is in it
 2026-10-30: `/scan-to-pdf/` was still "Discovered - currently not indexed", never crawled (found through the
 sitemap and `/how-to-scan-a-document-to-pdf/`). Its live test passed at 17:03 (SEO-53 has the brief robots.txt
 failure before it), and Shlomi requested indexing at 17:06. The 2026-11-23 read starts from that request.
+
+## Search Console, four weeks (2026-11-23)
+
+Neither `/scan-to-pdf/` nor `/how-to-scan-a-document-to-pdf/` is indexed (Shlomi; crawl dates not supplied), and
+Shlomi requested indexing on both the same day. Queries containing "scan", whole site, Web, 10-25 to 11-21 (read in
+Shlomi's Chrome): 0 clicks, 1 impression, 0% CTR, position 19.0. The one query is "scan and compress image", 0 / 1 at
+19.0, shown on 10-29. There is no page performance to read, so the acceptance item stays open. Re-check 2026-12-07.

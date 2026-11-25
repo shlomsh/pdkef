@@ -38,7 +38,8 @@ export const BUDGETS = {
   // MEM-44: Sign's third-party late code is its own file (sign-vendor.js), so one more request (44) buys a ~11 KB re-download, not ~279 KB, when Sign's code changes. Deliberate rise, owner's balance.
   // MEM-48: 6 fewer: 4 page files become 1 (-3, no PinnedNotes here; the island client stays its own file), signals and sha256 leave the install's extras (-2), and home-tools' stylesheet is inlined (-1). 41 to 35.
   // MEM-47: 3 fewer, the same swap. 35 to 32.
-  '/sign/': { firstVisit: 32, afterOpen: 0 },
+  // SEO-63 (owner's decision, 2026-11-24): 1 more, deliberate: the rating board is on every tool page, and its stylesheet (shared with the home page) is now a linked file. 32 to 33.
+  '/sign/': { firstVisit: 33, afterOpen: 0 },
 };
 
 const WORKER_REQUESTS = ['/sw.js', '/precache-manifest.json'];

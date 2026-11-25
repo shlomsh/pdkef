@@ -17,7 +17,7 @@ tools, the goal is the `★ (n) · Free` row PDF24 has.
 - `appRating()` pools every tool's votes into one `{average, count}`, read once per build. Two decimals, so 21 fives and
   a four read 4.95, not 5.
 - The bar is 10 votes across all tools. It is our own number: Google states no minimum.
-- The rating sits on the home page and Redact and nowhere else (Shlomi, 2026-11-06). Other tool pages carry no rating
+- The rating sat on the home page and Redact and nowhere else until SEO-61 (Merge) and SEO-63 (every tool page) (Shlomi, 2026-11-06). Other tool pages carry no rating
   line and no `aggregateRating`, so they cannot show stars in search results. `test:seo` fails a rating anywhere else.
 - A rated page's `SoftwareApplication` is named PDkef with the site as its `url`, because those are the votes it carries.
   Every other page keeps its own name.

@@ -13,14 +13,57 @@ and the replies himself, and this sheet only holds the facts. Each one was check
 
 ## The post
 
-- Title idea (Shlomi's words win): `Show HN: PDkef - free, open-source PDF tools that run in your browser`.
-  HN titles take a plain hyphen. Don't use "first", "best" or a superlative.
+- Title (Shlomi's words win): build it on one of the leads in the next section, not on "free PDF tools
+  in your browser" alone. HN titles take a plain hyphen. Don't use "first", "best" or a superlative.
 - Show HN asks for something people can try right away with no sign-up. PDkef has no accounts at all.
 - Never ask anyone for an upvote, and don't link the post in places where people would come just to vote.
 - The story is Shlomi's: a software engineer who thinks that now that code is quick to write, the PDF
   tools the web is full of should be free, light and private for everyone. CLAUDE.md asks that PDkef is
   never framed around how little time it took to build, so tell the "why", not the hours.
 - Be around for the first few hours to answer comments.
+
+## Lead with what only PDkef does
+
+A post that says "free PDF tools in your browser" walks into a known reaction. On
+[Show HN: Pdfwithlove](https://news.ycombinator.com/item?id=46675231) (2026-01, 177 points, PDF tools that
+run locally) the top skepticism was that client-side PDF tools are "the new hello world", with a list of
+five similar Show HNs from the two months before. The tool list is the supporting detail, not the hook.
+Pick one of these for the title and the first paragraph:
+
+- **Redaction that removes the text, not covers it.** Marked pages become a single image, so nothing
+  survives under the box; unmarked pages keep their text; every export drops page thumbnails that can show
+  the page before redaction (see Per tool, Redact). The guide explains when blur is not enough:
+  https://pdkef.com/blur-vs-blackout-vs-delete-pdf/
+- **Signing in 20 languages and scripts, right to left included.** Hebrew and Arabic boxes grow leftward
+  from a fixed right edge, shaping is right in the download and not only on screen, and every font is
+  embedded (`src/data/tools.js:105-212`; 25 font screening guards in CI, `npm run test:e2e:fonts`).
+- **Works on scans, with no OCR and no models.** Scan to PDF finds and straightens the page in the browser
+  and lets the person drag any corner; Highlight finds text lines from the page pixels, so a phone photo
+  of a book can be marked like a real PDF (`src/lib/pageLayout/rasterInk.ts`).
+
+## What HN will ask, and the true answer
+
+From the same thread. Answer with what PDkef does, never by running another project down.
+
+- **"How does it compare to Stirling PDF / PDF24?"** Say what PDkef is rather than grading them: a web
+  page that does the work in the tab, with nothing to install or host, which also works on a phone. If
+  someone wants to host it, the site builds to static files (`npm run build`), MIT licensed.
+- **"How do I know it runs locally?"** Open the network tab while using a tool, or load a tool, switch
+  the connection off and keep working. The production `connect-src` is `'self'` plus the site's own
+  usage-count subdomain (see Where your files go). The thread's complaint was that actions hung offline:
+  in PDkef, opening a tool caches that page's whole closure, every script, worker and wasm file it
+  reaches, including the ones a tool loads lazily (`public/sw.js:6-11`), and
+  `e2e/offline/offline-workflows.spec.js` tests working with the connection cut.
+- **"Where's the source?"** https://github.com/shlomsh/pdkef, MIT, the whole site, not a shell around a
+  closed core.
+- **"Can I install it?"** Yes, as a PWA, with a share target (`public/manifest.webmanifest`).
+- **"Was this built with an LLM?"** Expect it: GitHub shows Claude as co-author on 4,353 of 4,982
+  commits (`git log`, 2026-11-18). The true answer is yes, with a coding agent, and Shlomi decides the
+  design, reviews and owns it. What backs the quality is the testing: 967 unit test files, 176 Playwright
+  specs, and CI checks for the invariants (CSP, page weight, gesture behaviour, licenses, fonts). Per
+  CLAUDE.md, tell the "why" and how it is checked, never how fast it was built.
+- **"Why build another one?"** Shlomi's own answer (see The post): with code quick to write, the everyday
+  PDF tools should be free, light and private for everyone. Then the one thing above that is new.
 
 ## What it is
 

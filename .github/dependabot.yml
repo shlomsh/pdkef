@@ -2,11 +2,15 @@ version: 2
 updates:
   - package-ecosystem: npm
     directory: "/"
+    # Monthly, not weekly: every merged bump is a production deploy, and each
+    # deploy resets Vercel's edge cache. One batch a month keeps cache hits up.
     schedule:
-      interval: weekly
-      day: monday
+      interval: monthly
       time: "09:00"
       timezone: Asia/Jerusalem
+    # Propose a release only once it has been out for two weeks.
+    cooldown:
+      default-days: 14
     open-pull-requests-limit: 5
     assignees:
       - shlomsh

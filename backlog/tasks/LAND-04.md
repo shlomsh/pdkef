@@ -288,5 +288,8 @@ count). The rule is off on `landmines-all` meanwhile.
   retry has a disable with its reason (Shlomi's call: record them). A fresh review counted all 44 map entries exact. The
   raised-limit check cannot compare a renamed rule, so the old and new counts were compared by hand: one is lower
   (`flatten.js`), none is higher.
+- Main merged (2026-11-25, c200779b2): the lock file is main's plus the branch's own packages, no other version
+  moved. Main's new tests keep every assertion: Image to PDF's fail the spied real builder, Scan's camera tests run
+  telemetry through a spy, and what jsdom has not is marked forced. Seven mutations on those lines each fail a test.
 - Found on the way: RED-75 (preview documents never freed on pdf.js 6.5), RED-76 (one very long line
   overflows the text preview).

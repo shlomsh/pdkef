@@ -29,16 +29,15 @@ PDF24's stars (LOC-03). This ticket takes that step for Merge only, then measure
 
 ## Not in scope
 
-Compress and the other tools. They wait on the read below.
+Compress and the other tools. Superseded on 2026-11-24: Shlomi chose to put the rating on every tool page now, see SEO-63.
 
 ## Done when
 
-- Production `/merge/` and `/he/merge/` carry `aggregateRating` on PDkef and the matching visible numbers, and
-  `/compress/` carries none.
+- Production `/merge/` and `/he/merge/` carry `aggregateRating` on PDkef and the matching visible numbers.
 - Google's Rich Results Test passes on both, and indexing is requested for both (Shlomi).
 - A read of Search Console after about four weeks, `/merge/` and `/he/merge/` CTR and position against the weeks
   before, says whether stars lift clicks. If they do, the next ticket picks the next tool by impressions at low CTR;
-  if they do not, the rating comes back off those pages.
+  if they do not, look closer (SEO-63) rather than take the rating off.
 
 ## Risk to read for
 

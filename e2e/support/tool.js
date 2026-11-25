@@ -2,12 +2,12 @@
 import { expect } from '@playwright/test';
 
 /**
- * Waits for the first `client:load` island on the page (or in a scope such as
+ * Waits for the tool's own `client:load` island, not the rating board's, or on a page with no tool the first one (or in a scope such as
  * a second tab's page) to hydrate.
  * @param {import('@playwright/test').Page} page
  */
 export async function waitForIsland(page) {
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await page.locator(':is([data-tool-page], body:not(:has([data-tool-page]))) astro-island[client="load"]:not([ssr])').first().waitFor();
 }
 
 /**

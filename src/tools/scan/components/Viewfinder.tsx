@@ -39,23 +39,50 @@ function flyToStack(dialog: HTMLElement, url: string, quad: Quad | null, videoSi
   }, () => {});
 }
 
+/** The browser refused the photo (SCAN-78): the shutter is there to try again, and so is the phone's own camera. */
+function RefusedNotice({ onFiles }: { onFiles: (files: File[]) => void }) {
+  return (
+    <div class={styles.notice} role="alert">
+      <p>{t.photoRefused}</p>
+      <TakePhotoButton onFiles={onFiles} buttonClass={styles.fallback} />
+    </div>
+  );
+}
+
+function useBoxSize(ref: MutableRef<HTMLElement | null>) {
+  const [size, setSize] = useState({ width: 0, height: 0 });
+  useEffect(() => {
+    const box = ref.current!;
+    const measure = () => { const r = box.getBoundingClientRect(); setSize({ width: r.width, height: r.height }); };
+    measure();
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(box);
+    return () => observer.disconnect();
+  }, []);
+  return size;
+}
+
 export default function Viewfinder(props: ViewfinderProps) {
   const dialogRef = useRef<HTMLDialogElement | null>(null);
   const stackImgRef = useRef<HTMLImageElement | null>(null);
   const propsRef = useRef(props);
   propsRef.current = props;
-  const [size, setSize] = useState({ width: 0, height: 0 });
+  const size = useBoxSize(dialogRef);
   const [snapUrl, setSnapUrl] = useState<string | null>(null);
   const stopFlight = useRef<() => void>(() => {});
   const snapUrlRef = useRef<string | null>(null);
+  const closed = useRef(false);
 
   const camera = useCamera({
     paused: props.paused,
     scanFiles: props.scanFiles,
     onTaken: (page: TakenPage) => {
       const dialog = dialogRef.current;
+      // The camera closed while the photo was taken: it joins the scan, except a retake, which closing cancels.
+      if (closed.current && propsRef.current.mode === 'one') return;
       propsRef.current.onTaken(page.file);
-      if (!page.snapshot) return;
+      if (!page.snapshot || closed.current) return;
       const url = URL.createObjectURL(page.snapshot);
       snapUrlRef.current = url;
       setSnapUrl((old) => { if (old) URL.revokeObjectURL(old); return url; });
@@ -71,16 +98,6 @@ export default function Viewfinder(props: ViewfinderProps) {
     if (!dialog.open) dialog.showModal();
   }, []);
 
-  useEffect(() => {
-    const dialog = dialogRef.current!;
-    const measure = () => { const r = dialog.getBoundingClientRect(); setSize({ width: r.width, height: r.height }); };
-    measure();
-    if (typeof ResizeObserver === 'undefined') return;
-    const observer = new ResizeObserver(measure);
-    observer.observe(dialog);
-    return () => observer.disconnect();
-  }, []);
-
   // The page's own thumbnail takes over from the snapshot once the island has it.
   useEffect(() => {
     if (!props.lastSrc) return;
@@ -88,6 +105,7 @@ export default function Viewfinder(props: ViewfinderProps) {
     setSnapUrl((old) => { if (old) URL.revokeObjectURL(old); return null; });
   }, [props.lastSrc]);
   useEffect(() => () => {
+    closed.current = true;
     stopFlight.current();
     if (snapUrlRef.current) URL.revokeObjectURL(snapUrlRef.current);
   }, []);
@@ -159,6 +177,7 @@ export default function Viewfinder(props: ViewfinderProps) {
 
       {camera.status === 'live' && (
         <div class={styles.bottom}>
+          {camera.photoRefused && <RefusedNotice onFiles={props.onFallbackFiles} />}
           <div class={styles.side}>
             {showStack && (
               <button type="button" class={styles.stack} data-stack aria-label={formatMessage(t.stackLabel, { count: props.count })} onClick={props.onReview}>

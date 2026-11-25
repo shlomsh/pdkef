@@ -53,7 +53,7 @@ for (const { route, selector, name } of pickers) {
     await input.setInputFiles(file);
     release();
 
-    await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+    await page.locator('[data-tool-page] astro-island[client="load"]:not([ssr])').first().waitFor();
     await expect(page.locator('[data-empty-state]')).toHaveCount(0, { timeout: 15_000 });
   });
 }

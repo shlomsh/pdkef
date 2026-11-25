@@ -19,7 +19,7 @@ The approved runtime licenses are MIT, Apache-2.0, ISC, BSD-2-Clause, BSD-3-Clau
 
 | Package | Locked version | License |
 | --- | --- | --- |
-| [@astrojs/preact](https://docs.astro.build/en/guides/integrations-guide/preact/) | 6.1.1 | MIT |
+| [@astrojs/preact](https://docs.astro.build/en/guides/integrations-guide/preact/) | 6.1.6 | MIT |
 | [@cantoo/pdf-lib](https://pdf-lib.js.org) | 2.11.1 | MIT |
 | [@floating-ui/core](https://floating-ui.com) | 1.8.0 | MIT |
 | [@floating-ui/dom](https://floating-ui.com) | 1.8.0 | MIT |
@@ -27,11 +27,11 @@ The approved runtime licenses are MIT, Apache-2.0, ISC, BSD-2-Clause, BSD-3-Clau
 | [@floating-ui/react-dom](https://floating-ui.com/docs/react-dom) | 2.1.9 | MIT |
 | [@floating-ui/utils](https://floating-ui.com) | 0.2.12 | MIT |
 | [@pdf-lib/fontkit](https://github.com/Hopding/fontkit) | 1.1.1 | MIT |
-| [@preact/signals](https://preactjs.com) | 2.11.3 | MIT |
-| [@preact/signals-core](https://preactjs.com) | 1.14.4 | MIT |
+| [@preact/signals](https://preactjs.com) | 2.11.4 | MIT |
+| [@preact/signals-core](https://preactjs.com) | 1.14.5 | MIT |
 | [@vercel/analytics](https://github.com/vercel/analytics) | 2.0.1 | MIT |
-| [@vercel/functions](https://vercel.com/docs/functions/functions-api-reference/vercel-functions-package) | 3.10.6 | Apache-2.0 |
-| [astro](https://astro.build) | 7.4.5 | MIT |
+| [@vercel/functions](https://vercel.com/docs/functions/functions-api-reference/vercel-functions-package) | 3.11.3 | Apache-2.0 |
+| [astro](https://astro.build) | 7.4.12 | MIT |
 | [bidi-js](https://github.com/lojjic/bidi-js) | 1.1.0 | MIT |
 | [country-flag-icons](https://gitlab.com/catamphetamine/country-flag-icons#readme) | 1.6.20 | MIT |
 | [culori](git@github.com:Evercoder/culori) | 4.0.2 | MIT |
@@ -39,7 +39,7 @@ The approved runtime licenses are MIT, Apache-2.0, ISC, BSD-2-Clause, BSD-3-Clau
 | [hachure-fill](https://github.com/pshihn/hachure-fill#readme) | 0.5.2 | MIT |
 | [html-entities](https://github.com/mdevils/html-entities) | 2.6.0 | MIT |
 | [iso-3166-2](http://github.com/olahol/iso-3166-2.js) | 1.0.0 | MIT |
-| [lucide-preact](https://lucide.dev) | 1.67.0 | ISC |
+| [lucide-preact](https://lucide.dev) | 1.73.0 | ISC |
 | [node-html-better-parser](https://github.com/Sharcoux/node-html-parser) | 1.5.9 | MIT |
 | [pako](https://github.com/nodeca/pako) | 1.0.11 | (MIT AND Zlib) |
 | [path-data-parser](https://github.com/pshihn/path-data-parser#readme) | 0.1.0 | MIT |
@@ -57,7 +57,7 @@ The approved runtime licenses are MIT, Apache-2.0, ISC, BSD-2-Clause, BSD-3-Clau
 
 ## Runtime package notices
 
-### @astrojs/preact (6.1.1) - MIT
+### @astrojs/preact (6.1.6) - MIT
 
 withastro
 
@@ -292,7 +292,7 @@ Andrew Dillon <andrew.dillon.j@gmail.com>
 
 The published package metadata declares `MIT`. Its upstream license notice is <https://github.com/Hopding/fontkit/blob/master/LICENSE>.
 
-### @preact/signals (2.11.3) - MIT
+### @preact/signals (2.11.4) - MIT
 
 See upstream notice
 
@@ -320,7 +320,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### @preact/signals-core (1.14.4) - MIT
+### @preact/signals-core (1.14.5) - MIT
 
 See upstream notice
 
@@ -376,7 +376,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### @vercel/functions (3.10.6) - Apache-2.0
+### @vercel/functions (3.11.3) - Apache-2.0
 
 See upstream notice
 
@@ -584,7 +584,7 @@ Apache License
    limitations under the License.
 ```
 
-### astro (7.4.5) - MIT
+### astro (7.4.12) - MIT
 
 withastro
 
@@ -846,7 +846,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### lucide-preact (1.67.0) - ISC
+### lucide-preact (1.73.0) - ISC
 
 Eric Fennis
 

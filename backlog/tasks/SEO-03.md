@@ -290,6 +290,21 @@ Read: 2026-12-01, against the baseline above, logged in [findings doc section 8]
   5 contributors).
 - 2026-11-17, Hacker News: Shlomi created an account for the Show HN; a comment or two on other stories
   before 2026-11-24 so it is not brand new on the day.
+- 2026-11-18, first HN comment: on [Show HN: Lex Cloak](https://news.ycombinator.com/item?id=50548242)
+  (local PII redaction), asking how OCR-vs-text-layer mismatches are redacted and what a redacted page
+  becomes, and pointing at page thumbnails as a leak. No PDkef mention or link.
+- 2026-11-18, second HN comment: a reply to the author on
+  [Show HN: Lampka](https://news.ycombinator.com/item?id=50497141) (Windows PDF reader), asking whether
+  picture regions inside full-page scans could keep their colour in dark mode, from finding text lines in
+  scan pixels. No PDkef mention or link.
+- HN Show HN lesson, from [Pdfwithlove](https://news.ycombinator.com/item?id=46675231) (2026-01, 177
+  points): HN reads client-side PDF toolkits as "the new hello world" and asks for Stirling PDF / PDF24
+  comparisons, proof it runs locally, source, and offline. Lead PDkef's post with what only it does.
+- 2026-11-18, AlternativeTo: the listing was approved and is live (their "PDkef is live" email, 12:45).
+- 2026-11-18, Help Desk Geek: email sent from Shlomi's Gmail to Aseem Kishore about
+  [How to Redact Sensitive Information in Word and PDF Documents on Mac](https://helpdeskgeek.com/redact-sensitive-information-word-pdf-mac/):
+  PDkef's origin story and why it has no servers, Redact as a no-install free option, and the
+  blur-vs-blackout guide as a reference. No reply yet.
 - Hebrew communities (pilot step 5): dropped 2026-11-17. Shlomi is not a member of any Israeli group, and
   joining one cold to post a link reads as spam.
 - 2026-11-17, AlternativeTo: PDkef listing submitted from Shlomi's account to the free review queue (no paid
@@ -303,5 +318,8 @@ Read: 2026-12-01, against the baseline above, logged in [findings doc section 8]
   free plan's cap, whole words: redact pdf, blur pdf, compress pdf to 100kb, reduce pdf size for upload, sign
   pdf in hebrew. "merge pdf without uploading" left out for the cap. Phrases match literally, so the long ones
   may stay quiet; swap them for shorter ones if they show no hits by the 2026-12-01 read.
+- 2026-11-19, F5Bot keywords swapped early: no alert email in two days. Only "redact pdf" had hits (two, on
+  2026-11-14 and 11-16, before the account existed, both app launch posts). Now, whole words: pdkef, redact a
+  pdf, compress a pdf, sign a pdf, pdf redaction. "pdkef" catches mentions of the site itself.
 - LinkedIn (Hebrew, origin story): posted about four months before the pilot, about 5,200 impressions; its
   first comment links `pdkef.vercel.app`, which redirects to pdkef.com.

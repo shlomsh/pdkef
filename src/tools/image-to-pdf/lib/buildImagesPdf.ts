@@ -17,9 +17,14 @@ export async function buildImagesPdf(
   return { blob, pageCount: files.length - unreadable.length };
 }
 
-/** A build failure is reported, except a picture nothing can decode: that is the person's file. */
+/** Whether a failed build is ours to count: a picture nothing can decode is the person's file. Pure. */
+export function isBuildFailure(err: unknown): boolean {
+  return !(err instanceof UnreadableImageError);
+}
+
+/** Reports a build failure that is ours. */
 export function reportBuildError(err: unknown): void {
-  if (!(err instanceof UnreadableImageError)) reportError('pdf_tool_run', err, 'build_pdf_from_images');
+  if (isBuildFailure(err)) reportError('pdf_tool_run', err, 'build_pdf_from_images');
 }
 
 /**

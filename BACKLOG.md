@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 187 live: 81 up next, 24 then, 26 waiting, 56 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 188 live: 82 up next, 24 then, 26 waiting, 56 parked.
 
 ## Redact: finish removal
 
@@ -296,6 +296,7 @@ Mostly waiting on dated Search Console reads. Two small things can ship now.
 | SEO-59 | P2 | [SEO-59](backlog/tasks/SEO-59.md) · The blur video sits on Redact, below the tool | In progress |
 | SEO-60 | P2 | [SEO-60](backlog/tasks/SEO-60.md) · Tool-page section headings say something, and guide cards sit on the page grid | In progress |
 | SEO-61 | P2 | [SEO-61](backlog/tasks/SEO-61.md) · Put the app rating on Merge, English and Hebrew, and read whether stars lift clicks | In progress |
+| SEO-63 | P2 | [SEO-63](backlog/tasks/SEO-63.md) · The app rating on every tool page | In progress |
 | SCAN-01 | P3 | [SCAN-01](backlog/tasks/SCAN-01.md) · Scan to PDF: its own tool at /scan-to-pdf/, sharing Image to PDF's engine, plus a how-to-scan-to-PDF guide | In progress |
 
 ### Waiting
@@ -388,7 +389,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Redact: finish removal: 31 done, 1 retired
 - Sign: finish fill mode: 4 done, 1 retired
 - Highlight PDF: a tool for reading: 12 done, 1 retired
-- Scan: camera to WhatsApp: 27 done, 0 retired
+- Scan: camera to WhatsApp: 28 done, 0 retired
 - Page enhancement for Scan and Highlight: 7 done, 1 retired
 - Tool pages: show the verb: 9 done, 0 retired
 - Form detector accuracy: 20 done, 1 retired

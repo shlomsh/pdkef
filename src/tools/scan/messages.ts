@@ -11,6 +11,8 @@ export interface ScanMessages extends DownloadMessages {
   cameraStarting: string;
   cameraOff: string;
   cameraSlow: string;
+  /** SCAN-78, the browser refused the photo. */
+  photoRefused: string;
   hintPoint: string;
   hintHold: string;
   hintTurn: string;
@@ -164,6 +166,7 @@ export const englishScanMessages: ScanMessages = {
   cameraStarting: 'Opening the camera…',
   cameraOff: "The camera didn't open here, so each page goes in as a photo instead.",
   cameraSlow: 'Each page goes in as a photo on this phone, which keeps it sharp.',
+  photoRefused: "That photo didn't come through. Tap the shutter to try again, or take it with your phone's camera.",
   hintPoint: 'Point at a page',
   hintHold: 'Hold still',
   hintTurn: 'Page {count}. Turn the page.',
