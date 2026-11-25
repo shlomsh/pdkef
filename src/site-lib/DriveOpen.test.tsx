@@ -13,10 +13,11 @@ import { drainPromises } from '../test/support/drainPromises.ts';
 import { waitUntil } from '../test/support/waitUntil.ts';
 import { peekHandoff } from '#lib/drafts/draftStore.ts';
 
-// Replaced: Google's sign-in popup (googleToken) and the Picker (drivePicker, gapi), which load Google's scripts.
+// Replaced: Google's sign-in popup (googleToken), which loads Google's script. The Picker and the redirect are
+// in DriveOpen.chrome.test.tsx.
 // The Drive download is the real driveClient; MSW answers its two requests to googleapis. Everything else
 // runs for real: intent, route, saved token and redirect return on the page's own URL and localStorage, the
-// chooser, and the hand-off on fake-indexeddb. The two spies see the redirect and the hand-off.
+// chooser, and the hand-off on fake-indexeddb. The spy sees the redirect.
 // Forced: Google's sign-in popup cannot open in a test
 vi.mock('./drive/googleToken.ts', () => ({ requestDriveToken: vi.fn() }));
 vi.mock('./drive/driveSignIn.ts', { spy: true });

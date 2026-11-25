@@ -323,3 +323,10 @@ count). The rule is off meanwhile.
   lost, two caught now that the old mocks let through (a share of only the first file, a wrong download name), and three the review
   asked for and got (the page drawn in the preview, its picture, no title in a share). Left as never caught: Android in the cloud
   drive hint, the preview's abort on close, a stale failed hand-off clearing busy.
+- `src/site-lib` (2026-11-25): 718 sites in 202 files down to 691 in 201, 29 left in the area, each with its forced line. Reports, service
+  worker and app update tests send real beacons and hold real update holds, the middleware calls the real `next()`, the lazy error
+  reporter is really imported, storage that is missing is a Node file with none, and stores that refuse or hang are real ones. Left:
+  Google's popup and Picker, `location.reload`, CacheStorage, the service worker registration and layout sizes. A fresh review ran
+  66 mutations: no coverage lost, and a report sent to the wrong path, never caught before, now is. Left as never caught: a Drive
+  session for another user, the chooser after a failed hand-off, the chunk record read back, the store's Authorization header,
+  `.vercel.app` usage, the report's 204, two middleware answers, the Picker's `forgetSaved`.

@@ -22,7 +22,8 @@ let recorder: BeaconRecorder;
 let pipelineCommands: unknown[][] = [];
 
 const deliver = async (): Promise<unknown[][]> => {
-  for (const { blob } of recorder.calls.splice(0)) {
+  for (const { url, blob } of recorder.calls.splice(0)) {
+    expect(url).toBe('/api/report');
     await POST(new Request('https://pdkef.com/api/report', { method: 'POST', body: await blob.text() }));
   }
   return pipelineCommands;
@@ -40,7 +41,7 @@ beforeEach(() => {
   process.env.KV_REST_API_URL = 'https://store.invalid';
   process.env.KV_REST_API_TOKEN = 'test-token';
   recorder = installBeaconRecorder();
-  // Forced: a Server-Timing header with the build commit, which Node has no page for
+  // Forced: the build commit comes from the page's own Server-Timing header, and Node has no navigation entry
   vi.stubGlobal('performance', { getEntriesByType: () => [{ serverTiming: [{ name: 'build', description: '08e10cf' }] }] });
   setReportingEnabledForTests(true);
   resetErrorReportingForTests();
