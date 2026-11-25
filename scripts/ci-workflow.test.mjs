@@ -123,10 +123,14 @@ describe('ci.yml plan beside scope', () => {
     for (const s of later) expect(s.if, s.name).toContain("steps.change.outputs.docs_only != 'true'");
   });
 
-  it('every consumer checks scope itself', () => {
+  // plan also succeeds with nothing built, so its own verdict gates whoever downloads dist: scope can fail on a docs-only change.
+  it('every consumer skips a docs-only change by the verdict that skipped the build', () => {
+    expect(jobs.plan.outputs.docs_only).toBe('${{ steps.change.outputs.docs_only }}');
     for (const j of ['build', 'e2e', 'e2e-webkit', 'font-guards', 'export-guards']) {
       expect([].concat(jobs[j].needs), j).toContain('scope');
-      expect(jobs[j].if, j).toContain(jobs.checks.if.replace('always() && ', ''));
+      expect(jobs[j].if, j).toContain(
+        "always() && needs.scope.outputs.nightly_unchanged != 'true' && needs.plan.result == 'success' && needs.plan.outputs.docs_only != 'true'",
+      );
     }
   });
 });

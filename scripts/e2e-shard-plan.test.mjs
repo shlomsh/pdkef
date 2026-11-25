@@ -1,4 +1,6 @@
 // CI speed: unit tests for the time-based e2e shard plan (pure parts only).
+import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { specFiles, splitByTime, toFilter, parseShard } from './e2e-shard-plan.mjs';
 
@@ -67,5 +69,13 @@ describe('parseShard', () => {
   it('parses i/n', () => expect(parseShard('2/4')).toEqual({ i: 2, n: 4 }));
   it.each(['0/4', '5/4', '1/0', 'x', '1', '1/2/3', '-1/4', '1.5/4'])('rejects %s', (v) => {
     expect(() => parseShard(v)).toThrow();
+  });
+});
+
+describe('e2e-shard-plan', () => {
+  const script = fileURLToPath(new URL('./e2e-shard-plan.mjs', import.meta.url));
+
+  it('prints an empty shard for paths that hold no chromium spec', () => {
+    expect(execFileSync(process.execPath, [script, '--shard', '1/2', '--paths', 'e2e/export/'], { encoding: 'utf8', stdio: 'pipe' }).trim()).toBe('');
   });
 });

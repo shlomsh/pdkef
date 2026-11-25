@@ -95,7 +95,7 @@ function main() {
   if (arg('--record') !== undefined) return record(arg('--record'));
   const { i, n } = parseShard(arg('--shard'));
   const paths = (arg('--paths') ?? '').trim().split(/\s+/).filter(Boolean);
-  const res = spawnSync('npx', ['playwright', 'test', '--list', '--project=chromium', '--reporter=json', ...paths], {
+  const res = spawnSync('npx', ['playwright', 'test', '--list', '--project=chromium', '--reporter=json', '--pass-with-no-tests', ...paths], {
     encoding: 'utf8',
     maxBuffer: 256 * 1024 * 1024,
   });

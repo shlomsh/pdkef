@@ -404,13 +404,14 @@ jobs:
   # dates pages from git (see `build`). `product_e2e` false means no e2e job runs; `e2e_shards` is a
   # JSON array of 1..4 numbers sized by the spec count in scope (scripts/e2e-shard-count.mjs).
   # It starts beside `scope` and classifies the change itself, so the build does not wait for another
-  # runner. It therefore succeeds on a docs-only change too, with nothing built: every consumer checks
-  # `scope` for itself. An empty base with --head is never docs-only.
+  # runner. It therefore succeeds on a docs-only change too, with nothing built: every consumer reads
+  # its `docs_only`. An empty base with --head is never docs-only.
   plan:
     runs-on: ubuntu-latest
     env:
       BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
     outputs:
+      docs_only: ${{ steps.change.outputs.docs_only }}
       product_e2e: ${{ steps.affected.outputs.product_e2e }}
       e2e_paths: ${{ steps.affected.outputs.e2e_paths }}
       fonts: ${{ steps.affected.outputs.fonts }}
@@ -505,7 +506,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     needs: [scope, plan]
-    if: always() && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true') && needs.plan.result == 'success'
+    if: always() && needs.scope.outputs.nightly_unchanged != 'true' && needs.plan.result == 'success' && needs.plan.outputs.docs_only != 'true'
 
     steps:
     - uses: actions/checkout@v5
@@ -574,7 +575,7 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
     needs: [scope, plan, playwright-version]
-    if: always() && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true') && needs.plan.result == 'success' && needs.plan.outputs.product_e2e != 'false' && needs.playwright-version.result == 'success'
+    if: always() && needs.scope.outputs.nightly_unchanged != 'true' && needs.plan.result == 'success' && needs.plan.outputs.docs_only != 'true' && needs.plan.outputs.product_e2e != 'false' && needs.playwright-version.result == 'success'
     strategy:
       fail-fast: false
       matrix:
@@ -656,7 +657,7 @@ jobs:
     # Playwright release runs WebKit on 26.04.
     runs-on: ubuntu-24.04
     needs: [scope, plan, playwright-version]
-    if: always() && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true') && needs.plan.result == 'success' && needs.plan.outputs.product_e2e != 'false' && needs.playwright-version.result == 'success'
+    if: always() && needs.scope.outputs.nightly_unchanged != 'true' && needs.plan.result == 'success' && needs.plan.outputs.docs_only != 'true' && needs.plan.outputs.product_e2e != 'false' && needs.playwright-version.result == 'success'
     # QUAL-29 (2026-10-26): Playwright's own image, with chromium, webkit and every system library they
     # need already in it. `install-deps` used to fetch about 119 MB of WebKit libraries from the Azure
     # Ubuntu mirror on every run, usually in 30s but in 35-55 min on 6 runs that day (48 kB/s, run
@@ -988,7 +989,7 @@ jobs:
   font-guards:
     runs-on: ubuntu-latest
     needs: [scope, plan]
-    if: always() && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true') && needs.plan.result == 'success' && needs.plan.outputs.fonts != 'false'
+    if: always() && needs.scope.outputs.nightly_unchanged != 'true' && needs.plan.result == 'success' && needs.plan.outputs.docs_only != 'true' && needs.plan.outputs.fonts != 'false'
     strategy:
       fail-fast: false
       matrix:
@@ -1105,7 +1106,7 @@ jobs:
   export-guards:
     runs-on: ubuntu-latest
     needs: [scope, plan]
-    if: always() && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true') && needs.plan.result == 'success' && needs.plan.outputs.export_guards != 'false'
+    if: always() && needs.scope.outputs.nightly_unchanged != 'true' && needs.plan.result == 'success' && needs.plan.outputs.docs_only != 'true' && needs.plan.outputs.export_guards != 'false'
 
     steps:
     - uses: actions/checkout@v5
