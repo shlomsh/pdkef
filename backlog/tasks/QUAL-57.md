@@ -39,5 +39,25 @@ in the shell or Scan started Chromium in every subagent's `check:fast`.
 ## Status
 
 - `check:fast` leaves the browser project out (`runUnitByImpact`, test seen failing first).
-- CI waits less (built 2026-11-25, its own run still to be timed): four unit shards, the browser tests in two,
-  chromium e2e shards split by recorded time (`scripts/e2e-shard-plan.mjs`), and `plan` beside `scope`.
+- CI waits less: four unit shards, the browser tests in two, chromium e2e shards split by recorded time
+  (`scripts/e2e-shard-plan.mjs`), and `plan` beside `scope`. Wide runs took 367 and 380 s of wall time before
+  (45592513889, 45587745808) and 302, 305 and 307 s after (45609749444, 45607925164, 45621050714).
+- The guards of `check:fast` take 2.9 s, were 12.5 s; `check:push` runs its guards three at a time.
+- Every job has a `timeout-minutes`, and the browser test count cannot grow (`browserTests` in
+  `scripts/ratchet-limits.json`).
+
+## Local times after, 2026-11-25, quiet machine, seconds, before the two checks were reworked (399b654ba) and at e6c2e188b
+
+| One-file edit | `check:fast` | `check:push` |
+| --- | --- | --- |
+| Merge hook | 20 to 11 | 46 to 40 |
+| Shell (`BasePdfTool`) | 28 to 17 | 77 to 43 |
+| Lib (`errorReport`) | 54 to 42 | 118 to 65 |
+
+One run each; the lib row's 118 is from an earlier round, as this round's old run stopped at a unit flake fixed since. An edit
+to `vitest.config.js` still runs the whole suite (213 s).
+
+## Open
+
+- Seconds are not reported on CI yet. Shlomi has not decided on a time guard for counts and spread.
+- `e2e-spec-seconds.json` is refreshed by hand; its entry for `launcher-picker-pinned` is now low.

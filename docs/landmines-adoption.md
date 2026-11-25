@@ -24,7 +24,7 @@ middleware.ts`: 30,908 findings in 2,487 files, about 3 seconds.
 | `no-explicit-return-types` | 2,475 | **Declined.** Style choice that does not fit `checkJs` code. |
 | `test-file-names` | 188 | **Declined.** 176 are Playwright `.spec.js`, our convention. |
 | `colocated-tests` | 13 | **Adopted (LAND-05).** Ten tests whose subject the rule cannot see carry a disable line naming it; the ticket waits on upstream's colocated-tests fix (PR 33). |
-| `strict-msw`, `package-exports` | 0 | Not applicable: no MSW, not a published package. |
+| `strict-msw`, `package-exports` | 0 | **On** (none then; `strict-msw` has 2 recorded sites since the MSW waves). |
 
 Oxlint's own default `correctness` rules added about 140 findings (45 unused variables, comma and
 short-circuit expressions). The ones opened were style, not bugs; they are switched off in

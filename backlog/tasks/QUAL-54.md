@@ -1,10 +1,9 @@
 ---
 id: "QUAL-54"
 title: "The unit jobs stop failing when the runner cannot reach Ubuntu's package servers"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "robustness"
-horizon: "now"
 depends_on: []
 ---
 
@@ -75,5 +74,6 @@ Not the fix: raising the bounds or adding attempts in `ci-bounded-apt.sh`.
   they got the same shape: the Playwright system libraries are restored from cached .debs (key: runner image,
   Playwright version, `-v1`) and installed with `dpkg -i`; apt (`install-deps`, bounded) runs only on a miss or a
   failed dpkg, then the fresh .debs are saved. The step still fails the job loudly if neither route works.
-- Unverified until a CI run: the cache key (`ImageOS`/`ImageVersion` env vars), the first miss populating the
-  cache, a hit installing with `dpkg -i` (all dependencies in the cached set), and the skip path.
+- Seen on CI (2026-11-25): on run 45623382967, `units (1)` hit `poppler-debs-ubuntu26-20261116.202.1-v1` and installed in about 1 s
+  with no apt; on run 45619504308, `font-guards (1)` hit `playwright-deps-debs-ubuntu26-20261116.202.1-1.64.1-v1`. A first miss had
+  populated both. Not seen: a run whose package servers are unreachable on a miss (the skip path).

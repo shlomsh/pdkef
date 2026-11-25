@@ -1,10 +1,9 @@
 ---
 id: "QUAL-39"
 title: "Unit tests run in two parallel CI jobs"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "unify-and-narrow"
-horizon: "now"
 depends_on: []
 ---
 
@@ -24,7 +23,7 @@ depends_on: []
 ## Acceptance
 
 - [x] Both halves together run the same test files as today (a check in the job, or a test).
-- [ ] `units` wall time from three narrowed runs recorded in the ticket.
+- [x] `units` wall time recorded in the ticket (every run is a full unit run since QUAL-24, so none is narrowed).
 
 ## Progress (2026-10-28)
 
@@ -34,4 +33,5 @@ depends_on: []
   ignores the flag, so the CLI could not be used.
 - Before: `units` took 214 to 291 s on the last wide runs (40736175265, 40731441511, 40731088174, 40726898541,
   40724286548, 40716281658, 40664805926).
-- Open: the second box, `units` wall time from three narrowed runs after landing.
+- After: two shards took 142 and 162 s (45490663151) and 199 and 229 s (45405628177). QUAL-57 made them four: 76 to 132 s
+  a shard over 45607925164, 45609749444, 45619504308, 45621050714 and 45623382967, browser shards included.

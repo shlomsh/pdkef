@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 185 live: 83 up next, 23 then, 26 waiting, 53 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 183 live: 80 up next, 24 then, 26 waiting, 53 parked.
 
 ## Redact: finish removal
 
@@ -206,7 +206,6 @@ Production errors you can see, small tools that clean up after themselves, and d
 | MEM-46 | P1 | [MEM-46](backlog/tasks/MEM-46.md) · Shared late code that never touches the PDF writer rides in the first-paint files | In progress |
 | MEM-48 | P1 | [MEM-48](backlog/tasks/MEM-48.md) · Pages with an interactive part load their UI glue as one file | In progress |
 | MEM-50 | P1 | [MEM-50](backlog/tasks/MEM-50.md) · A telemetry change no longer needs a rise in the /open/ page budget |  |
-| QUAL-54 | P1 | [QUAL-54](backlog/tasks/QUAL-54.md) · The unit jobs stop failing when the runner cannot reach Ubuntu's package servers | In progress |
 | MEM-36 | P2 | [MEM-36](backlog/tasks/MEM-36.md) · Pinned notes are baked into the page at build, not fetched per visit | In progress |
 | MEM-42 | P2 | [MEM-42](backlog/tasks/MEM-42.md) · The rating board's flags come as one file | In progress |
 | QUAL-57 | P2 | [QUAL-57](backlog/tasks/QUAL-57.md) · check:fast never starts a browser, and CI says when it slows down | In progress |
@@ -222,6 +221,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 | MEM-41 | P2 | [MEM-41](backlog/tasks/MEM-41.md) · The bundling and stub guards cannot pass on a half-working build |  |
 | QUAL-55 | P2 | [QUAL-55](backlog/tasks/QUAL-55.md) · The update tests' setup stops timing out waiting for a worker to take a tab |  |
 | QUAL-56 | P2 | [QUAL-56](backlog/tasks/QUAL-56.md) · Sign's rotate-page test passes every time, not most times |  |
+| QUAL-58 | P3 | [QUAL-58](backlog/tasks/QUAL-58.md) · A Preact after-paint timer stops failing a DOM test file after its page is gone |  |
 
 ### Waiting
 
@@ -259,8 +259,6 @@ Every tool on one shell and one set of PDF primitives, and a change reaching onl
 | ARCH-85 | P3 | [ARCH-85](backlog/tasks/ARCH-85.md) · Per-spec flake rates are recorded and read nightly | In progress |
 | QUAL-32 | P2 | [QUAL-32](backlog/tasks/QUAL-32.md) · CI skips Playwright when a push reaches no e2e | In progress |
 | QUAL-33 | P2 | [QUAL-33](backlog/tasks/QUAL-33.md) · A stalled apt install costs at most one retry, not ten minutes | In progress |
-| QUAL-39 | P3 | [QUAL-39](backlog/tasks/QUAL-39.md) · Unit tests run in two parallel CI jobs | In progress |
-| QUAL-42 | P3 | [QUAL-42](backlog/tasks/QUAL-42.md) · CI builds once per run, not once per job | In progress |
 
 ### Parked
 
@@ -385,8 +383,8 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Page enhancement for Scan and Highlight: 7 done, 1 retired
 - Tool pages: show the verb: 9 done, 0 retired
 - Form detector accuracy: 20 done, 1 retired
-- Robustness and debt: 102 done, 4 retired
-- Unify the tools, narrow the graph: 100 done, 0 retired
+- Robustness and debt: 103 done, 4 retired
+- Unify the tools, narrow the graph: 102 done, 0 retired
 - Search and languages: 18 done, 0 retired
 - Honest tests: adopt landmines: 4 done, 0 retired
 - Polish: 37 done, 2 retired

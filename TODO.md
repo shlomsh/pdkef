@@ -70,7 +70,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [MEM-46](backlog/tasks/MEM-46.md) P1 · Shared late code that never touches the PDF writer rides in the first-paint files (in progress)
 - [MEM-48](backlog/tasks/MEM-48.md) P1 · Pages with an interactive part load their UI glue as one file (in progress)
 - [MEM-50](backlog/tasks/MEM-50.md) P1 · A telemetry change no longer needs a rise in the /open/ page budget
-- [QUAL-54](backlog/tasks/QUAL-54.md) P1 · The unit jobs stop failing when the runner cannot reach Ubuntu's package servers (in progress)
 - [MEM-36](backlog/tasks/MEM-36.md) P2 · Pinned notes are baked into the page at build, not fetched per visit (in progress)
 - [MEM-42](backlog/tasks/MEM-42.md) P2 · The rating board's flags come as one file (in progress)
 - [QUAL-57](backlog/tasks/QUAL-57.md) P2 · check:fast never starts a browser, and CI says when it slows down (in progress)
@@ -82,8 +81,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [ARCH-85](backlog/tasks/ARCH-85.md) P3 · Per-spec flake rates are recorded and read nightly (in progress)
 - [QUAL-32](backlog/tasks/QUAL-32.md) P2 · CI skips Playwright when a push reaches no e2e (in progress)
 - [QUAL-33](backlog/tasks/QUAL-33.md) P2 · A stalled apt install costs at most one retry, not ten minutes (in progress)
-- [QUAL-39](backlog/tasks/QUAL-39.md) P3 · Unit tests run in two parallel CI jobs (in progress)
-- [QUAL-42](backlog/tasks/QUAL-42.md) P3 · CI builds once per run, not once per job (in progress)
 
 ### Search and languages
 

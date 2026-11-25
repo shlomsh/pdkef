@@ -1,10 +1,9 @@
 ---
 id: "QUAL-42"
 title: "CI builds once per run, not once per job"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "unify-and-narrow"
-horizon: "now"
 depends_on: []
 ---
 
@@ -25,7 +24,7 @@ depends_on: []
 
 ## Acceptance
 
-- [ ] Runner-minutes per run before and after, from five runs each, recorded in the ticket.
+- [x] Runner-minutes per run before and after, from five runs each, recorded in the ticket.
 - [x] No job's verdict differs from the single scope job's.
 
 ## Progress (2026-10-28)
@@ -44,4 +43,6 @@ depends_on: []
 - Before, from the last wide runs: 31 to 38 runner-minutes, 286 to 343 s wall, 7 to 9 builds
   (40731441511: 37.9 min, 40731088174: 34.4, 40726898541: 31.7, 40724286548: 34.4, 40716281658: 31.3); the last
   narrowed run, 40736175265: 16.6 min.
-- Open: the first box, runner-minutes per run from five runs after landing.
+- After, five runs of 2026-11-25: 37.7, 37.1, 37.3, 37.0 and 27.0 runner-minutes (45607925164, 45609749444, 45619504308,
+  45621050714, 45623382967). One build per run instead of 7 to 9, but no fewer minutes, most likely because the browser tests LAND-04
+  added and the extra shards of QUAL-57 took what the single build saved. Wall time is 216 to 307 s, 474 s on a run with a re-run job.
