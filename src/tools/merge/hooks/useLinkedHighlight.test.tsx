@@ -1,15 +1,14 @@
-// @ts-nocheck - test-only, mirrors the other merge tests' untyped style
 import { render } from 'preact';
 import { useState } from 'preact/hooks';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useLinkedHighlight, useMergeMoment, linkKind } from './useLinkedHighlight.ts';
 
-let host;
-let moment;
+let host: HTMLDivElement;
+let moment: () => void;
 
 function Harness() {
-  const [rootEl, setRootEl] = useState(null);
+  const [rootEl, setRootEl] = useState<HTMLElement | null>(null);
   useLinkedHighlight(rootEl);
   moment = useMergeMoment(rootEl);
   return (
@@ -24,27 +23,28 @@ function Harness() {
   );
 }
 
-const q = (id) => document.getElementById(id);
+const q = (id: string): HTMLElement => document.getElementById(id) as HTMLElement;
 // jsdom has no PointerEvent, so the pointer type rides on a MouseEvent.
-const fire = (id, type, { pointerType = 'mouse', ...init } = {}) => act(() => {
+const fire = (id: string, type: string, { pointerType = 'mouse', ...init }: MouseEventInit & { pointerType?: string } = {}) => act(() => {
   const event = new MouseEvent(type, { bubbles: true, ...init });
   Object.defineProperty(event, 'pointerType', { value: pointerType });
   q(id).dispatchEvent(event);
 });
-const focusIn = (id) => act(() => { q(id).dispatchEvent(new FocusEvent('focusin', { bubbles: true })); });
+const focusIn = (id: string) => act(() => { q(id).dispatchEvent(new FocusEvent('focusin', { bubbles: true })); });
 
 // Keyboard focus matches :focus-visible; jsdom cannot decide it, so stub it.
-function stubFocusVisible(visible) {
+function stubFocusVisible(visible: boolean) {
   const original = Element.prototype.matches;
-  vi.spyOn(Element.prototype, 'matches').mockImplementation(function (selector) {
+  vi.spyOn(Element.prototype, 'matches').mockImplementation(function (this: Element, selector: string) {
     return selector === ':focus-visible' ? visible : original.call(this, selector);
   });
 }
 const linked = () => [...document.querySelectorAll('[data-linked]')].map((el) => el.id).sort();
-const root = () => host.firstElementChild;
+const root = () => host.firstElementChild as HTMLElement;
 
-function mockMedia(matches) {
-  window.matchMedia = vi.fn((query) => ({ matches: matches.includes(query), media: query }));
+function mockMedia(matches: string[]) {
+  // Cast 1 of 1: only matches and media are read, a full MediaQueryList has no smaller type.
+  window.matchMedia = vi.fn((query: string) => ({ matches: matches.includes(query), media: query }) as unknown as MediaQueryList);
 }
 
 beforeEach(() => {
@@ -196,9 +196,9 @@ describe('useMergeMoment', () => {
 
 describe('useLinkedHighlight when the root appears later', () => {
   it('attaches once the workspace element mounts', () => {
-    let reveal;
+    let reveal: () => void = () => {};
     function Late() {
-      const [rootEl, setRootEl] = useState(null);
+      const [rootEl, setRootEl] = useState<HTMLElement | null>(null);
       const [shown, setShown] = useState(false);
       reveal = () => setShown(true);
       useLinkedHighlight(rootEl);
@@ -216,10 +216,10 @@ describe('useLinkedHighlight when the root appears later', () => {
     act(() => {
       const event = new MouseEvent('pointerover', { bubbles: true });
       Object.defineProperty(event, 'pointerType', { value: 'mouse' });
-      document.getElementById('late-row').dispatchEvent(event);
+      document.getElementById('late-row')?.dispatchEvent(event);
     });
-    expect(document.getElementById('late-root').dataset.linking).toBe('row');
-    expect(document.getElementById('late-page').hasAttribute('data-linked')).toBe(true);
+    expect((document.getElementById('late-root') as HTMLElement).dataset.linking).toBe('row');
+    expect(document.getElementById('late-page')?.hasAttribute('data-linked')).toBe(true);
     act(() => render(null, lateHost));
     lateHost.remove();
   });

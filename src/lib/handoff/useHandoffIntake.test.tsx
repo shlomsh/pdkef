@@ -1,7 +1,6 @@
-// @ts-nocheck - test harness, same convention as PdfCompressTool.test.tsx
 import 'fake-indexeddb/auto';
 import { IDBFactory } from 'fake-indexeddb';
-import { render } from 'preact';
+import { render, type ComponentChild } from 'preact';
 import { act } from 'preact/test-utils';
 import { drainPromises } from '../../test/support/drainPromises.ts';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
@@ -17,30 +16,30 @@ vi.mock('../drafts/draftStore.ts', { spy: true });
 // No @testing-library/preact-hooks in this repo, so a tiny harness component
 // runs the hook under test - the same pattern useObjectUrls.test.jsx uses for
 // a hook instead of markup.
-function Harness({ tool, onFile }) {
+function Harness({ tool, onFile }: { tool: string; onFile: (file: File, from?: string) => void }) {
   useHandoffIntake(tool, onFile);
   return null;
 }
 
-function FilesHarness({ tool, onFiles }) {
+function FilesHarness({ tool, onFiles }: { tool: string; onFiles: (files: File[], from?: string) => void }) {
   useHandoffFilesIntake(tool, onFiles);
   return null;
 }
 
-const buf = (n) => new Uint8Array(n).buffer;
+const buf = (n: number) => new Uint8Array(n).buffer;
 
 // The callback a hook is handed, as a plain function that records its calls and resolves a promise when the hook
 // hands it the file: tests await that, not a timer.
-function arrivalSpy(impl = () => {}) {
-  const arrived = Promise.withResolvers();
-  const calls = [];
-  const spy = (...args) => {
+function arrivalSpy<Args extends unknown[]>(impl: (...args: Args) => void = () => {}) {
+  const arrived = Promise.withResolvers<void>();
+  const calls: Args[] = [];
+  const spy = (...args: Args) => {
     calls.push(args);
     impl(...args);
     arrived.resolve();
   };
   spy.calls = calls;
-  return [spy, arrived.promise];
+  return [spy, arrived.promise] as [typeof spy, Promise<void>];
 }
 
 // A real file's bytes, so what the store holds and what the hook hands over can be compared.
@@ -96,7 +95,7 @@ describe('filesFromHandoff', () => {
 });
 
 describe('useHandoffFilesIntake', () => {
-  let container;
+  let container: HTMLDivElement;
   beforeEach(() => {
     freshPage();
     container = document.createElement('div');
@@ -108,7 +107,7 @@ describe('useHandoffFilesIntake', () => {
   });
 
   // `arrived` (from arrivalSpy) is awaited when the test expects the callback; without it the chain is drained.
-  const settle = async (ui, arrived) => {
+  const settle = async (ui: ComponentChild, arrived?: Promise<void>) => {
     await act(async () => {
       render(ui, container);
     });
@@ -124,7 +123,7 @@ describe('useHandoffFilesIntake', () => {
       from: 'home',
       files: [{ fileName: 'a.pdf', fileBytes: buf(1) }, { fileName: 'b.pdf', fileBytes: buf(2) }],
     });
-    const [onFiles, arrived] = arrivalSpy();
+    const [onFiles, arrived] = arrivalSpy<[File[], string?]>();
     await settle(<FilesHarness tool="merge" onFiles={onFiles} />, arrived);
     expect(onFiles.calls).toHaveLength(1);
     expect(onFiles.calls[0][0].map((f) => f.name)).toEqual(['a.pdf', 'b.pdf']);
@@ -133,7 +132,7 @@ describe('useHandoffFilesIntake', () => {
 
   it('hands onFiles [file] for a single record', async () => {
     await saveHandoff('merge', { fileName: 'a.pdf', fileBytes: buf(1) });
-    const [onFiles, arrived] = arrivalSpy();
+    const [onFiles, arrived] = arrivalSpy<[File[], string?]>();
     await settle(<FilesHarness tool="merge" onFiles={onFiles} />, arrived);
     expect(onFiles.calls[0][0].map((f) => f.name)).toEqual(['a.pdf']);
   });
@@ -156,7 +155,7 @@ describe('useHandoffFilesIntake', () => {
     await saveHandoff('merge', { fileName: 'a.pdf', fileBytes: buf(1) });
     expect(sessionStorage.getItem('pdkef:handoff-pending:merge')).toBe('1');
     document.documentElement.setAttribute('data-handoff-pending', '1');
-    const [onFiles, arrived] = arrivalSpy();
+    const [onFiles, arrived] = arrivalSpy<[File[], string?]>();
     await settle(<FilesHarness tool="merge" onFiles={onFiles} />, arrived);
     expect(onFiles.calls).toHaveLength(1);
     expect(sessionStorage.getItem('pdkef:handoff-pending:merge')).toBeNull();
@@ -193,7 +192,7 @@ describe('useHandoffFilesIntake', () => {
 });
 
 describe('useHandoffIntake', () => {
-  let container;
+  let container: HTMLDivElement;
 
   beforeEach(() => {
     freshPage();
@@ -204,7 +203,6 @@ describe('useHandoffIntake', () => {
   afterEach(() => {
     act(() => render(null, container));
     container.remove();
-    container = null;
   });
 
   it('resolves with a record and hands onFile a File matching its name/type/size', async () => {
@@ -214,7 +212,7 @@ describe('useHandoffIntake', () => {
       fileBytes: new Uint8Array([1, 2, 3, 4]).buffer,
     });
 
-    const [onFile, arrived] = arrivalSpy();
+    const [onFile, arrived] = arrivalSpy<[File, string?]>();
     await act(async () => {
       render(<Harness tool="compress" onFile={onFile} />, container);
     });
@@ -234,7 +232,7 @@ describe('useHandoffIntake', () => {
       from: 'home',
       files: [{ fileName: 'first.pdf', fileBytes: buf(1) }, { fileName: 'second.pdf', fileBytes: buf(2) }],
     });
-    const [onFile, arrived] = arrivalSpy();
+    const [onFile, arrived] = arrivalSpy<[File, string?]>();
     await act(async () => {
       render(<Harness tool="merge" onFile={onFile} />, container);
     });
@@ -246,7 +244,7 @@ describe('useHandoffIntake', () => {
 
   it('passes on which tool sent the file, when the record says', async () => {
     await saveHandoff('unlock', { fileName: 'a.pdf', fileBytes: new Uint8Array([1]).buffer, from: 'redact' });
-    const [onFile, arrived] = arrivalSpy();
+    const [onFile, arrived] = arrivalSpy<[File, string?]>();
     await act(async () => {
       render(<Harness tool="unlock" onFile={onFile} />, container);
     });
@@ -269,7 +267,7 @@ describe('useHandoffIntake', () => {
   it('defaults to application/pdf when the record carries no fileType', async () => {
     await saveHandoff('split', { fileName: 'merged.pdf', fileBytes: new Uint8Array([1, 2]).buffer });
 
-    const [onFile, arrived] = arrivalSpy();
+    const [onFile, arrived] = arrivalSpy<[File, string?]>();
     await act(async () => {
       render(<Harness tool="split" onFile={onFile} />, container);
     });
@@ -340,7 +338,7 @@ describe('useHandoffIntake', () => {
   ])('on %s asks the store only for a hand-off that fits the page: %s (%s) -> %s', async (path, fileName, fileType, fits) => {
     history.pushState({}, '', path);
     await saveHandoff('compress', { fileName, fileType, fileBytes: bytes('%PDF-1.7 fits') });
-    const [onFile, arrived] = arrivalSpy();
+    const [onFile, arrived] = arrivalSpy<[File, string?]>();
     await act(async () => {
       render(<Harness tool="compress" onFile={onFile} />, container);
     });
@@ -361,7 +359,7 @@ describe('useHandoffIntake', () => {
   it('puts no restriction on a tool that takes whatever it is handed', async () => {
     history.pushState({}, '', '/sign/');
     await saveHandoff('sign', { fileName: 'a.pdf', fileBytes: bytes('%PDF-1.7 sign') });
-    const [onFile, arrived] = arrivalSpy();
+    const [onFile, arrived] = arrivalSpy<[File, string?]>();
     await act(async () => {
       render(<Harness tool="sign" onFile={onFile} />, container);
     });
@@ -373,7 +371,7 @@ describe('useHandoffIntake', () => {
 });
 
 describe('hand-off arrival mark (DEBT-58)', () => {
-  let container;
+  let container: HTMLDivElement;
   beforeEach(() => {
     freshPage();
     resetFileArrivalForTests();
@@ -384,7 +382,7 @@ describe('hand-off arrival mark (DEBT-58)', () => {
     act(() => render(null, container));
     container.remove();
   });
-  const run = async (ui, arrived) => {
+  const run = async (ui: ComponentChild, arrived: Promise<void>) => {
     await act(async () => {
       render(ui, container);
     });
@@ -393,23 +391,23 @@ describe('hand-off arrival mark (DEBT-58)', () => {
 
   it('marks a hand-off from an analytics tool with that tool, before the callback runs', async () => {
     await saveHandoff('unlock', { from: 'redact', fileName: 'a.pdf', fileBytes: buf(1) });
-    let seen;
-    const [onFile, arrived] = arrivalSpy(() => { seen = takeArrival(); });
+    let seen: ReturnType<typeof takeArrival>;
+    const [onFile, arrived] = arrivalSpy<[File, string?]>(() => { seen = takeArrival(); });
     await run(<Harness tool="unlock" onFile={onFile} />, arrived);
     expect(seen).toEqual({ source: 'handoff', from: 'redact' });
   });
 
   it('marks a hand-off from an unknown sender without a from', async () => {
     await saveHandoff('merge', { from: 'elsewhere', files: [{ fileName: 'a.pdf', fileBytes: buf(1) }] });
-    let seen;
-    const [onFiles, arrived] = arrivalSpy(() => { seen = takeArrival(); });
+    let seen: ReturnType<typeof takeArrival>;
+    const [onFiles, arrived] = arrivalSpy<[File[], string?]>(() => { seen = takeArrival(); });
     await run(<FilesHarness tool="merge" onFiles={onFiles} />, arrived);
     expect(seen).toEqual({ source: 'handoff' });
   });
 });
 
 describe('hand-off survives a reload before it is stored (2026-11-12)', () => {
-  let container;
+  let container: HTMLDivElement;
   beforeEach(() => {
     freshPage();
     container = document.createElement('div');
@@ -422,10 +420,10 @@ describe('hand-off survives a reload before it is stored (2026-11-12)', () => {
   it('keeps the record until the PDF is in recents, then deletes it', async () => {
     await saveHandoff('sign', { fileName: 'a.pdf', fileBytes: bytes('%PDF-1.7 keep') });
     expect(sessionStorage.getItem('pdkef:handoff-pending:sign')).toBe('1');
-    const [onFiles, arrived] = arrivalSpy();
-    const cacheStarted = Promise.withResolvers();
-    const releaseWrite = Promise.withResolvers();
-    const real = await vi.importActual('../drafts/draftStore.ts');
+    const [onFiles, arrived] = arrivalSpy<[File[], string?]>();
+    const cacheStarted = Promise.withResolvers<void>();
+    const releaseWrite = Promise.withResolvers<void>();
+    const real = await vi.importActual<typeof import('../drafts/draftStore.ts')>('../drafts/draftStore.ts');
     // Forced: hold the recents write open, then let the real one run, so the window a reload lands in can be observed.
     vi.mocked(cacheRecentFile).mockImplementationOnce(async (...args) => {
       cacheStarted.resolve();
@@ -454,7 +452,7 @@ describe('hand-off survives a reload before it is stored (2026-11-12)', () => {
   it('still commits when the recents write fails, so a stale record is not re-opened every visit', async () => {
     await saveHandoff('sign', { fileName: 'a.pdf', fileBytes: bytes('%PDF-1.7 quota') });
     vi.mocked(cacheRecentFile).mockRejectedValueOnce(new Error('quota')); // forced: the real write does not fail here
-    const [onFiles, arrived] = arrivalSpy();
+    const [onFiles, arrived] = arrivalSpy<[File[], string?]>();
     await act(async () => {
       render(<FilesHarness tool="sign" onFiles={onFiles} />, container);
     });

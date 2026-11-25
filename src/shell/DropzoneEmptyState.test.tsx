@@ -1,6 +1,6 @@
-// @ts-nocheck - mirrors FileDropzone.test.tsx's own untyped-test convention.
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
+import type { ComponentProps } from 'preact';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import DropzoneEmptyState from './DropzoneEmptyState.tsx';
 // Asserts the sheet-end, file-input, pick-row and privacy-line classes: the layout hooks CSS waits on and keeps off display:none.
@@ -24,22 +24,27 @@ const DESKTOP_NAVIGATOR = {
   maxTouchPoints: 0,
 };
 
+type Props = Partial<ComponentProps<typeof DropzoneEmptyState>>;
+
 const IOS_HINT_TEXT = 'On iPhone or iPad, share the PDF to Files';
 
 describe('DropzoneEmptyState', () => {
-  let container;
+  let mounted: HTMLDivElement | null = null;
+  // Every test mounts first, so the container is always set where it is read.
+  const host = () => mounted as HTMLDivElement;
 
   afterEach(() => {
-    if (container) {
-      act(() => render(null, container));
-      container.remove();
-      container = null;
+    if (mounted) {
+      act(() => render(null, mounted as HTMLDivElement));
+      mounted.remove();
+      mounted = null;
     }
     vi.unstubAllGlobals();
   });
 
-  function mount(props = {}) {
-    container = document.createElement('div');
+  function mount(props: Props = {}) {
+    const container = document.createElement('div');
+    mounted = container;
     document.body.appendChild(container);
     // Deliberately not wrapped in act(): act flushes effects, and the
     // hydration-match guarantee is specifically about the render that
@@ -49,56 +54,56 @@ describe('DropzoneEmptyState', () => {
     render(<DropzoneEmptyState onFiles={() => {}} showIosFilesHint {...props} />, container);
   }
 
-  async function flushMountEffect(props = {}) {
+  async function flushMountEffect(props: Props = {}) {
     await act(async () => {
-      render(<DropzoneEmptyState onFiles={() => {}} showIosFilesHint {...props} />, container);
+      render(<DropzoneEmptyState onFiles={() => {}} showIosFilesHint {...props} />, host());
     });
   }
 
   it('shows no iOS notice on the first render, regardless of platform', () => {
     vi.stubGlobal('navigator', IPHONE_NAVIGATOR);
     mount();
-    expect(container.textContent).not.toContain(IOS_HINT_TEXT);
+    expect(host().textContent).not.toContain(IOS_HINT_TEXT);
   });
 
   it('shows the notice after mount on a stubbed iOS navigator', async () => {
     vi.stubGlobal('navigator', IPHONE_NAVIGATOR);
     mount();
     await flushMountEffect();
-    expect(container.textContent).toContain(IOS_HINT_TEXT);
+    expect(host().textContent).toContain(IOS_HINT_TEXT);
   });
 
   it('never shows the notice on a stubbed Android navigator', async () => {
     vi.stubGlobal('navigator', ANDROID_NAVIGATOR);
     mount();
     await flushMountEffect();
-    expect(container.textContent).not.toContain(IOS_HINT_TEXT);
+    expect(host().textContent).not.toContain(IOS_HINT_TEXT);
   });
 
   it('never shows the notice on a stubbed desktop navigator', async () => {
     vi.stubGlobal('navigator', DESKTOP_NAVIGATOR);
     mount();
     await flushMountEffect();
-    expect(container.textContent).not.toContain(IOS_HINT_TEXT);
+    expect(host().textContent).not.toContain(IOS_HINT_TEXT);
   });
 
   it('never shows the notice when the tool has not opted in, even on iOS', async () => {
     vi.stubGlobal('navigator', IPHONE_NAVIGATOR);
     mount({ showIosFilesHint: false });
     await flushMountEffect({ showIosFilesHint: false });
-    expect(container.textContent).not.toContain(IOS_HINT_TEXT);
+    expect(host().textContent).not.toContain(IOS_HINT_TEXT);
   });
 
   // The sheet's art slot: the tool's verb replaces the file-plus icon.
   it('renders the art in place of the file-plus icon when given', () => {
     mount({ art: <div data-testid="verb-art" /> });
-    expect(container.querySelector('[data-testid="verb-art"]')).not.toBeNull();
-    expect(container.querySelector('[data-testid="dropzone-icon"]')).toBeNull();
+    expect(host().querySelector('[data-testid="verb-art"]')).not.toBeNull();
+    expect(host().querySelector('[data-testid="dropzone-icon"]')).toBeNull();
   });
 
   it('ends with a hidden marker, so CSS can wait for the whole sheet before painting it', () => {
     mount();
-    const sheet = container.querySelector('[data-empty-state]');
+    const sheet = host().querySelector('[data-empty-state]');
     const end = sheet.querySelector('[data-sheet-end]');
     const others = [...sheet.querySelectorAll('*')].filter((el) => el !== end);
     expect(others.every((el) => end.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_PRECEDING)).toBe(true);
@@ -107,46 +112,46 @@ describe('DropzoneEmptyState', () => {
 
   it('keeps the file-plus icon when no art is given', () => {
     mount();
-    expect(container.querySelector('[data-testid="dropzone-icon"]')).not.toBeNull();
+    expect(host().querySelector('[data-testid="dropzone-icon"]')).not.toBeNull();
   });
 
   it('takes its heading and body from props, with Choose files after them', () => {
     mount({ heading: 'Drop PDFs here, or paste', body: 'Files never leave your device.' });
-    expect(container.querySelector('strong').textContent).toContain('Drop PDFs here, or paste');
-    expect(container.querySelector('[data-privacy-line]').textContent).toContain('Files never leave your device.');
-    expect(container.textContent).toContain('Choose files');
+    expect(host().querySelector('strong').textContent).toContain('Drop PDFs here, or paste');
+    expect(host().querySelector('[data-privacy-line]').textContent).toContain('Files never leave your device.');
+    expect(host().textContent).toContain('Choose files');
   });
 
   // Phones have no drag and no paste: both variants are in the markup and CSS
   // shows one per width, so nothing is read twice and no JS decides.
   it('holds a phone and a desktop span for a heading and body that differ from the defaults', () => {
     mount({ message: 'Drop here', heading: 'Drop here, or paste', body: 'Desktop line.' });
-    const strong = container.querySelector('strong');
+    const strong = host().querySelector('strong');
     const [phone, desktop] = strong.querySelectorAll('[data-width]');
     expect(phone.textContent).toBe('Drop here');
     expect(desktop.textContent).toBe('Drop here, or paste');
-    const line = container.querySelector('[data-privacy-line]');
+    const line = host().querySelector('[data-privacy-line]');
     expect(line.querySelectorAll('[data-width]')[0].textContent).toBe('Private. Files never leave your device.');
     expect(line.querySelectorAll('[data-width]')[1].textContent).toBe('Desktop line.');
   });
 
   it('puts an action in one row with the pick button, as an equal choice, and nothing extra without one', () => {
     mount({ action: <button type="button" data-testid="extra">Take a photo</button> });
-    const picker = container.querySelector('label');
-    expect(picker.parentElement.hasAttribute('data-pick-row')).toBe(true);
-    expect(picker.nextElementSibling.getAttribute('data-testid')).toBe('extra');
-    act(() => render(null, container));
-    container.remove();
+    const picker = host().querySelector('label');
+    expect(picker?.parentElement?.hasAttribute('data-pick-row')).toBe(true);
+    expect(picker?.nextElementSibling?.getAttribute('data-testid')).toBe('extra');
+    act(() => render(null, host()));
+    host().remove();
     mount();
-    expect(container.querySelector('[data-testid="extra"]')).toBeNull();
-    expect(container.querySelector('label').nextElementSibling.hasAttribute('data-privacy-line')).toBe(true);
+    expect(host().querySelector('[data-testid="extra"]')).toBeNull();
+    expect(host().querySelector('label')?.nextElementSibling?.hasAttribute('data-privacy-line')).toBe(true);
   });
 
   it('renders one plain strong and line when no heading or body is given', () => {
     mount({ message: 'Drop here' });
-    expect(container.querySelector('strong').children.length).toBe(0);
-    expect(container.querySelector('strong').textContent).toBe('Drop here');
-    expect(container.querySelectorAll('strong span, [data-privacy-line] > [data-width]')).toHaveLength(0);
+    expect(host().querySelector('strong').children.length).toBe(0);
+    expect(host().querySelector('strong').textContent).toBe('Drop here');
+    expect(host().querySelectorAll('strong span, [data-privacy-line] > [data-width]')).toHaveLength(0);
   });
 
   // QUAL-22: `hidden` is display:none, which removes the input from the tab
@@ -154,18 +159,18 @@ describe('DropzoneEmptyState', () => {
   // e2e/tool-empty-state-keyboard.spec.js; this only keeps the attribute out.
   it('keeps the file input out of display:none so Tab can reach it', () => {
     mount();
-    const input = container.querySelector('input[type="file"]');
+    const input = host().querySelector('input[type="file"]');
     expect(input.hasAttribute('hidden')).toBe(false);
     expect(input.hasAttribute('data-file-input')).toBe(true);
   });
 
   describe('drag-over caption', () => {
-    const caption = () => container.querySelector('[data-drag-caption]');
+    const caption = () => host().querySelector('[data-drag-caption]');
 
     it('renders the many caption in English, without adding a span to the heading', () => {
       mount({ showIosFilesHint: false });
       expect(caption().textContent).toBe('Let go to add your files');
-      expect(container.querySelectorAll('strong span')).toHaveLength(0);
+      expect(host().querySelectorAll('strong span')).toHaveLength(0);
     });
 
     it('renders the one caption for single-file tools', () => {
@@ -183,31 +188,31 @@ describe('DropzoneEmptyState', () => {
 
   describe('actionLeads and pickLabel', () => {
     const action = <button type="button" data-testid="lead-action">Start</button>;
-    const order = () => Array.from(container.querySelector('[data-pick-row]').children).map((el) => el.tagName);
+    const order = () => Array.from(host().querySelector('[data-pick-row]').children).map((el) => el.tagName);
 
     it('pickLabel replaces the picker words', () => {
       mount({ pickLabel: 'Choose photos' });
-      expect(container.querySelector('label').textContent).toBe('Choose photos');
+      expect(host().querySelector('label').textContent).toBe('Choose photos');
     });
 
     it('with actionLeads the action comes first and the row is marked', () => {
       mount({ action, actionLeads: true });
-      const row = container.querySelector('[data-pick-row]');
+      const row = host().querySelector('[data-pick-row]');
       expect(row.hasAttribute('data-action-leads')).toBe(true);
       expect(order()).toEqual(['BUTTON', 'LABEL']);
     });
 
     it('without actionLeads the picker comes first and there is no attribute', () => {
       mount({ action });
-      const row = container.querySelector('[data-pick-row]');
+      const row = host().querySelector('[data-pick-row]');
       expect(row.hasAttribute('data-action-leads')).toBe(false);
       expect(order()).toEqual(['LABEL', 'BUTTON']);
     });
   });
 
   describe('the cloud drive hint names the button on show', () => {
-    const hint = () => container.querySelector('[data-cloud-drive-hint]');
-    const showHint = async (props) => {
+    const hint = () => host().querySelector('[data-cloud-drive-hint]');
+    const showHint = async (props: Props) => {
       vi.stubGlobal('navigator', IPHONE_NAVIGATOR);
       mount({ showIosFilesHint: false, showCloudDriveHint: true, ...props });
       await flushMountEffect({ showIosFilesHint: false, showCloudDriveHint: true, ...props });
@@ -235,14 +240,14 @@ describe('DropzoneEmptyState', () => {
   describe('art', () => {
     it("sits in the sheet's band, first, so a phone can give it the spare height", () => {
       mount({ showIosFilesHint: false, art: <i data-art /> });
-      const band = container.querySelector('[data-verb-band]');
-      expect(band.firstElementChild.hasAttribute('data-art')).toBe(true);
-      expect(container.querySelector('[data-empty-state]').firstElementChild).toBe(band);
+      const band = host().querySelector('[data-verb-band]');
+      expect(band?.firstElementChild?.hasAttribute('data-art')).toBe(true);
+      expect(host().querySelector('[data-empty-state]')?.firstElementChild).toBe(band);
     });
 
     it('leaves the default icon out of the band', () => {
       mount({ showIosFilesHint: false });
-      expect(container.querySelector('[data-verb-band]')).toBeNull();
+      expect(host().querySelector('[data-verb-band]')).toBeNull();
     });
   });
 });
