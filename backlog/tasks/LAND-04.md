@@ -283,5 +283,10 @@ count). The rule is off on `landmines-all` meanwhile.
 - Browser test count limit (2026-11-25): the `units-browser` job counts its own run and fails above the record in
   `scripts/ratchet-limits.json` (`browserTests`), which only goes down. A fresh review found that a filtered local run
   could lower the record; the check writes nothing now.
+- Landmines 0.3.1 (2026-11-25): its plugins are one now, so every rule and disable is renamed to `landmines/`. Its
+  wider rules found 56 places that were there before: 50 fixed sleeps and 5 polls are in the `allow` maps, one perf
+  retry has a disable with its reason (Shlomi's call: record them). A fresh review counted all 44 map entries exact. The
+  raised-limit check cannot compare a renamed rule, so the old and new counts were compared by hand: one is lower
+  (`flatten.js`), none is higher.
 - Found on the way: RED-75 (preview documents never freed on pdf.js 6.5), RED-76 (one very long line
   overflows the text preview).

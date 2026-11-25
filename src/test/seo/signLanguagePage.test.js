@@ -1,4 +1,4 @@
-// oxlint-disable landmines-structure/colocated-tests -- the subject is the Sign language page's content, read from disk (SEO-18)
+// oxlint-disable landmines/colocated-tests -- the subject is the Sign language page's content, read from disk (SEO-18)
 /**
  * SEO-18: the language table on /sign-pdf-in-your-language/ is supposed to be
  * generated from the real font-coverage data, not hand-typed, so it cannot

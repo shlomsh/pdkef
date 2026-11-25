@@ -1,4 +1,4 @@
-// oxlint-disable landmines-structure/colocated-tests -- the subject is the components' photo markup, read from disk
+// oxlint-disable landmines/colocated-tests -- the subject is the components' photo markup, read from disk
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { tools } from '../data/tools.js';

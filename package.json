@@ -113,7 +113,7 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.12",
-    "@interfere/landmines": "^0.1.0",
+    "@interfere/landmines": "^0.3.1",
     "@nx/js": "24.0.2",
     "@playwright/test": "^1.64.1",
     "@preact/preset-vite": "^2.10.6",

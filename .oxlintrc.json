@@ -6,25 +6,24 @@
   "plugins": [],
   "jsPlugins": [
     {
-      "name": "landmines-testing",
-      "specifier": "@interfere/landmines/testing"
-    },
-    {
-      "name": "landmines-style",
-      "specifier": "@interfere/landmines/style"
-    },
-    {
-      "name": "landmines-structure",
-      "specifier": "@interfere/landmines/structure"
-    },
-    {
-      "name": "landmines-types",
-      "specifier": "@interfere/landmines/types"
+      "name": "landmines",
+      "specifier": "@interfere/landmines"
     }
   ],
   "rules": {
-    "landmines-testing/no-unsignaled-poll": "error",
-    "landmines-testing/no-flake-masking": [
+    "landmines/no-unsignaled-poll": [
+      "error",
+      {
+        "allow": {
+          "e2e/demo/heroDemoHelpers.js": 1,
+          "scripts/vitest-worker-watchdog.test.mjs": 1,
+          "src/test/cross-tool/draftCheckingPlaceholder.test.tsx": 1,
+          "src/test/support/redactTool.browser.tsx": 1,
+          "src/test/support/until.js": 1
+        }
+      }
+    ],
+    "landmines/no-flake-masking": [
       "error",
       {
         "allow": {
@@ -38,21 +37,45 @@
           "src/tools/scan/lib/edges/repair.test.ts": 1,
           "src/tools/security/lib/security.test.js": 1,
           "src/tools/sign/PdfSignTool.test.tsx": 1,
-          "src/tools/sign/lib/fields/corpus/layout/layout.test.js": 1,
-          "src/tools/sign/lib/flatten.js": 1
+          "src/tools/sign/lib/fields/corpus/layout/layout.test.js": 1
         }
       }
     ],
-    "landmines-testing/no-fixed-sleep": [
+    "landmines/no-fixed-sleep": [
       "error",
       {
         "allow": {
-          "scripts/vitest-worker-watchdog.test.mjs": 1
+          "e2e/cross-tool/page-grid-parity.spec.js": 1,
+          "e2e/demo/autoplay-and-slide.spec.js": 1,
+          "e2e/handoff/editor-handoff-cls.spec.js": 1,
+          "e2e/home/demo-fits.spec.js": 2,
+          "e2e/home/launcher-picker-pinned.spec.js": 1,
+          "e2e/localized/rtl-shell.spec.js": 1,
+          "e2e/offline/app-update.spec.js": 4,
+          "e2e/offline/offline-workflows.spec.js": 5,
+          "e2e/tool-empty-state-keyboard.spec.js": 1,
+          "e2e/tool-hero-first-screen.spec.js": 6,
+          "e2e/tool-hero-throttled-cls.spec.js": 1,
+          "e2e/tool-hero-verb-replay.spec.js": 1,
+          "e2e/tool-toolbars/toolbar-double-click-lock-timed.spec.js": 1,
+          "e2e/tool-toolbars/toolbar-export-quiet.spec.js": 1,
+          "scripts/generate-scan-examples.mjs": 3,
+          "scripts/vitest-worker-watchdog.test.mjs": 1,
+          "src/tools/compress/e2e/compress-note-no-shift.spec.js": 2,
+          "src/tools/merge/e2e/merge-direction-a.spec.js": 2,
+          "src/tools/merge/e2e/merge-mobile.spec.js": 2,
+          "src/tools/merge/e2e/merge-saved-work-restore-acceptance.spec.js": 4,
+          "src/tools/redact/e2e/redact-hidden-traces.spec.js": 1,
+          "src/tools/redact/e2e/redact-saved-work-restore-acceptance.spec.js": 1,
+          "src/tools/sign/e2e/field-move-scroll.spec.js": 2,
+          "src/tools/sign/e2e/fill-mode-phone-regressions.spec.js": 2,
+          "src/tools/sign/e2e/fill-mode-zoom.spec.js": 3,
+          "src/tools/sign/e2e/sign-saved-work-restore-acceptance.spec.js": 1
         }
       }
     ],
-    "landmines-testing/no-test-doubles": "off",
-    "landmines-testing/strict-msw": [
+    "landmines/no-test-doubles": "off",
+    "landmines/strict-msw": [
       "error",
       {
         "allow": {
@@ -61,11 +84,11 @@
         }
       }
     ],
-    "landmines-structure/colocated-tests": "error",
-    "landmines-structure/test-file-names": "off",
-    "landmines-structure/package-exports": "error",
-    "landmines-types/no-explicit-return-types": "off",
-    "landmines-style/no-comments": "off",
+    "landmines/colocated-tests": "error",
+    "landmines/test-file-names": "off",
+    "landmines/package-exports": "error",
+    "landmines/no-explicit-return-types": "off",
+    "landmines/no-comments": "off",
     "no-restricted-imports": [
       "error",
       {

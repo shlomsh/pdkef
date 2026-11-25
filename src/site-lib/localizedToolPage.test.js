@@ -1,4 +1,4 @@
-// oxlint-disable landmines-structure/colocated-tests -- the subject is the localized route files and content, read from disk (ARCH-33)
+// oxlint-disable landmines/colocated-tests -- the subject is the localized route files and content, read from disk (ARCH-33)
 import { describe, expect, it } from 'vitest';
 import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';

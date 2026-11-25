@@ -179,6 +179,7 @@ export default defineConfig({
       // Wall-clock guards occasionally inherit a one-off hosted-runner stall
       // even though this project is serialized. Retry that isolated sample on
       // a fresh worker in CI; every attempt still has to meet the same budget.
+      // oxlint-disable-next-line landmines/no-flake-masking -- a hosted-runner stall on a wall-clock budget: see above
       retries: process.env.CI ? 1 : 0,
       use: { ...devices['Desktop Chrome'] },
     },
