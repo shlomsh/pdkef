@@ -56,6 +56,12 @@ async function loaded(root: ParentNode): Promise<void> {
   await waitUntil(() => query(root, '[data-file-identity]'));
 }
 
+// BasePdfTool shows a holding dropzone with no file input until the on-device draft check settles.
+async function picker(root: ParentNode): Promise<HTMLInputElement> {
+  await waitUntil(() => query(root, 'input[type="file"]'));
+  return query<HTMLInputElement>(root, 'input[type="file"]');
+}
+
 function findButton(root: ParentNode, label: string): HTMLButtonElement {
   return required(
     Array.from(root.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent?.includes(label)),
@@ -157,7 +163,7 @@ describe('PdfSignTool UI flow', () => {
       render(<PdfSignTool />, container);
     });
 
-    const input = query<HTMLInputElement>(container, 'input[type="file"]');
+    const input = await picker(container);
     const file = makePdfFile('test_agreement.pdf');
 
     await act(async () => {
@@ -181,9 +187,9 @@ describe('PdfSignTool UI flow', () => {
       container = document.createElement('div');
       document.body.appendChild(container);
       act(() => { render(<PdfSignTool />, container); });
-      await waitUntil(() => query(container, 'input[type="file"]'));
+      const input = await picker(container);
       await act(async () => {
-        setInputFiles(query<HTMLInputElement>(container, 'input[type="file"]'), [makePdfFile('turned.pdf')]);
+        setInputFiles(input, [makePdfFile('turned.pdf')]);
       });
       await loaded(container);
       await act(async () => { findButton(container, 'Rotate').click(); });
@@ -205,8 +211,9 @@ describe('PdfSignTool UI flow', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => { render(<PdfSignTool />, container); });
+    const input = await picker(container);
     await act(async () => {
-      setInputFiles(query<HTMLInputElement>(container, 'input[type="file"]'), [makePdfFile('onlyturned.pdf')]);
+      setInputFiles(input, [makePdfFile('onlyturned.pdf')]);
     });
     await loaded(container);
     // The hand-off row (Compress it / Redact it) appears exactly when there is a signed export to carry on.
@@ -226,7 +233,7 @@ describe('PdfSignTool UI flow', () => {
         render(<PdfSignTool />, container);
       });
 
-      const input = query<HTMLInputElement>(container, 'input[type="file"]');
+      const input = await picker(container);
       const file = makePdfFile('test_agreement.pdf');
 
       await act(async () => {
@@ -263,8 +270,9 @@ describe('PdfSignTool UI flow', () => {
     document.body.appendChild(container);
     act(() => { render(<PdfSignTool />, container); });
 
+    const input = await picker(container);
     await act(async () => {
-      setInputFiles(query<HTMLInputElement>(container, 'input[type="file"]'), [makePdfFile('form.pdf')]);
+      setInputFiles(input, [makePdfFile('form.pdf')]);
     });
     await loaded(container);
 
@@ -290,8 +298,9 @@ describe('PdfSignTool UI flow', () => {
       container = document.createElement('div');
       document.body.appendChild(container);
       act(() => { render(<PdfSignTool />, container); });
+      const input = await picker(container);
       await act(async () => {
-        setInputFiles(query<HTMLInputElement>(container, 'input[type="file"]'), [makePdfFile('kind.pdf')]);
+        setInputFiles(input, [makePdfFile('kind.pdf')]);
       });
       await loaded(container);
       const success = (await maintenanceEvents('sign_form_detection')).find((event) => event.properties.outcome === 'success');
@@ -325,8 +334,9 @@ describe('PdfSignTool UI flow', () => {
       container = document.createElement('div');
       document.body.appendChild(container);
       await act(async () => { render(<PdfSignTool />, container); });
+      const input = await picker(container);
       await act(async () => {
-        setInputFiles(query<HTMLInputElement>(container, 'input[type="file"]'), [makePdfFile('retry.pdf')]);
+        setInputFiles(input, [makePdfFile('retry.pdf')]);
       });
       await loaded(container);
       const pageRect = { left: 0, top: 0, width: 600, height: 800, right: 600, bottom: 800, x: 0, y: 0, toJSON() {} };
@@ -391,8 +401,9 @@ describe('PdfSignTool UI flow', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     await act(async () => { render(<PdfSignTool />, container); });
+    const input = await picker(container);
     await act(async () => {
-      setInputFiles(query<HTMLInputElement>(container, 'input[type="file"]'), [makePdfFile('stale.pdf')]);
+      setInputFiles(input, [makePdfFile('stale.pdf')]);
     });
     await loaded(container);
 
@@ -441,8 +452,9 @@ describe('PdfSignTool UI flow', () => {
     document.body.appendChild(container);
     await act(async () => { render(<PdfSignTool />, container); });
     const picked = makePdfFile('gone.pdf');
+    const input = await picker(container);
     await act(async () => {
-      setInputFiles(query<HTMLInputElement>(container, 'input[type="file"]'), [picked]);
+      setInputFiles(input, [picked]);
     });
     await loaded(container);
     // Moved or deleted on disk after picking: Chromium rejects the re-read.
@@ -486,8 +498,9 @@ describe('PdfSignTool UI flow', () => {
       container = document.createElement('div');
       document.body.appendChild(container);
       await act(async () => { render(<PdfSignTool />, container); });
+      const input = await picker(container);
       await act(async () => {
-        setInputFiles(query<HTMLInputElement>(container, 'input[type="file"]'), [makePdfFile('mobi07.pdf')]);
+        setInputFiles(input, [makePdfFile('mobi07.pdf')]);
       });
       await loaded(container);
 
@@ -565,7 +578,7 @@ describe('PdfSignTool UI flow', () => {
     });
 
     const file = makePdfFile('test.pdf');
-    const input = query<HTMLInputElement>(container, 'input[type="file"]');
+    const input = await picker(container);
     await act(async () => {
       setInputFiles(input, [file]);
     });
@@ -605,7 +618,7 @@ describe('PdfSignTool UI flow', () => {
     });
 
     const file = makePdfFile('test.pdf');
-    const input = query<HTMLInputElement>(container, 'input[type="file"]');
+    const input = await picker(container);
     await act(async () => {
       setInputFiles(input, [file]);
     });
@@ -653,7 +666,7 @@ describe('PdfSignTool UI flow', () => {
     });
 
     const file = makePdfFile('test.pdf');
-    const input = query<HTMLInputElement>(container, 'input[type="file"]');
+    const input = await picker(container);
     await act(async () => {
       setInputFiles(input, [file]);
     });
@@ -708,7 +721,7 @@ describe('PdfSignTool UI flow', () => {
     });
 
     const file = makePdfFile('test.pdf');
-    const input = query<HTMLInputElement>(container, 'input[type="file"]');
+    const input = await picker(container);
     await act(async () => {
       setInputFiles(input, [file]);
     });
@@ -745,7 +758,7 @@ describe('PdfSignTool UI flow', () => {
     });
 
     const file = makePdfFile('test.pdf');
-    const input = query<HTMLInputElement>(container, 'input[type="file"]');
+    const input = await picker(container);
     await act(async () => {
       setInputFiles(input, [file]);
     });
@@ -790,7 +803,7 @@ describe('PdfSignTool UI flow', () => {
     act(() => {
       render(<PdfSignTool />, container);
     });
-    const input = query<HTMLInputElement>(container, 'input[type="file"]');
+    const input = await picker(container);
     await act(async () => {
       setInputFiles(input, [makePdfFile('test.pdf')]);
     });
@@ -843,7 +856,7 @@ describe('PdfSignTool UI flow', () => {
     const bytes = fs.readFileSync(fixturePath);
     const file = new File([bytes], 'num-1.pdf', { type: 'application/pdf' });
     
-    const input = query<HTMLInputElement>(container, 'input[type="file"]');
+    const input = await picker(container);
     await act(async () => {
       setInputFiles(input, [file]);
     });
@@ -934,7 +947,7 @@ describe('PdfSignTool UI flow', () => {
 
       const fixturePath = `${__dirname}/../../lib/__fixtures__/num-1.pdf`;
       const file = new File([fs.readFileSync(fixturePath)], 'num-1.pdf', { type: 'application/pdf' });
-      const input = query<HTMLInputElement>(container, 'input[type="file"]');
+      const input = await picker(container);
       await act(async () => {
         setInputFiles(input, [file]);
       });
@@ -986,7 +999,7 @@ describe('PdfSignTool UI flow', () => {
     });
 
     const file = makePdfFile('test.pdf');
-    const input = query<HTMLInputElement>(container, 'input[type="file"]');
+    const input = await picker(container);
     await act(async () => {
       setInputFiles(input, [file]);
     });
@@ -1038,7 +1051,7 @@ describe('PdfSignTool UI flow', () => {
     });
 
     const file = makePdfFile('test.pdf');
-    const input = query<HTMLInputElement>(container, 'input[type="file"]');
+    const input = await picker(container);
     await act(async () => {
       setInputFiles(input, [file]);
     });
@@ -1147,7 +1160,7 @@ describe('PdfSignTool UI flow', () => {
     });
 
     const file = makePdfFile('test.pdf');
-    const input = query<HTMLInputElement>(container, 'input[type="file"]');
+    const input = await picker(container);
     await act(async () => {
       setInputFiles(input, [file]);
     });
@@ -1202,7 +1215,7 @@ describe('PdfSignTool UI flow', () => {
     });
 
     const file = makePdfFile('test.pdf');
-    const input = query<HTMLInputElement>(container, 'input[type="file"]');
+    const input = await picker(container);
     await act(async () => {
       setInputFiles(input, [file]);
     });
@@ -1257,7 +1270,7 @@ describe('PdfSignTool UI flow', () => {
       });
 
       const file = makePdfFile('test.pdf');
-      const input = query<HTMLInputElement>(container, 'input[type="file"]');
+      const input = await picker(container);
       await act(async () => {
         setInputFiles(input, [file]);
       });
@@ -1332,7 +1345,7 @@ describe('PdfSignTool UI flow', () => {
     });
 
     const file = makePdfFile('test.pdf');
-    const input = query<HTMLInputElement>(container, 'input[type="file"]');
+    const input = await picker(container);
     await act(async () => {
       setInputFiles(input, [file]);
     });
@@ -1387,7 +1400,7 @@ describe('PdfSignTool UI flow', () => {
     });
 
     const file = makePdfFile('test.pdf');
-    const input = query<HTMLInputElement>(container, 'input[type="file"]');
+    const input = await picker(container);
     await act(async () => {
       setInputFiles(input, [file]);
     });
