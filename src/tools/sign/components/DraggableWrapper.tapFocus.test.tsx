@@ -14,6 +14,7 @@ import type { TextElement } from '#editor/model/editorModel.ts';
 // is the whole bug.
 
 function coarsePointer(matches: boolean) {
+  // Forced: setup.js's matchMedia always matches, so a fine pointer has no real input in jsdom
   vi.stubGlobal('matchMedia', (query: string) => ({
     matches: matches && query.includes('coarse'),
     media: query,

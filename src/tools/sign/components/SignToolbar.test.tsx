@@ -1466,9 +1466,11 @@ describe('SignToolbar Component', () => {
 
     let originalMatchMedia: typeof window.matchMedia;
     beforeEach(() => { originalMatchMedia = window.matchMedia; });
+    // Forced: setup.js's matchMedia always matches, so a fine pointer has no real input in jsdom
     afterEach(() => { window.matchMedia = originalMatchMedia; });
 
     function setPointerCoarse(coarse: boolean) {
+      // Forced: setup.js's matchMedia always matches, so a fine pointer has no real input in jsdom
       window.matchMedia = ((query: string) => ({
         matches: query === '(pointer: coarse)' ? coarse : true,
         media: query,

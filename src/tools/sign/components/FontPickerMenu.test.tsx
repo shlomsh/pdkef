@@ -14,6 +14,7 @@ vi.mock('#shell/Popover.tsx', { spy: true });
 // `matchMedia('(pointer: coarse)')` on mount.
 function installMatchMedia(matches: boolean) {
   const query = { matches, media: '(pointer: coarse)', addEventListener: () => {}, removeEventListener: () => {} };
+  // Forced: setup.js's matchMedia always matches, so a fine pointer has no real input in jsdom
   Object.defineProperty(window, 'matchMedia', { value: vi.fn(() => query), configurable: true, writable: true });
 }
 
@@ -34,6 +35,7 @@ describe('FontPickerMenu', () => {
     vi.useRealTimers();
     // Undo any installMatchMedia() call so later tests get useCoarsePointer's
     // own no-matchMedia default (fine pointer), same as jsdom's own default.
+    // Forced: removing the matchMedia stub leaves setup.js's always-matching one
     delete (window as any).matchMedia;
     if (container) {
       act(() => render(null, container as any));
@@ -245,7 +247,9 @@ describe('FontPickerMenu', () => {
     beforeEach(() => {
       installMatchMedia(true);
       // jsdom has no real <dialog> behaviour; see FontSheet.test.tsx.
+      // Forced: jsdom has no dialog showModal or close, so no real one to run
       HTMLDialogElement.prototype.showModal = vi.fn(function (this: HTMLDialogElement) { this.open = true; });
+      // Forced: jsdom has no dialog showModal or close, so no real one to run
       HTMLDialogElement.prototype.close = vi.fn(function (this: HTMLDialogElement) { this.open = false; });
     });
 

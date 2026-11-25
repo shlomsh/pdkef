@@ -24,7 +24,9 @@ describe('FontSheet', () => {
   beforeEach(() => {
     // jsdom has no real <dialog> behaviour (SignatureDialog.test.tsx stubs
     // the same two methods for the same reason).
+    // Forced: jsdom has no dialog showModal or close, so no real one to run
     HTMLDialogElement.prototype.showModal = vi.fn(function (this: HTMLDialogElement) { this.open = true; });
+    // Forced: jsdom has no dialog showModal or close, so no real one to run
     HTMLDialogElement.prototype.close = vi.fn(function (this: HTMLDialogElement) { this.open = false; });
   });
 

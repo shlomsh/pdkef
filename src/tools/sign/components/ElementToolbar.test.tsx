@@ -20,10 +20,12 @@ describe('ElementToolbar font picker wiring', () => {
   // same fix.
   beforeEach(() => {
     const query = { matches: false, media: '(pointer: coarse)', addEventListener: () => {}, removeEventListener: () => {} };
+    // Forced: setup.js's matchMedia always matches, so a fine pointer has no real input in jsdom
     Object.defineProperty(window, 'matchMedia', { value: vi.fn(() => query), configurable: true, writable: true });
   });
 
   afterEach(() => {
+    // Forced: removing the matchMedia stub leaves setup.js's always-matching one
     delete (window as any).matchMedia;
     if (container) {
       act(() => render(null, container as any));

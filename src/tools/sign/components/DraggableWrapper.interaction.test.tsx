@@ -9,6 +9,7 @@ import type { EditorElement, EditorElementPatch, TextElement, WhiteoutElement } 
 import { createPageGeometry } from '#editor/geometry/coords.ts';
 import type { PageGeometry } from '#editor/geometry/coords.ts';
 import { topKeepingInkCentre } from '../lib/combPlacement.ts';
+import { useFloating } from '@floating-ui/react';
 
 declare global {
   interface ParentNode {
@@ -101,47 +102,38 @@ function createWhiteoutElement(element: WhiteoutFixture): WhiteoutElement {
 // `placement`/middleware config actually handed to `useFloating` (below) is
 // the reliable way to verify this logic in jsdom.
 
-let useFloatingCalls: FloatingCall[];
-vi.mock('@floating-ui/react', async () => {
-  const actual = await vi.importActual<typeof import('@floating-ui/react')>('@floating-ui/react');
-  return {
-    ...actual,
-    autoUpdate: vi.fn().mockReturnValue(() => {}),
-    useFloating: (config: Parameters<typeof actual.useFloating>[0]) => {
-      // Snapshot only the primitive facts we need RIGHT NOW, synchronously.
-      // The real @floating-ui/react implementation mutates the `middleware`
-      // entries' `.options` (and, indirectly, the caller's placement bookkeeping)
-      // in place as positioning resolves across re-renders, so storing the raw
-      // `config`/`middleware` object references and reading them later returns
-      // whatever they were mutated to by the time of the read, not what was
-      // actually passed in on this call.
-      const middlewares = config?.middleware?.filter((middleware) => middleware !== false && middleware !== null && middleware !== undefined) ?? [];
-      const flipMw = middlewares.find((middleware) => middleware.name === 'flip');
-      // @floating-ui/react-dom internally represents each middleware's options
-      // as a `[options, depsKey]` tuple (for its own memoization), not the bare
-      // options object flip()/shift() were called with — index [0] to unwrap it.
-      let flipOptions = Array.isArray(flipMw?.options) ? flipMw.options[0] : flipMw?.options;
-      if (typeof flipOptions === 'function') {
-        flipOptions = flipOptions({ elements: { reference: { closest: () => null } } });
-      }
-      const fallbackPlacements = typeof flipOptions === 'object' && flipOptions !== null && 'fallbackPlacements' in flipOptions
-        ? flipOptions.fallbackPlacements
-        : undefined;
-      useFloatingCalls.push({
-        placement: config?.placement,
-        flipFallbackPlacements: fallbackPlacements,
-        hasFlip: !!flipMw,
-        hasShift: middlewares.some((middleware) => middleware.name === 'shift'),
-        middlewareNames: middlewares.map((middleware) => middleware.name),
-        sizeOptions: (() => {
-          const sizeMw = middlewares.find((middleware) => middleware.name === 'size');
-          return Array.isArray(sizeMw?.options) ? sizeMw.options[0] : sizeMw?.options;
-        })(),
-      });
-      return actual.useFloating(config);
-    },
-  };
-});
+vi.mock('@floating-ui/react', { spy: true });
+
+// Snapshot of what each real useFloating call was handed. Read right after the
+// render: the real implementation mutates the `middleware` entries' `.options`
+// as positioning resolves, so a later read could see changed objects.
+function floatingCalls(): FloatingCall[] {
+  return vi.mocked(useFloating).mock.calls.map(([config]) => {
+    const middlewares = config?.middleware?.filter((middleware) => middleware !== false && middleware !== null && middleware !== undefined) ?? [];
+    const flipMw = middlewares.find((middleware) => middleware.name === 'flip');
+    // @floating-ui/react-dom internally represents each middleware's options
+    // as a `[options, depsKey]` tuple (for its own memoization), not the bare
+    // options object flip()/shift() were called with - index [0] to unwrap it.
+    let flipOptions = Array.isArray(flipMw?.options) ? flipMw.options[0] : flipMw?.options;
+    if (typeof flipOptions === 'function') {
+      flipOptions = flipOptions({ elements: { reference: { closest: () => null } } });
+    }
+    const fallbackPlacements = typeof flipOptions === 'object' && flipOptions !== null && 'fallbackPlacements' in flipOptions
+      ? flipOptions.fallbackPlacements
+      : undefined;
+    return {
+      placement: config?.placement,
+      flipFallbackPlacements: fallbackPlacements,
+      hasFlip: !!flipMw,
+      hasShift: middlewares.some((middleware) => middleware.name === 'shift'),
+      middlewareNames: middlewares.map((middleware) => middleware.name),
+      sizeOptions: (() => {
+        const sizeMw = middlewares.find((middleware) => middleware.name === 'size');
+        return Array.isArray(sizeMw?.options) ? sizeMw.options[0] : sizeMw?.options;
+      })(),
+    };
+  });
+}
 
 // Vitest hoists vi.mock calls above imports, so this plain top-level import
 // already resolves to the mocked module.
@@ -154,7 +146,7 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
   beforeEach(() => {
     container = document.createElement('div');
     document.body.appendChild(container);
-    useFloatingCalls = [];
+    vi.mocked(useFloating).mockClear();
   });
 
   afterEach(() => {
@@ -174,10 +166,12 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
     // same fix.
     beforeEach(() => {
       const query = { matches: false, media: '(pointer: coarse)', addEventListener: () => {}, removeEventListener: () => {} };
+      // Forced: setup.js's matchMedia always matches, so a fine pointer has no real input in jsdom
       Object.defineProperty(window, 'matchMedia', { value: vi.fn(() => query), configurable: true, writable: true });
     });
 
     afterEach(() => {
+      // Forced: removing the matchMedia stub leaves setup.js's always-matching one
       delete (window as any).matchMedia;
     });
 
@@ -324,10 +318,10 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
       const element = { id: 'el-1', type: 'text', left: 20, top: 10, text: 'Hi', fontSize: 12 };
       mountInPageWrapper(element, { isActive: true });
 
-      expect(useFloatingCalls.length).toBeGreaterThan(0);
+      expect(floatingCalls().length).toBeGreaterThan(0);
       // The FIRST call reflects what DraggableWrapper.tsx actually asked
       // for before any internal repositioning mutation could happen.
-      const firstCall = useFloatingCalls[0];
+      const firstCall = floatingCalls()[0];
       expect(firstCall.placement).toBe('top-start');
       expect(firstCall.hasFlip).toBe(false);
       expect(firstCall.flipFallbackPlacements).toBeUndefined();
@@ -345,7 +339,7 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
       const element = { id: 'el-1', type: 'text', left: 20, top: 10, text: 'Hi', fontSize: 12 };
       mountInPageWrapper(element, { isActive: true });
 
-      const names = useFloatingCalls[0].middlewareNames;
+      const names = floatingCalls()[0].middlewareNames;
       expect(names.indexOf('size')).toBeGreaterThan(names.indexOf('shift'));
     });
 
@@ -355,7 +349,7 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
       const element = { id: 'el-1', type: 'text', left: 20, top: 10, text: 'Hi', fontSize: 12 };
       mountInPageWrapper(element, { isActive: true });
       const actions = container.querySelector('[data-editor-actions]') as HTMLElement;
-      const sizeOptions = useFloatingCalls[0].sizeOptions as (state: unknown) => { apply: (state: unknown) => void };
+      const sizeOptions = floatingCalls()[0].sizeOptions as (state: unknown) => { apply: (state: unknown) => void };
       expect(typeof sizeOptions).toBe('function');
       const options = sizeOptions({ elements: { reference: actions.parentElement } });
       options.apply({ availableWidth: 321, elements: { floating: actions } });
@@ -374,42 +368,42 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
       mountInPageWrapper(rtlElement, { isActive: true });
       // The FIRST call for each mount is the one that reflects what
       // DraggableWrapper.tsx actually requested (see the mock's comment above).
-      expect(useFloatingCalls[0].placement).toBe('top-end');
+      expect(floatingCalls()[0].placement).toBe('top-end');
 
-      useFloatingCalls = [];
+      vi.mocked(useFloating).mockClear();
       const ltrElement = { id: 'el-ltr', type: 'text', left: 20, top: 40, text: 'Hello', textDirection: 'ltr', fontSize: 12 };
       mountInPageWrapper(ltrElement, { isActive: true });
-      expect(useFloatingCalls[0].placement).toBe('top-start');
+      expect(floatingCalls()[0].placement).toBe('top-start');
     });
 
     it('uses typed language direction for toolbar placement, even when the fallback direction is stale', () => {
       const ltrTextWithRtlFallback = { id: 'el-ltr-fallback', type: 'text', left: 20, top: 40, text: 'hey', textDirection: 'rtl', fontSize: 12 };
       mountInPageWrapper(ltrTextWithRtlFallback, { isActive: true });
-      expect(useFloatingCalls[0].placement).toBe('top-start');
+      expect(floatingCalls()[0].placement).toBe('top-start');
 
-      useFloatingCalls = [];
+      vi.mocked(useFloating).mockClear();
       const rtlTextWithLtrFallback = { id: 'el-rtl-fallback', type: 'text', left: 70, top: 40, text: 'שלום', textDirection: 'ltr', fontSize: 12 };
       mountInPageWrapper(rtlTextWithLtrFallback, { isActive: true });
-      expect(useFloatingCalls[0].placement).toBe('top-end');
+      expect(floatingCalls()[0].placement).toBe('top-end');
     });
 
     it('uses RTL placement for an empty box seeded RTL by its document (SIGN-34)', () => {
       const emptyRtlElement = { id: 'el-empty-rtl', type: 'text', left: 70, top: 40, text: '', textDirection: 'rtl', fontSize: 12 };
       mountInPageWrapper(emptyRtlElement, { isActive: true });
-      expect(useFloatingCalls[0].placement).toBe('top-end');
+      expect(floatingCalls()[0].placement).toBe('top-end');
     });
 
     it('keeps the toolbar above the element for both text directions instead of falling underneath it', () => {
       const rtlElement = { id: 'el-rtl-fallback-placement', type: 'text', left: 70, top: 40, text: 'שלום', fontSize: 12 };
       mountInPageWrapper(rtlElement, { isActive: true });
-      expect(useFloatingCalls[0].placement).toBe('top-end');
-      expect(useFloatingCalls[0].hasFlip).toBe(false);
+      expect(floatingCalls()[0].placement).toBe('top-end');
+      expect(floatingCalls()[0].hasFlip).toBe(false);
 
-      useFloatingCalls = [];
+      vi.mocked(useFloating).mockClear();
       const ltrElement = { id: 'el-ltr-fallback-placement', type: 'text', left: 20, top: 40, text: 'Hello', fontSize: 12 };
       mountInPageWrapper(ltrElement, { isActive: true });
-      expect(useFloatingCalls[0].placement).toBe('top-start');
-      expect(useFloatingCalls[0].hasFlip).toBe(false);
+      expect(floatingCalls()[0].placement).toBe('top-start');
+      expect(floatingCalls()[0].hasFlip).toBe(false);
     });
 
     it('keeps the RTL text box itself anchored to a fixed right edge (grows leftward) via `right`, not `left`', () => {

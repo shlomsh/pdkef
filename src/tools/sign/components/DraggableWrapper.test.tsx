@@ -39,15 +39,6 @@ function textNode(element: TextElement) {
   );
 }
 
-vi.mock('@floating-ui/react', async () => {
-  const actual = await vi.importActual('@floating-ui/react');
-  return {
-    ...actual,
-    autoUpdate: vi.fn().mockReturnValue(() => {}),
-  };
-});
-
-
 // Regression test for the "RTL text box drifts on reload" bug: `left` used to be
 // derived state, recomputed from a DOM pixel measurement inside the width-growth
 // effect and written back via onChange({ left }) whenever `scaleFactor` settled
@@ -305,6 +296,7 @@ describe('DraggableWrapper compact editing toolbar (MOBI-16)', () => {
   });
 
   function setPointerCoarse(coarse: boolean) {
+    // Forced: setup.js's matchMedia always matches, so a fine pointer has no real input in jsdom
     window.matchMedia = ((query: string) => ({
       matches: query === '(pointer: coarse)' ? coarse : true,
       media: query,

@@ -1,3 +1,5 @@
+// @vitest-environment jsdom
+// @vitest-environment-options { "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)" }
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -7,7 +9,6 @@ import { useFillMode } from './useFillMode.ts';
 // with `enabled === false`; this proves `?next=0` is what makes it false, all
 // the way through useFillMode and useFillDocumentEffects.
 const ORIGINAL = 'width=device-width, initial-scale=1';
-const IPHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)';
 
 function Harness() {
   useFillMode(vi.fn(), []);
@@ -31,14 +32,12 @@ describe('useFillMode - the viewport lock follows ?next=', () => {
     document.head.appendChild(meta);
     host = document.createElement('div');
     document.body.appendChild(host);
-    Object.defineProperty(navigator, 'userAgent', { value: IPHONE, configurable: true });
   });
 
   afterEach(() => {
     act(() => render(null, host));
     host.remove();
     meta.remove();
-    delete (navigator as { userAgent?: string }).userAgent;
     window.history.replaceState(null, '', originalUrl);
   });
 

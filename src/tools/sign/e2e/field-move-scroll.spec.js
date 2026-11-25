@@ -367,6 +367,7 @@ test.describe('a field move scrolls once', () => {
         return reveal.call(this, options);
       };
       const scrollTo = window.scrollTo;
+      // Forced: counts scrolls in the page, no spy API in the browser; the original still runs
       window.scrollTo = function (...args) {
         window.__windowScrolls += 1;
         return scrollTo.apply(this, args);

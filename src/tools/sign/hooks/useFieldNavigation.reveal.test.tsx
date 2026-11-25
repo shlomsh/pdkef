@@ -18,6 +18,7 @@ function installViewport(props: Partial<FakeViewport>): FakeViewport {
   const vv = Object.assign(new EventTarget(), {
     scale: 1, width: 402, height: 714, offsetLeft: 0, offsetTop: 0, pageLeft: 0, pageTop: 0, ...props,
   }) as FakeViewport;
+  // Forced: jsdom has no visualViewport, so no real one to read
   Object.defineProperty(window, 'visualViewport', { value: vv, configurable: true, writable: true });
   return vv;
 }
@@ -47,18 +48,19 @@ function raiseKeyboard(vv: FakeViewport, height = 377) {
 }
 
 describe('revealFieldAfterKeyboard', () => {
-  let scrollTo: ReturnType<typeof vi.fn>;
+  let scrollTo: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     vi.useFakeTimers();
-    scrollTo = vi.fn();
-    window.scrollTo = scrollTo as unknown as typeof window.scrollTo;
+    scrollTo = vi.spyOn(window, 'scrollTo');
     setScrollY(0);
   });
 
   afterEach(() => {
+    scrollTo.mockRestore();
     vi.useRealTimers();
     document.body.innerHTML = '';
+    // Forced: jsdom has no visualViewport, so no real one to read
     Object.defineProperty(window, 'visualViewport', { value: undefined, configurable: true, writable: true });
     setScrollY(0);
   });
