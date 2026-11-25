@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { EventEmitter } from 'node:events';
-import { resolveGuardCommand, shellQuote, runGuards } from './run-guards.mjs';
+import { join } from 'node:path';
+import { readFileSync, readdirSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { resolveGuardCommand, shellQuote, runGuards, RATCHET_FILE_GUARDS } from './run-guards.mjs';
 
 const SCRIPTS = {
   a: 'node scripts/a.mjs',
@@ -140,5 +143,43 @@ describe('runGuards', () => {
     await expect(runGuards(['a', 'nope'], base({ spawn, ...sink() }))).rejects.toThrow(/unknown script "nope"/);
     await expect(runGuards(['a', 'dd'], base({ spawn, ...sink() }))).rejects.toThrow(/hook/);
     expect(state.started).toEqual([]);
+  });
+});
+
+describe('guards that share scripts/ratchet-limits.json', () => {
+  it('run one after another while the rest overlap', async () => {
+    const scripts = { r1: 'r1', r2: 'r2', r3: 'r3', p1: 'p1', p2: 'p2' };
+    const lane = new Set(['r1', 'r2', 'r3']);
+    let active = 0;
+    let maxLane = 0;
+    let maxAll = 0;
+    const spawn = (command) => {
+      const child = new EventEmitter();
+      child.stdout = new EventEmitter();
+      child.stderr = new EventEmitter();
+      active += 1;
+      maxAll = Math.max(maxAll, active);
+      if (lane.has(command)) maxLane = Math.max(maxLane, (spawn.inLane = (spawn.inLane ?? 0) + 1));
+      setTimeout(() => {
+        active -= 1;
+        if (lane.has(command)) spawn.inLane -= 1;
+        child.emit('close', 0, null);
+      }, 10);
+      return child;
+    };
+    await runGuards(['r1', 'p1', 'r2', 'p2', 'r3'], { scripts, root: '/repo', spawn, ratchetGuards: lane, ...sink() });
+    expect(maxLane).toBe(1);
+    expect(maxAll).toBeGreaterThan(1);
+  });
+
+  it('are exactly the npm scripts that run a script importing ratchet-limits.mjs', () => {
+    const dir = fileURLToPath(new URL('.', import.meta.url));
+    const scripts = JSON.parse(readFileSync(join(dir, '..', 'package.json'), 'utf8')).scripts;
+    const users = readdirSync(dir).filter((f) => /\.(mjs|js)$/.test(f) && !/\.test\./.test(f) && f !== 'ratchet-limits.mjs' && /from '\.\/ratchet-limits\.mjs'/.test(readFileSync(join(dir, f), 'utf8')));
+    expect(users.length).toBeGreaterThan(5);
+    const names = Object.entries(scripts)
+      .filter(([, command]) => users.some((f) => command.includes(`scripts/${f}`)))
+      .map(([name]) => name);
+    expect(names.sort()).toEqual([...RATCHET_FILE_GUARDS].sort());
   });
 });

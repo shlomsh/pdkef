@@ -120,10 +120,11 @@ describe('changedFiles passes --no-renames so a move affects both owners', () =>
 describe('changedFilesWithStatus', () => {
   function makeRunStub(diffOutput, lsFilesOutput = '') {
     const calls = [];
+    const nul = (text) => (text ? `${text.split(/\n|\t/).join('\0')}\0` : '');
     const run = (args) => {
       calls.push(args);
-      if (args[0] === 'diff') return diffOutput;
-      if (args[0] === 'ls-files') return lsFilesOutput;
+      if (args[0] === 'diff') return nul(diffOutput);
+      if (args[0] === 'ls-files') return lsFilesOutput ? `${lsFilesOutput.split('\n').join('\0')}\0` : '';
       return '';
     };
     return { run, calls };
@@ -239,3 +240,42 @@ describe('CLI --head (a fixed commit range, the Vercel ignoreCommand form)', () 
     expect(verdict(['--base', '', '--head', 'HEAD'])).toBe('docs_only=false');
   });
 });
+
+describe('changedFilesWithStatus against a real repository', () => {
+  const repo = mkdtempSync(join(tmpdir(), 'cs-git-'));
+  const sh = (...args) => execFileSync('git', args, { cwd: repo, encoding: 'utf8' });
+  afterAll(() => rmSync(repo, { recursive: true, force: true }));
+
+  it('returns names with non-ASCII characters unquoted, and a rename as its destination', () => {
+    sh('init', '-q');
+    sh('config', 'user.email', 't@t');
+    sh('config', 'user.name', 't');
+    writeFileSync(join(repo, 'old name.txt'), 'rename me\n'.repeat(20));
+    writeFileSync(join(repo, 'keep.txt'), 'a\n');
+    sh('add', '.');
+    sh('commit', '-qm', 'base');
+    const base = sh('rev-parse', 'HEAD').trim();
+    sh('mv', 'old name.txt', 'שלום é.txt');
+    writeFileSync(join(repo, 'keep.txt'), 'b\n');
+    writeFileSync(join(repo, 'חדש ü.txt'), 'x\n');
+    const files = withCwd(repo, () => changedFilesWithStatus(base));
+    expect(files).toEqual(
+      expect.arrayContaining([
+        { path: 'שלום é.txt', status: 'A', renamedFrom: 'old name.txt' },
+        { path: 'keep.txt', status: 'M' },
+        { path: 'חדש ü.txt', status: 'A' },
+      ]),
+    );
+    expect(files).toHaveLength(3);
+  });
+});
+
+function withCwd(dir, fn) {
+  const before = process.cwd();
+  process.chdir(dir);
+  try {
+    return fn();
+  } finally {
+    process.chdir(before);
+  }
+}

@@ -26,6 +26,10 @@ export function resolveGuardCommand(name, scripts, extraArgs = []) {
   return [command, ...extraArgs.map(shellQuote)].join(' ');
 }
 
+// Guards that read or write scripts/ratchet-limits.json (every npm script running a script that imports
+// ratchet-limits.mjs; run-guards.test.mjs keeps this in step). They share one lane so a lowering is never lost.
+export const RATCHET_FILE_GUARDS = ['test:any-ratchet', 'test:css', 'test:e2e-sleeps', 'test:hook-ratchet', 'test:js-typed', 'test:ratchet-raises', 'test:size-ratchet', 'test:unused-exports'];
+
 function readScripts(root) {
   return JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).scripts ?? {};
 }
@@ -55,7 +59,7 @@ function runOne(command, { spawn, root, env }) {
 // Resolves to the names that failed, in the given order. Throws before starting anything when a name
 // cannot be run without npm.
 export async function runGuards(guards, options = {}) {
-  const { concurrency = 4, spawn = nodeSpawn, root = ROOT, out = (s) => process.stdout.write(s), err = (s) => process.stderr.write(s) } = options;
+  const { concurrency = 4, ratchetGuards = new Set(RATCHET_FILE_GUARDS), spawn = nodeSpawn, root = ROOT, out = (s) => process.stdout.write(s), err = (s) => process.stderr.write(s) } = options;
   const scripts = options.scripts ?? readScripts(root);
   const jobs = guards.map((guard) => (typeof guard === 'string' ? { name: guard, command: resolveGuardCommand(guard, scripts) } : guard));
   const env = { ...(options.env ?? process.env) };
@@ -79,16 +83,22 @@ export async function runGuards(guards, options = {}) {
     }
   }
 
-  async function worker() {
-    while (next < jobs.length) {
-      const i = next++;
-      const start = performance.now();
-      const r = await runOne(jobs[i].command, { spawn, root, env });
-      results[i] = { ...r, seconds: (performance.now() - start) / 1000 };
-      flush();
-    }
+  async function runJob(i) {
+    const start = performance.now();
+    const r = await runOne(jobs[i].command, { spawn, root, env });
+    results[i] = { ...r, seconds: (performance.now() - start) / 1000 };
+    flush();
   }
 
-  await Promise.all(Array.from({ length: Math.max(1, Math.min(concurrency, jobs.length)) }, worker));
+  const laneJobs = jobs.map((_, i) => i).filter((i) => ratchetGuards.has(jobs[i].name));
+  const others = jobs.map((_, i) => i).filter((i) => !ratchetGuards.has(jobs[i].name));
+
+  // Worker 0 runs the ratchet lane one guard at a time, then helps with the rest.
+  async function worker(w) {
+    if (w === 0) for (const i of laneJobs) await runJob(i);
+    while (next < others.length) await runJob(others[next++]);
+  }
+
+  await Promise.all(Array.from({ length: Math.max(1, Math.min(concurrency, jobs.length)) }, (_, w) => worker(w)));
   return failed;
 }

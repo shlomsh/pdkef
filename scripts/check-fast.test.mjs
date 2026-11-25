@@ -1,4 +1,9 @@
 import { describe, it, expect } from 'vitest';
+import { spawn } from 'node:child_process';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { typecheckSteps, parseArgs, summaryLine, unitsDetail, GUARD_STEPS, guardSteps, lintScope, lintCommand, guardJobs } from './check-fast.mjs';
 import { ALWAYS_GUARD_STEPS } from './check-push.mjs';
 import { ORACLE_FILES } from './unit-scope.mjs';
@@ -101,7 +106,7 @@ describe('lintScope (check:fast lints only the changed files)', () => {
   });
 
   it('lints everything when the diff touches the oxlint config, package.json, the lockfile or a plugin patch', () => {
-    for (const f of ['.oxlintrc.json', 'package.json', 'package-lock.json', 'patches/@interfere+landmines+0.3.1.patch']) {
+    for (const f of ['.oxlintrc.json', 'tsconfig.json', 'tsconfig.node.json', 'package.json', 'package-lock.json', 'patches/@interfere+landmines+0.3.1.patch']) {
       expect(lintScope([m('src/a.ts'), m(f)])).toBeNull();
     }
     expect(lintScope([m('package.json', 'D')])).toBeNull();
@@ -124,7 +129,7 @@ describe('lintCommand', () => {
   });
 
   it('passes quoted files and keeps ignorePatterns files from failing the run', () => {
-    expect(lintCommand(['src/a b.ts'])).toBe(`oxlint --no-error-on-unmatched-pattern 'src/a b.ts'`);
+    expect(lintCommand(['src/a b.ts'])).toBe(`oxlint --no-error-on-unmatched-pattern -- 'src/a b.ts'`);
   });
 
   it('says it has nothing to lint for an empty list', () => {
@@ -138,7 +143,7 @@ describe('guardJobs', () => {
     const jobs = guardJobs({ steps: GUARD_STEPS, base: 'abc', lint: ['src/a.ts'], scripts });
     expect(jobs.map((j) => j.name ?? j)).toEqual(GUARD_STEPS);
     const byName = Object.fromEntries(jobs.map((j) => [j.name, j.command]));
-    expect(byName['lint:landmines']).toBe(`oxlint --no-error-on-unmatched-pattern 'src/a.ts'`);
+    expect(byName['lint:landmines']).toBe(`oxlint --no-error-on-unmatched-pattern -- 'src/a.ts'`);
     expect(byName['check-orphaned-selectors']).toBe('node scripts/check-orphaned-selectors.mjs --base abc');
     expect(byName['check-class-resolution']).toBe('node scripts/check-class-resolution.js');
     expect(byName['test:module-boundaries']).toBe('echo test:module-boundaries');
@@ -148,4 +153,31 @@ describe('guardJobs', () => {
     const jobs = guardJobs({ steps: ['check-orphaned-selectors'], base: null, lint: null, scripts });
     expect(jobs[0].command).toBe('node scripts/check-orphaned-selectors.mjs');
   });
+});
+
+describe('the end of a piped run', () => {
+  it('delivers the last line after 2 MB of guard output, with the exit code kept', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'cf-pipe-'));
+    const here = (f) => fileURLToPath(new URL(f, import.meta.url));
+    const file = join(dir, 'pipe.mjs');
+    writeFileSync(
+      file,
+      `import { runGuards } from ${JSON.stringify(here('./run-guards.mjs'))};
+import { exitWithMain } from ${JSON.stringify(here('./check-fast.mjs'))};
+await exitWithMain(async () => {
+  const failed = await runGuards([{ name: 'big', command: "node -e 'process.stdout.write(\\"x\\".repeat(2e6)); process.exitCode=1'" }]);
+  console.log('check:fast FAIL at ' + failed.join(','));
+  return 1;
+}, []);
+`,
+    );
+    const child = spawn(process.execPath, [file], { stdio: ['ignore', 'pipe', 'inherit'] });
+    let out = '';
+    child.stdout.on('data', (c) => (out += c));
+    const code = await new Promise((done) => child.on('close', done));
+    rmSync(dir, { recursive: true, force: true });
+    expect(out.length).toBeGreaterThan(2e6);
+    expect(out.trimEnd().endsWith('check:fast FAIL at big')).toBe(true);
+    expect(code).toBe(1);
+  }, 30000);
 });

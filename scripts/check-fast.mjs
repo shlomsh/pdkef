@@ -76,7 +76,7 @@ export function guardSteps(files) {
 // Pure. The files oxlint should lint, or null for the whole tree. Every enabled rule reads one file
 // (its allow-list stale reports included), so a diff that leaves the config, package.json, the lockfile
 // and the plugin patch alone can lint just its own files. oxlint's ignorePatterns still apply to them.
-const LINT_WHOLE_TREE = /^(?:\.oxlintrc[^/]*|oxlint\.config\.[^/]*|package\.json|package-lock\.json|patches\/.*(?:oxlint|landmines).*)$/;
+const LINT_WHOLE_TREE = /^(?:\.oxlintrc[^/]*|tsconfig[^/]*\.json|oxlint\.config\.[^/]*|package\.json|package-lock\.json|patches\/.*(?:oxlint|landmines).*)$/;
 const LINTABLE = /\.[cm]?[jt]sx?$/;
 const LINT_MAX_FILES = 300;
 export function lintScope(changed) {
@@ -88,7 +88,7 @@ export function lintScope(changed) {
 export function lintCommand(files) {
   if (!files) return 'oxlint';
   if (files.length === 0) return "echo 'lint:landmines: no changed files to lint, nothing to lint'";
-  return `oxlint --no-error-on-unmatched-pattern ${files.map(shellQuote).join(' ')}`;
+  return `oxlint --no-error-on-unmatched-pattern -- ${files.map(shellQuote).join(' ')}`;
 }
 
 // Pure. [{ name, command }] for runGuards, in order. Two guards are not package.json scripts.
@@ -247,6 +247,11 @@ async function main(argv) {
   return failed ? 1 : 0;
 }
 
+// process.exit would cut off piped output over 64KB, the final verdict line included.
+export async function exitWithMain(run, argv) {
+  process.exitCode = await run(argv);
+}
+
 if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split('/').pop())) {
-  process.exit(await main(process.argv.slice(2)));
+  await exitWithMain(main, process.argv.slice(2));
 }

@@ -151,30 +151,31 @@ export function changedFiles(base, head, run = git) {
 // cannot be both); untracked files are reported as 'A', the only status
 // `git ls-files --others` implies.
 export function changedFilesWithStatus(base, head, run = git) {
+  // -z output: NUL-separated tokens, names never quoted; a rename or copy is status, old, new.
   function parseNameStatus(output) {
-    return output
-      .split('\n')
-      .filter(Boolean)
-      .map((line) => {
-        const parts = line.split('\t');
-        const status = parts[0];
-        if (status[0] === 'R' || status[0] === 'C') {
-          // "R100\told\tnew" (or "C100\told\tnew" if copy detection is ever
-          // enabled) - report only the destination, which is what still
-          // exists and still carries the real edges.
-          return { path: parts[2], status: 'A', renamedFrom: parts[1] };
-        }
-        return { path: parts[1], status: status[0] };
-      });
+    const tokens = output.split('\0').filter(Boolean);
+    const files = [];
+    for (let i = 0; i < tokens.length; ) {
+      const status = tokens[i];
+      if (status[0] === 'R' || status[0] === 'C') {
+        // Report only the destination, which is what still exists and still carries the real edges.
+        files.push({ path: tokens[i + 2], status: 'A', renamedFrom: tokens[i + 1] });
+        i += 3;
+      } else {
+        files.push({ path: tokens[i + 1], status: status[0] });
+        i += 2;
+      }
+    }
+    return files;
   }
 
   if (head) {
-    return parseNameStatus(run(['diff', '-M', '--name-status', base, head]));
+    return parseNameStatus(run(['diff', '-z', '-M', '--name-status', base, head]));
   }
-  const tracked = parseNameStatus(run(['diff', '-M', '--name-status', base]));
+  const tracked = parseNameStatus(run(['diff', '-z', '-M', '--name-status', base]));
   const trackedPaths = new Set(tracked.map((f) => f.path));
-  const untracked = run(['ls-files', '--others', '--exclude-standard'])
-    .split('\n')
+  const untracked = run(['ls-files', '-z', '--others', '--exclude-standard'])
+    .split('\0')
     .filter(Boolean)
     .filter((path) => !trackedPaths.has(path))
     .map((path) => ({ path, status: 'A' }));
