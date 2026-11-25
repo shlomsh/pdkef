@@ -26,6 +26,16 @@ in the shell or Scan started Chromium in every subagent's `check:fast`.
 - Time guards on CI: counts fail, seconds are reported (a shared runner is too noisy to fail on), and every job has a
   `timeout-minutes`.
 
+## Local times, 2026-11-25, one run each, seconds, before LAND-04 and now
+
+| One-file edit | `check:fast` | `check:push` |
+| --- | --- | --- |
+| Merge hook | 39 to 28 | 47 to 52 |
+| Shell (`BasePdfTool`) | 29 to 24 | 46 to 71 |
+| Lib (`errorReport`) | 46 to 51 | 56 to 100 |
+
+`check:push` grew with the browser tests it reaches: its unit step went from 19 to 51 (shell) and from 35 to 79 (lib).
+
 ## Status
 
 - `check:fast` leaves the browser project out (`runUnitByImpact`, test seen failing first).
