@@ -107,6 +107,14 @@ function dynamicImportSpecifiers(source, file) {
 // `new URL('<relative literal>', import.meta.url)` is how bundlers find workers and assets: an edge.
 const URL_IMPORT = /new\s+URL\s*\(\s*(['"`])(\.{1,2}\/[^'"`$\n]*)\1\s*,\s*import\.meta\.url\s*\)/g;
 
+// Cheap tests on the raw source for the two passes that need comment-blanked code. Blanking only
+// turns comment text into spaces, so a non-space run in the blanked code is the same run in the raw
+// source: `import.meta.url` must appear verbatim, while `import` and `(` may be parted by whitespace
+// or by a comment (blanked to spaces), so the call test allows both. A false positive only costs the
+// blanking; a false negative would change a result, so these only err towards "maybe".
+const MAYBE_DYNAMIC_IMPORT = /import(?:\s|\/\/[^\n]*|\/\*[\s\S]*?\*\/)*\(/;
+const MAYBE_URL_IMPORT = 'import.meta.url';
+
 export function importSpecifiers(source, file = '<source>') {
   const specifiers = [];
   let match;
@@ -114,10 +122,15 @@ export function importSpecifiers(source, file = '<source>') {
   while ((match = IMPORT_PATTERN.exec(source)) !== null) {
     specifiers.push(match[1] || match[2] || match[3]);
   }
+  const maybeDynamic = MAYBE_DYNAMIC_IMPORT.test(source);
+  const maybeUrl = source.includes(MAYBE_URL_IMPORT);
+  if (!maybeDynamic && !maybeUrl) return specifiers;
   const code = blankComments(source);
-  specifiers.push(...dynamicImportSpecifiers(code, file));
-  URL_IMPORT.lastIndex = 0;
-  while ((match = URL_IMPORT.exec(code)) !== null) specifiers.push(match[2]);
+  if (maybeDynamic) specifiers.push(...dynamicImportSpecifiers(code, file));
+  if (maybeUrl) {
+    URL_IMPORT.lastIndex = 0;
+    while ((match = URL_IMPORT.exec(code)) !== null) specifiers.push(match[2]);
+  }
   return specifiers;
 }
 
@@ -127,6 +140,7 @@ const GLOB_CALL = /import\.meta\.glob\s*\(\s*/g;
 const GLOB_ARGUMENT = /^(?:(['"`])([^'"`$\n]+)\1|\[((?:\s*(['"`])[^'"`$\n]+\4\s*,?)+)\s*\])/;
 
 export function importGlobPatterns(rawSource, file = '<source>') {
+  if (!rawSource.includes('import.meta.glob')) return []; // GLOB_CALL needs that run verbatim; blanking cannot create it
   const source = blankComments(rawSource);
   const patterns = [];
   let match;

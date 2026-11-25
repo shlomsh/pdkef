@@ -180,3 +180,30 @@ describe('import aliases (ARCH-44)', () => {
     }
   });
 });
+
+describe('importSpecifiers and importGlobPatterns skip passes whose trigger is absent', () => {
+  it('a source with no import( and no import.meta.url has only its static specifiers', () => {
+    expect(importSpecifiers("import { a } from './a.js';\nexport * from './b.js';\nconst s = 'x';", 'src/x.js')).toEqual(['./a.js', './b.js']);
+  });
+  it('still reads import ( with whitespace between the keyword and the paren', () => {
+    expect(importSpecifiers("const m = await import (\n  './a.js'\n);", 'src/x.js')).toEqual(['./a.js']);
+    expect(importSpecifiers("const m = await import\t(\"./a.json\", { with: {} });", 'src/x.js')).toEqual(['./a.json']);
+  });
+  it('a comment between import and ( still gives the call, and a computed one still throws', () => {
+    expect(importSpecifiers("const m = import /* why */ ('./a.js', {});", 'src/x.js')).toEqual(['./a.js']);
+    expect(() => importSpecifiers('const m = import // why\n(name);', 'src/x.js')).toThrow(/computed import at src\/x\.js:1/);
+  });
+  it('import( inside a comment, or a bare import word, adds nothing', () => {
+    expect(importSpecifiers('// import(x)\n/* import (y) */\nconst important = 1; // import', 'src/x.js')).toEqual([]);
+  });
+  it('reads new URL(..., import.meta.url) with whitespace, and ignores one in a comment', () => {
+    expect(importSpecifiers("const u = new URL(\n  './w.js',\n  import.meta.url\n);", 'src/x.js')).toEqual(['./w.js']);
+    expect(importSpecifiers("// new URL('./w.js', import.meta.url)\nconst a = 1;", 'src/x.js')).toEqual([]);
+  });
+  it('importGlobPatterns returns [] without import.meta.glob, and reads the call when present', () => {
+    expect(importGlobPatterns("import { a } from './a.js';\nconst g = import.meta;", 'src/x.js')).toEqual([]);
+    expect(importGlobPatterns("const g = import.meta.glob ( './d/*.ts' );", 'src/x.js')).toEqual(['./d/*.ts']);
+    expect(importGlobPatterns("// import.meta.glob('./d/*.ts')\nconst a = 1;", 'src/x.js')).toEqual([]);
+    expect(() => importGlobPatterns('const g = import.meta.glob(pattern);', 'src/x.js')).toThrow(/computed import at src\/x\.js:1/);
+  });
+});
