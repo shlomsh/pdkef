@@ -62,9 +62,11 @@ env:
   VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
 
 jobs:
+  # timeout-minutes: about three times the slowest successful run seen (nightlies included), rounded up to 5, never under 10.
   # Everything that needs no build: source guards (the unit suite is `units`, ARCH-86).
   checks:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: scope
     if: always() && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
 
@@ -260,6 +262,7 @@ jobs:
   # proves the shards cover every unit file exactly once (scripts/check-unit-shards.mjs).
   units:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: scope
     if: always() && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
     strategy:
@@ -340,6 +343,7 @@ jobs:
   # check-unit-shards.mjs counts these shards beside the `units` ones; `browser-test-count` adds them up.
   units-browser:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: [scope, playwright-version]
     if: always() && needs.playwright-version.result == 'success' && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
     strategy:
@@ -377,6 +381,7 @@ jobs:
 
   browser-test-count:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: units-browser
     if: always() && needs.units-browser.result == 'success'
 
@@ -409,6 +414,7 @@ jobs:
   # its `docs_only`. An empty base with --head is never docs-only.
   plan:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     env:
       BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
     outputs:
@@ -485,6 +491,7 @@ jobs:
   # astro check is CI-only since QUAL-24; local checks run tsc.
   typecheck:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: scope
     if: always() && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
 
@@ -506,6 +513,7 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: [scope, plan]
     if: always() && needs.scope.outputs.nightly_unchanged != 'true' && needs.plan.result == 'success' && needs.plan.outputs.docs_only != 'true'
 
@@ -575,6 +583,7 @@ jobs:
   # so the guards in `build` vouch for exactly what these specs load.
   e2e:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     needs: [scope, plan, playwright-version]
     if: always() && needs.scope.outputs.nightly_unchanged != 'true' && needs.plan.result == 'success' && needs.plan.outputs.docs_only != 'true' && needs.plan.outputs.product_e2e != 'false' && needs.playwright-version.result == 'success'
     strategy:
@@ -657,6 +666,7 @@ jobs:
     # every webkit test failed at launch. Back to ubuntu-latest once a
     # Playwright release runs WebKit on 26.04.
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     needs: [scope, plan, playwright-version]
     if: always() && needs.scope.outputs.nightly_unchanged != 'true' && needs.plan.result == 'success' && needs.plan.outputs.docs_only != 'true' && needs.plan.outputs.product_e2e != 'false' && needs.playwright-version.result == 'success'
     # QUAL-29 (2026-10-26): Playwright's own image, with chromium, webkit and every system library they
@@ -736,6 +746,7 @@ jobs:
   # run. Reporting only.
   scope-summary:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: scope
     if: needs.scope.result == 'success' && needs.scope.outputs.nightly_unchanged != 'true'
     continue-on-error: true
@@ -765,6 +776,7 @@ jobs:
   # never fails the run, and nothing needs it.
   flake-report:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: [scope, e2e, e2e-webkit]
     if: always() && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.nightly))
     continue-on-error: true
@@ -798,6 +810,7 @@ jobs:
   # Nightly only. Reporting only: it never fails the run, and nothing needs it.
   narrowing-share:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: scope
     if: always() && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.nightly))
     continue-on-error: true
@@ -830,6 +843,7 @@ jobs:
   # jobs run then too.
   playwright-version:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
       version: ${{ steps.read.outputs.version }}
     steps:
@@ -868,6 +882,7 @@ jobs:
   # for `nx`) and `checks` work against the same diff.
   scope:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     if: github.event_name == 'push' || github.event_name == 'pull_request' || (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.nightly))
     outputs:
       docs_only: ${{ steps.classify.outputs.docs_only }}
@@ -989,6 +1004,7 @@ jobs:
   # thresholds were measured against the runner's own fonts. The export guards are the job below.
   font-guards:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: [scope, plan]
     if: always() && needs.scope.outputs.nightly_unchanged != 'true' && needs.plan.result == 'success' && needs.plan.outputs.docs_only != 'true' && needs.plan.outputs.fonts != 'false'
     strategy:
@@ -1106,6 +1122,7 @@ jobs:
   # specs do not need sharding. Gated on plan's `export_guards`, downloads plan's `dist`.
   export-guards:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: [scope, plan]
     if: always() && needs.scope.outputs.nightly_unchanged != 'true' && needs.plan.result == 'success' && needs.plan.outputs.docs_only != 'true' && needs.plan.outputs.export_guards != 'false'
 

@@ -246,3 +246,14 @@ describe('ci.yml builds once (QUAL-42)', () => {
     for (const j of PLAN_CONSUMERS) expect(jobs[j].if, j).toContain("needs.plan.result == 'success'");
   });
 });
+
+describe('ci.yml job timeouts', () => {
+  it('every job has an integer timeout-minutes between 1 and 60', () => {
+    for (const [name, job] of Object.entries(jobs)) {
+      const t = job['timeout-minutes'];
+      expect(Number.isInteger(t), `${name} timeout-minutes`).toBe(true);
+      expect(t, `${name} timeout-minutes`).toBeGreaterThanOrEqual(1);
+      expect(t, `${name} timeout-minutes`).toBeLessThanOrEqual(60);
+    }
+  });
+});
