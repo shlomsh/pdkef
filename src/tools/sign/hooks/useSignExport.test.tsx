@@ -195,9 +195,9 @@ describe('useSpeculativeExport', () => {
     shareSheet();
     const root = document.createElement('div');
     const preparedExportRef: { current: SignedExport | null } = { current: null };
-    const exportRun = { begin: () => ({ isCurrent: () => true, settle: () => {} }) } as unknown as ReturnType<typeof useLatestRun>;
     function Probe() {
       const share = usePdfShare();
+      const exportRun = useLatestRun(() => [file]);
       useSpeculativeExport({
         file, outputName: 'signed_form.pdf', status: 'editing', elementCount: 1, hasTurnedPage: false, documentRevision: 0, blocked: false,
         runExport: (onSigned, options) => runSignExport({

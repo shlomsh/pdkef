@@ -1251,65 +1251,62 @@ describe('PdfSignTool UI flow', () => {
 
   it('updates font selection and enables Save button when typing a signature', async () => {
     // jsdom's real 2D canvas serves the signature live preview.
-    {
-      container = document.createElement('div');
-      document.body.appendChild(container);
-      act(() => {
-        render(<PdfSignTool />, container);
-      });
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(<PdfSignTool />, container);
+    });
 
-      const file = makePdfFile('test.pdf');
-      const input = await picker(container);
-      await act(async () => {
-        setInputFiles(input, [file]);
-      });
+    const file = makePdfFile('test.pdf');
+    const input = await picker(container);
+    await act(async () => {
+      setInputFiles(input, [file]);
+    });
 
-      await loaded(container);
+    await loaded(container);
 
-      localStorage.removeItem('pdf-toolkit:signatures');
-      const toolbarButtons = container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button');
-      const sigBtn = required(Array.from(toolbarButtons).find(btn => btn.textContent?.includes('Sign') && !btn.textContent.includes('Download')), 'Sign button');
-      
-      await act(async () => {
-        sigBtn.click();
-      });
+    localStorage.removeItem('pdf-toolkit:signatures');
+    const toolbarButtons = container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button');
+    const sigBtn = required(Array.from(toolbarButtons).find(btn => btn.textContent?.includes('Sign') && !btn.textContent.includes('Download')), 'Sign button');
+    
+    await act(async () => {
+      sigBtn.click();
+    });
 
-      // Switch to Type mode
-      const tabBtns = container.querySelectorAll<HTMLButtonElement>('[data-editor-dialog-tab]');
-      await act(async () => {
-        tabBtns[1].click(); // Type tab
-      });
+    // Switch to Type mode
+    const tabBtns = container.querySelectorAll<HTMLButtonElement>('[data-editor-dialog-tab]');
+    await act(async () => {
+      tabBtns[1].click(); // Type tab
+    });
 
-      // The Caveat font should be active by default
-      const fontBtns = Array.from(container.querySelectorAll<HTMLButtonElement>('[data-editor-signature-font]'));
-      const caveatBtn = required(fontBtns.find(btn => btn.textContent === 'Caveat'), 'Caveat font button');
-      expect(caveatBtn.hasAttribute('data-editor-active')).toBe(true);
+    // The Caveat font should be active by default
+    const fontBtns = Array.from(container.querySelectorAll<HTMLButtonElement>('[data-editor-signature-font]'));
+    const caveatBtn = required(fontBtns.find(btn => btn.textContent === 'Caveat'), 'Caveat font button');
+    expect(caveatBtn.hasAttribute('data-editor-active')).toBe(true);
 
-      // Select Pacifico
-      const pacificoBtn = required(fontBtns.find(btn => btn.textContent === 'Pacifico'), 'Pacifico font button');
-      await act(async () => {
-        pacificoBtn.click();
-      });
+    // Select Pacifico
+    const pacificoBtn = required(fontBtns.find(btn => btn.textContent === 'Pacifico'), 'Pacifico font button');
+    await act(async () => {
+      pacificoBtn.click();
+    });
 
-      // Pacifico should now be active, Caveat should not
-      expect(pacificoBtn.hasAttribute('data-editor-active')).toBe(true);
-      expect(caveatBtn.hasAttribute('data-editor-active')).toBe(false);
+    // Pacifico should now be active, Caveat should not
+    expect(pacificoBtn.hasAttribute('data-editor-active')).toBe(true);
+    expect(caveatBtn.hasAttribute('data-editor-active')).toBe(false);
 
-      // Save button should be disabled initially
-      const saveSigBtn = query<HTMLButtonElement>(container, 'button[data-editor-signature-save]');
-      expect(saveSigBtn.disabled).toBe(true);
+    // Save button should be disabled initially
+    const saveSigBtn = query<HTMLButtonElement>(container, 'button[data-editor-signature-save]');
+    expect(saveSigBtn.disabled).toBe(true);
 
-      // Type a name
-      const typeInput = query<HTMLInputElement>(container, '[data-editor-signature-input]');
-      await act(async () => {
-        typeInput.value = 'Test Signature';
-        typeInput.dispatchEvent(new Event('input', { bubbles: true }));
-      });
+    // Type a name
+    const typeInput = query<HTMLInputElement>(container, '[data-editor-signature-input]');
+    await act(async () => {
+      typeInput.value = 'Test Signature';
+      typeInput.dispatchEvent(new Event('input', { bubbles: true }));
+    });
 
-      // Save button should now be enabled
-      expect(saveSigBtn.disabled).toBe(false);
-
-    }
+    // Save button should now be enabled
+    expect(saveSigBtn.disabled).toBe(false);
   });
 
   it('placeSignatureAt sizes/positions a placed signature using widthPercentToHeightPercent against the page wrapper (not the overlay)', async () => {
