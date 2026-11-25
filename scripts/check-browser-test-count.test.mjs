@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
-import { browserTestCount, compareBrowserTests } from './check-browser-test-count.mjs';
+import { browserTestCount, browserTestTotal, compareBrowserTests } from './check-browser-test-count.mjs';
 import { readRatchetLimits } from './ratchet-limits.mjs';
 
 const script = fileURLToPath(new URL('./check-browser-test-count.mjs', import.meta.url));
@@ -26,6 +26,14 @@ describe('compareBrowserTests', () => {
     expect(compareBrowserTests(12, 13)).toEqual({ failed: true, lowered: false });
     expect(compareBrowserTests(12, 12)).toEqual({ failed: false, lowered: false });
     expect(compareBrowserTests(12, 11)).toEqual({ failed: false, lowered: true });
+  });
+});
+
+describe('browserTestTotal', () => {
+  it('adds the shards up, and refuses one that failed', () => {
+    expect(browserTestTotal([report({ numTotalTests: 7 }), report({ numTotalTests: 5 })])).toBe(12);
+    expect(() => browserTestTotal([report(), report({ success: false })])).toThrow('failed');
+    expect(() => browserTestTotal([])).toThrow('no report');
   });
 });
 
@@ -63,17 +71,5 @@ describe('check-browser-test-count', () => {
   });
   it('fails without a report', () => {
     expect(() => execFileSync(process.execPath, [script, '/nowhere/report.json'], { stdio: 'pipe' })).toThrow();
-  });
-});
-
-describe('the units-browser job', () => {
-  const workflow = fs.readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8');
-  const job = workflow.slice(workflow.indexOf('\n  units-browser:\n'), workflow.indexOf('\n  plan:\n'));
-
-  it('counts the run it just made', () => {
-    const file = /--outputFile\.json=(\S+)/.exec(job)?.[1];
-    expect(job).toContain('--reporter=json');
-    expect(file).toBeTypeOf('string');
-    expect(job.indexOf(`node scripts/check-browser-test-count.mjs ${file}`)).toBeGreaterThan(job.indexOf('vitest run --project=browser'));
   });
 });

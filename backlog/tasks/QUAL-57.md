@@ -29,3 +29,5 @@ in the shell or Scan started Chromium in every subagent's `check:fast`.
 ## Status
 
 - `check:fast` leaves the browser project out (`runUnitByImpact`, test seen failing first).
+- CI waits less (built 2026-11-25, its own run still to be timed): four unit shards, the browser tests in two,
+  chromium e2e shards split by recorded time (`scripts/e2e-shard-plan.mjs`), and `plan` beside `scope`.

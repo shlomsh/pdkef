@@ -6,8 +6,8 @@ import { fileURLToPath } from 'node:url';
  * silently drops or doubles a test file would pass every job and still lose coverage, so this guard
  * lists what vitest would run in full and per shard (every project in vitest.config.js) and fails
  * unless the shards cover the full list exactly once, with none empty.
- * The `browser` project is not sharded: it is one more job, `units-browser`.
- * Usage: node scripts/check-unit-shards.mjs [--shards 2]
+ * The `browser` project is sharded apart, in `units-browser`.
+ * Usage: node scripts/check-unit-shards.mjs
  */
 
 export function compareShards(full, shards) {
@@ -29,6 +29,10 @@ function finish(parts) {
   return { ok, ...parts };
 }
 
+// The matrices of the `units` and `units-browser` jobs (scripts/ci-workflow.test.mjs holds ci.yml to these).
+export const UNIT_SHARDS = 4;
+export const BROWSER_SHARDS = 2;
+
 const BROWSER_PROJECT = 'browser';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -49,13 +53,10 @@ async function listFiles(shard, project) {
 }
 
 async function main() {
-  const i = process.argv.indexOf('--shards');
-  const n = i > -1 ? Number(process.argv[i + 1]) : 2;
-  if (!Number.isInteger(n) || n < 1) throw new Error('--shards needs a positive integer');
   const full = await listFiles();
   const shards = [];
-  for (let k = 1; k <= n; k++) shards.push(await listFiles(`${k}/${n}`, [`!${BROWSER_PROJECT}`]));
-  shards.push(await listFiles(undefined, [BROWSER_PROJECT]));
+  for (let k = 1; k <= UNIT_SHARDS; k++) shards.push(await listFiles(`${k}/${UNIT_SHARDS}`, [`!${BROWSER_PROJECT}`]));
+  for (let k = 1; k <= BROWSER_SHARDS; k++) shards.push(await listFiles(`${k}/${BROWSER_SHARDS}`, [BROWSER_PROJECT]));
   const r = compareShards(full, shards);
   if (!r.ok) {
     console.error('unit shards: the split does not cover the suite exactly once');
@@ -65,7 +66,7 @@ async function main() {
     if (r.empty.length) console.error(`  empty shards: ${r.empty.join(', ')}`);
     process.exit(1);
   }
-  console.log(`unit shards: ${n} shards and the ${BROWSER_PROJECT} job cover ${full.length} files exactly once`);
+  console.log(`unit shards: ${UNIT_SHARDS} unit and ${BROWSER_SHARDS} ${BROWSER_PROJECT} shards cover ${full.length} files exactly once`);
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) main().catch((e) => {

@@ -6,7 +6,7 @@
 // refuses a raise.
 //
 //   npx vitest run --project=browser --reporter=default --reporter=json --outputFile.json=test-results/browser.json
-//   node scripts/check-browser-test-count.mjs test-results/browser.json
+//   node scripts/check-browser-test-count.mjs test-results/browser.json   (or one report per shard)
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -20,14 +20,20 @@ export function browserTestCount(report) {
   return report.numTotalTests;
 }
 
+// Pure: the same over one report per shard.
+export function browserTestTotal(reports) {
+  if (reports.length === 0) throw new Error('no report given');
+  return reports.reduce((sum, report) => sum + browserTestCount(report), 0);
+}
+
 // Pure: failed when the count rose past the record; lowered when it fell below it.
 export function compareBrowserTests(recorded, current) {
   return { failed: current > recorded, lowered: current < recorded };
 }
 
-function main([file]) {
-  if (!file) throw new Error('usage: node scripts/check-browser-test-count.mjs <vitest json report>');
-  const current = browserTestCount(JSON.parse(fs.readFileSync(file, 'utf8')));
+function main(files) {
+  if (files.length === 0) throw new Error('usage: node scripts/check-browser-test-count.mjs <vitest json report>...');
+  const current = browserTestTotal(files.map((file) => JSON.parse(fs.readFileSync(file, 'utf8'))));
   const limits = readRatchetLimits();
   const recorded = limits.browserTests.ci;
   const { failed, lowered } = compareBrowserTests(recorded, current);

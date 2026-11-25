@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
+import { BROWSER_SHARDS, UNIT_SHARDS } from './check-unit-shards.mjs';
 
 // ci.yml is read and parsed once; each describe below pins one structure of it.
 const ci = readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8');
@@ -48,10 +49,10 @@ describe('ci.yml nightly dispatch', () => {
   });
 });
 
-// QUAL-39: the unit suite runs as two parallel shards; QUAL-41: the spec-read guard runs in `checks`.
+// QUAL-39: the unit suite runs as parallel shards; QUAL-41: the spec-read guard runs in `checks`.
 describe('ci.yml units (QUAL-39)', () => {
-  it('is a two-shard matrix that does not cancel the other shard', () => {
-    expect(jobs.units.strategy.matrix.shard).toEqual([1, 2]);
+  it('is a matrix of the shards the guard checks, and none cancels another', () => {
+    expect(jobs.units.strategy.matrix.shard).toEqual(Array.from({ length: UNIT_SHARDS }, (_, i) => i + 1));
     expect(jobs.units.strategy['fail-fast']).toBe(false);
   });
 
@@ -68,6 +69,65 @@ describe('ci.yml units (QUAL-39)', () => {
 
   it('checks proves the shards cover the suite exactly once', () => {
     expect(runs('checks')).toContain('npm run check:unit-shards');
+  });
+});
+
+describe('ci.yml browser tests', () => {
+  const shards = Array.from({ length: BROWSER_SHARDS }, (_, i) => i + 1);
+
+  it('each shard reports its own run', () => {
+    expect(jobs['units-browser'].strategy).toEqual({ 'fail-fast': false, matrix: { shard: shards } });
+    const vitest = runs('units-browser').filter((r) => /vitest run/.test(r));
+    expect(vitest).toHaveLength(1);
+    expect(vitest[0]).toContain('--project=browser --shard=${{ matrix.shard }}/${{ strategy.job-total }}');
+    expect(vitest[0]).toContain('--outputFile.json=test-results/browser-${{ matrix.shard }}.json');
+    const upload = stepsOf('units-browser').find((s) => String(s.uses ?? '').startsWith('actions/upload-artifact'));
+    expect(upload.with).toMatchObject({
+      name: 'browser-tests-${{ matrix.shard }}',
+      path: 'test-results/browser-${{ matrix.shard }}.json',
+      overwrite: true,
+      'if-no-files-found': 'error',
+    });
+  });
+
+  it('the count reads every shard, and only after all of them passed', () => {
+    const job = jobs['browser-test-count'];
+    expect(job.needs).toBe('units-browser');
+    expect(job.if).toBeUndefined();
+    const download = stepsOf('browser-test-count').find((s) => String(s.uses ?? '').startsWith('actions/download-artifact'));
+    expect(download.with).toEqual({ pattern: 'browser-tests-*', 'merge-multiple': true, path: 'test-results' });
+    expect(runs('browser-test-count').at(-1)).toBe(
+      `node scripts/check-browser-test-count.mjs ${shards.map((i) => `test-results/browser-${i}.json`).join(' ')}`,
+    );
+  });
+});
+
+// plan runs beside scope, so it classifies the change itself and a finished plan says nothing about docs-only.
+describe('ci.yml plan beside scope', () => {
+  const baseOf = (step) => step.env?.BASE;
+  const scopeBase = () => baseOf(stepsOf('scope').find((s) => s.id === 'classify'));
+
+  it('waits for nothing and diffs against the same base as scope', () => {
+    expect(jobs.plan.needs).toBeUndefined();
+    expect(jobs.plan.env.BASE).toBe(scopeBase());
+    expect(JSON.stringify(jobs.plan)).not.toContain('needs.');
+  });
+
+  it('classifies before it installs, and every later step is skipped on a docs-only change', () => {
+    const steps = stepsOf('plan');
+    const at = steps.findIndex((s) => s.id === 'change');
+    expect(steps[at].run).toContain('node scripts/change-scope.mjs --base "$BASE" --head HEAD >> "$GITHUB_OUTPUT"');
+    expect(steps.slice(0, at).map((s) => s.run ?? '').join()).not.toContain('npm ci');
+    const later = steps.slice(at + 1);
+    expect(later.some((s) => s.run === 'npm ci')).toBe(true);
+    for (const s of later) expect(s.if, s.name).toContain("steps.change.outputs.docs_only != 'true'");
+  });
+
+  it('every consumer checks scope itself', () => {
+    for (const j of ['build', 'e2e', 'e2e-webkit', 'font-guards', 'export-guards']) {
+      expect([].concat(jobs[j].needs), j).toContain('scope');
+      expect(jobs[j].if, j).toContain(jobs.checks.if.replace('always() && ', ''));
+    }
   });
 });
 
@@ -156,9 +216,14 @@ describe('ci.yml builds once (QUAL-42)', () => {
     expect(co?.with?.['fetch-depth']).toBe(0);
   });
 
-  it('the e2e matrix is sized by plan and sharded by job-total', () => {
+  it('the e2e matrix is sized by plan and split by recorded time', () => {
     expect(jobs.e2e.strategy.matrix.shard).toContain('fromJSON(needs.plan.outputs.e2e_shards');
-    expect(runs('e2e').join('\n')).toContain('--shard=${{ matrix.shard }}/${{ strategy.job-total }}');
+    const run = runs('e2e').find((r) => r.includes('playwright test'));
+    expect(run).toContain('FILES=$(node scripts/e2e-shard-plan.mjs --shard "${{ matrix.shard }}/${{ strategy.job-total }}" --paths "$E2E_PATHS")');
+    // An empty filter would run every spec; a shard that names files must find them.
+    expect(run).toContain('if [ -z "$FILES" ]; then');
+    expect(run).not.toContain('--pass-with-no-tests');
+    expect(run).toContain('npx playwright test --project=chromium $REPEAT $FILES');
   });
 
   it('dependency-gate is gone, with every reference', () => {

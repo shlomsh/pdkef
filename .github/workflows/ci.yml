@@ -256,8 +256,8 @@ jobs:
       run: npm run test:spec-file-reads
 
   # ARCH-86: the unit suite beside the guards in `checks`, so neither delays the other's verdict.
-  # QUAL-39: two `vitest --shard` jobs, so the long pole of a narrowed run is half as long. `checks`
-  # proves the two halves cover every unit file exactly once (scripts/check-unit-shards.mjs).
+  # QUAL-39: `vitest --shard` jobs, so the long pole of a narrowed run is a fraction as long. `checks`
+  # proves the shards cover every unit file exactly once (scripts/check-unit-shards.mjs).
   units:
     runs-on: ubuntu-latest
     needs: scope
@@ -265,7 +265,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2]
+        shard: [1, 2, 3, 4]
 
     steps:
     - uses: actions/checkout@v5
@@ -337,11 +337,15 @@ jobs:
 
   # LAND-04 wave 5: the `*.browser.test.*` files run in headless Chromium (Vitest browser mode), so in
   # Playwright's own image like `e2e`, never waiting on the Ubuntu mirror for browser dependencies.
-  # check-unit-shards.mjs counts this job beside the two `units` shards.
+  # check-unit-shards.mjs counts these shards beside the `units` ones; `browser-test-count` adds them up.
   units-browser:
     runs-on: ubuntu-latest
     needs: [scope, playwright-version]
     if: always() && needs.playwright-version.result == 'success' && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     container:
       image: mcr.microsoft.com/playwright:v${{ needs.playwright-version.outputs.version }}-noble
       options: --ipc=host
@@ -359,21 +363,53 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
-    - name: Run browser tests
-      run: npx vitest run --project=browser --reporter=default --reporter=github-actions --reporter=json --outputFile.json=test-results/browser.json
+    - name: Run browser tests (shard ${{ matrix.shard }}/${{ strategy.job-total }})
+      run: npx vitest run --project=browser --shard=${{ matrix.shard }}/${{ strategy.job-total }} --reporter=default --reporter=github-actions --reporter=json --outputFile.json=test-results/browser-${{ matrix.shard }}.json
+
+    - name: Upload the test report
+      uses: actions/upload-artifact@v5
+      with:
+        name: browser-tests-${{ matrix.shard }}
+        path: test-results/browser-${{ matrix.shard }}.json
+        overwrite: true
+        retention-days: 3
+        if-no-files-found: error
+
+  browser-test-count:
+    runs-on: ubuntu-latest
+    needs: units-browser
+
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Use Node.js
+      uses: actions/setup-node@v5
+      with:
+        node-version: '22.x'
+        check-latest: true
+
+    - name: Download the test reports
+      uses: actions/download-artifact@v5
+      with:
+        pattern: browser-tests-*
+        merge-multiple: true
+        path: test-results
 
     - name: Refuse more browser tests than recorded
-      run: node scripts/check-browser-test-count.mjs test-results/browser.json
+      run: node scripts/check-browser-test-count.mjs test-results/browser-1.json test-results/browser-2.json
 
   # QUAL-42: the one place that resolves the affected scope and builds. Every consumer downloads
   # `dist` and reads the scope from these outputs. A dependency bump that breaks the build fails here
   # once (this replaces the old dependabot-only build gate). Full history, because the site build
   # dates pages from git (see `build`). `product_e2e` false means no e2e job runs; `e2e_shards` is a
   # JSON array of 1..4 numbers sized by the spec count in scope (scripts/e2e-shard-count.mjs).
+  # It starts beside `scope` and classifies the change itself, so the build does not wait for another
+  # runner. It therefore succeeds on a docs-only change too, with nothing built: every consumer checks
+  # `scope` for itself. An empty base with --head is never docs-only.
   plan:
     runs-on: ubuntu-latest
-    needs: scope
-    if: always() && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
+    env:
+      BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
     outputs:
       product_e2e: ${{ steps.affected.outputs.product_e2e }}
       e2e_paths: ${{ steps.affected.outputs.e2e_paths }}
@@ -387,7 +423,15 @@ jobs:
       with:
         fetch-depth: 0
 
+    # No --depth: the checkout is full history and the site build dates pages from it; a depth-limited fetch makes the clone shallow.
+    - name: Classify the change against its base
+      id: change
+      run: |
+        if [ -n "$BASE" ]; then git fetch --no-tags origin "$BASE" || true; fi
+        node scripts/change-scope.mjs --base "$BASE" --head HEAD >> "$GITHUB_OUTPUT"
+
     - name: Use Node.js
+      if: steps.change.outputs.docs_only != 'true'
       uses: actions/setup-node@v5
       with:
         node-version: '22.x'
@@ -395,22 +439,19 @@ jobs:
         cache: 'npm'
 
     - name: Install dependencies
+      if: steps.change.outputs.docs_only != 'true'
       run: npm ci
 
     # An empty e2e_paths is ambiguous (everything=true or nothing e2e-relevant is affected) and an
     # empty filter runs every spec, so the e2e jobs are gated on `product_e2e` (QUAL-32).
     - name: Resolve affected scope
       id: affected
-      env:
-        BASE: ${{ needs.scope.outputs.base }}
-      run: |
-        # No --depth: the checkout is full history and the site build dates pages from it; a depth-limited fetch makes the clone shallow.
-        if [ -n "$BASE" ]; then git fetch --no-tags origin "$BASE" || true; fi
-        node scripts/affected-scope.mjs --base "$BASE" >> "$GITHUB_OUTPUT"
+      if: steps.change.outputs.docs_only != 'true'
+      run: node scripts/affected-scope.mjs --base "$BASE" >> "$GITHUB_OUTPUT"
 
     - name: Size the e2e matrix
       id: shards
-      if: steps.affected.outputs.product_e2e != 'false'
+      if: steps.change.outputs.docs_only != 'true' && steps.affected.outputs.product_e2e != 'false'
       env:
         EVERYTHING: ${{ steps.affected.outputs.everything }}
         E2E_PATHS: ${{ steps.affected.outputs.e2e_paths }}
@@ -422,10 +463,12 @@ jobs:
         fi
 
     - name: Build
+      if: steps.change.outputs.docs_only != 'true'
       run: npm run build
 
     # include-hidden-files: dist/.well-known is a dot directory and would be dropped without it.
     - name: Upload dist
+      if: steps.change.outputs.docs_only != 'true'
       uses: actions/upload-artifact@v5
       with:
         name: dist
@@ -524,13 +567,14 @@ jobs:
       run: npm run test:stable-names
 
   # The product e2e suite, a matrix sized by plan from the spec count in scope (QUAL-42; QUAL-05 and
-  # QUAL-23 split it). Files shard whole and in path order. Every chromium spec except the font guards
-  # (their own job below) and webkit/perf (`e2e-webkit`, QUAL-09). Each shard downloads plan's `dist`
-  # instead of building, so the guards in `build` vouch for exactly what these specs load.
+  # QUAL-23 split it). Files shard whole, balanced by recorded time
+  # (scripts/e2e-shard-plan.mjs). Every chromium spec except the font guards (their own job below) and
+  # webkit/perf (`e2e-webkit`, QUAL-09). Each shard downloads plan's `dist` instead of building,
+  # so the guards in `build` vouch for exactly what these specs load.
   e2e:
     runs-on: ubuntu-latest
     needs: [scope, plan, playwright-version]
-    if: always() && needs.plan.result == 'success' && needs.plan.outputs.product_e2e != 'false' && needs.playwright-version.result == 'success'
+    if: always() && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true') && needs.plan.result == 'success' && needs.plan.outputs.product_e2e != 'false' && needs.playwright-version.result == 'success'
     strategy:
       fail-fast: false
       matrix:
@@ -575,7 +619,13 @@ jobs:
       env:
         E2E_PATHS: ${{ needs.plan.outputs.e2e_paths }}
         REPEAT: ${{ (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.nightly)) && '--repeat-each=2' || '' }}
-      run: npx playwright test --project=chromium --shard=${{ matrix.shard }}/${{ strategy.job-total }} --pass-with-no-tests $REPEAT $E2E_PATHS
+      run: |
+        FILES=$(node scripts/e2e-shard-plan.mjs --shard "${{ matrix.shard }}/${{ strategy.job-total }}" --paths "$E2E_PATHS")
+        if [ -z "$FILES" ]; then
+          echo "no spec in this shard"
+        else
+          npx playwright test --project=chromium $REPEAT $FILES
+        fi
 
     - name: Upload Playwright artifacts
       if: failure()
@@ -606,7 +656,7 @@ jobs:
     # Playwright release runs WebKit on 26.04.
     runs-on: ubuntu-24.04
     needs: [scope, plan, playwright-version]
-    if: always() && needs.plan.result == 'success' && needs.plan.outputs.product_e2e != 'false' && needs.playwright-version.result == 'success'
+    if: always() && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true') && needs.plan.result == 'success' && needs.plan.outputs.product_e2e != 'false' && needs.playwright-version.result == 'success'
     # QUAL-29 (2026-10-26): Playwright's own image, with chromium, webkit and every system library they
     # need already in it. `install-deps` used to fetch about 119 MB of WebKit libraries from the Azure
     # Ubuntu mirror on every run, usually in 30s but in 35-55 min on 6 runs that day (48 kB/s, run
@@ -938,7 +988,7 @@ jobs:
   font-guards:
     runs-on: ubuntu-latest
     needs: [scope, plan]
-    if: always() && needs.plan.result == 'success' && needs.plan.outputs.fonts != 'false'
+    if: always() && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true') && needs.plan.result == 'success' && needs.plan.outputs.fonts != 'false'
     strategy:
       fail-fast: false
       matrix:
@@ -1055,7 +1105,7 @@ jobs:
   export-guards:
     runs-on: ubuntu-latest
     needs: [scope, plan]
-    if: always() && needs.plan.result == 'success' && needs.plan.outputs.export_guards != 'false'
+    if: always() && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true') && needs.plan.result == 'success' && needs.plan.outputs.export_guards != 'false'
 
     steps:
     - uses: actions/checkout@v5
