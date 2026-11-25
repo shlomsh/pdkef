@@ -374,6 +374,41 @@ function computeScope() {
   return { base, dirty, scope, unitScope, typecheck };
 }
 
+// Stage children run in their own process group (`detached`), so a guard's compound command
+// (`a && b`) dies whole: killing only the sh left its node child alive, still writing files.
+const liveChildren = new Set();
+
+export function spawnGroup(...args) {
+  const options = args.pop();
+  const child = spawn(...args, { ...options, detached: true });
+  liveChildren.add(child);
+  child.on('close', () => liveChildren.delete(child));
+  return child;
+}
+
+// SIGTERM to the child's whole group; child.kill() when there is no pid (a fake child) or no group.
+export function killGroup(child) {
+  if (child.pid) {
+    try {
+      process.kill(-child.pid, 'SIGTERM');
+      return;
+    } catch (error) {
+      if (error.code === 'ESRCH') return;
+    }
+  }
+  child.kill();
+}
+
+// A detached child no longer gets the terminal's Ctrl-C, so the parent passes the stop on.
+export function installStopHandlers(proc = process) {
+  for (const [signal, code] of [['SIGINT', 130], ['SIGTERM', 143]]) {
+    proc.on(signal, () => {
+      for (const child of liveChildren) killGroup(child);
+      proc.exit(code);
+    });
+  }
+}
+
 // Run one stage's steps concurrently (bounded by the CPU count), buffering each
 // step's output and printing it only for a failure. The first failure kills
 // the rest of the stage. `spawnStep(id)` returns a child-process-like object
@@ -414,7 +449,7 @@ export function runStageWith(ids, { spawnStep, limit = Math.max(2, availablePara
             if (code !== 0 && !failed) {
               failed = true;
               log(`\n--- ${id} output ---\n${out}`);
-              for (const other of running) other.kill();
+              for (const other of running) killGroup(other);
             }
           }
           if (running.size === 0 && (queue.length === 0 || failed)) resolve({ results, failed });
@@ -458,14 +493,15 @@ function runStage(ids, passthroughArgs) {
   const commands = new Map(ids.filter((id) => ALWAYS_GUARD_STEPS.includes(id)).map((id) => [id, guardCommand(id, scripts)]).filter(([, command]) => command));
   const env = { ...process.env, PATH: [join(ROOT, 'node_modules', '.bin'), process.env.PATH].filter(Boolean).join(delimiter) };
   const spawnStep = (id) => (commands.has(id)
-    ? spawn(commands.get(id), { shell: true, cwd: ROOT, env, stdio: ['ignore', 'pipe', 'pipe'] })
-    : spawn('node', [fileURLToPath(import.meta.url), '--step', id, ...passthroughArgs], { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'] }));
+    ? spawnGroup(commands.get(id), { shell: true, cwd: ROOT, env, stdio: ['ignore', 'pipe', 'pipe'] })
+    : spawnGroup('node', [fileURLToPath(import.meta.url), '--step', id, ...passthroughArgs], { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'] }));
   const isGuard = (id) => commands.has(id);
   return runStageWith(orderStage(ids, isGuard), { spawnStep, laneOf: (id) => guardLane(id, isGuard), laneLimits: { guard: GUARD_LANE_LIMIT, ratchet: 1 } });
 }
 
 async function main() {
   const argv = process.argv.slice(2);
+  installStopHandlers();
   const mode = argv.includes('--e2e') ? 'e2e' : 'gate';
   const perf = argv.includes('--perf');
   const passthrough = argv.filter((a) => a === '--e2e' || a === '--perf');

@@ -102,7 +102,7 @@ describe('lintScope (check:fast lints only the changed files)', () => {
   const m = (path, status = 'M') => ({ path, status });
 
   it('lints the changed lintable files, without deleted ones or other extensions', () => {
-    expect(lintScope([m('src/a.ts'), m('src/b.tsx', 'A'), m('src/gone.ts', 'D'), m('docs/x.md'), m('scripts/c.mjs'), m('src/p.astro')])).toEqual(['src/a.ts', 'src/b.tsx', 'scripts/c.mjs', 'src/p.astro'].filter((f) => !f.endsWith('.astro')));
+    expect(lintScope([m('src/a.ts'), m('src/b.tsx', 'A'), m('src/gone.ts', 'D'), m('docs/x.md'), m('scripts/c.mjs'), m('src/p.astro')])).toEqual(['src/a.ts', 'src/b.tsx', 'scripts/c.mjs']);
   });
 
   it('lints everything when the diff touches the oxlint config, package.json, the lockfile or a plugin patch', () => {

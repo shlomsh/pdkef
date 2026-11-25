@@ -1,10 +1,16 @@
 import { EventEmitter } from 'node:events';
 import { describe, expect, it } from 'vitest';
-import { runStageWith, touchesAstro, fileCannotReachDist, reachesDist, planSteps, stageSteps, localScope, portOwnerVerdict, ALWAYS_GUARD_STEPS, DIST_GUARD_STEPS, DOCS_ONLY_STEPS, distGuardScripts, STEP_RUNNERS, guardCommand, guardLane, orderStage } from './check-push.mjs';
+import { runStageWith, touchesAstro, fileCannotReachDist, reachesDist, planSteps, stageSteps, localScope, portOwnerVerdict, ALWAYS_GUARD_STEPS, DIST_GUARD_STEPS, DOCS_ONLY_STEPS, distGuardScripts, STEP_RUNNERS, guardCommand, guardLane, orderStage, spawnGroup, killGroup } from './check-push.mjs';
 import { deriveScope, wide, finishScope } from './affected-scope.mjs';
 import { narrowTestOnlyChange } from './test-only-scope.mjs';
 import { classify } from './change-scope.mjs';
-import { readFileSync } from 'node:fs';
+import { spawn } from 'node:child_process';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { resolveGuardCommand } from './run-guards.mjs';
+import { GUARD_STEPS } from './check-fast.mjs';
 
 /* scripts/check-push.mjs (ARCH-29) computes the CI oracle's scope once (base:
    the merge-base of origin/main and HEAD; files: the working tree against
@@ -459,5 +465,70 @@ describe('check:push and CI share the test-only scope (QUAL-35)', () => {
 
   it('resolveScope, which CI and check:push both call, ends with finishScope', () => {
     expect(readFileSync(new URL('./affected-scope.mjs', import.meta.url), 'utf8')).toMatch(/return finishScope\(deriveScope\(/);
+  });
+});
+
+/* Process groups: a guard is `sh -c "a && b"`, so killing only the sh left b running.
+   A child's stdio pipes stay open while any grandchild lives, so `close` firing
+   is itself the proof that the whole group is gone. */
+describe('stage children run in their own process group', () => {
+  const here = (f) => fileURLToPath(new URL(f, import.meta.url));
+  const withDir = async (body) => {
+    const dir = mkdtempSync(join(tmpdir(), 'check-push-'));
+    try {
+      await body(dir);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  };
+  // The second process of the compound command writes `marker` after 2s unless it is killed.
+  const lateWriter = (marker) => `node -e "console.log('ready');setTimeout(()=>require('fs').writeFileSync(process.argv[1],'x'),2000)" ${marker} && true`;
+  const closed = (child) => new Promise((resolve) => child.on('close', (code, signal) => resolve({ code, signal })));
+
+  it('a failed stage kills the second process of a compound guard command', async () => {
+    await withDir(async (dir) => {
+      const marker = join(dir, 'marker');
+      const spawnStep = (id) => (id === 'slow'
+        ? spawnGroup(lateWriter(marker), { shell: true, stdio: ['ignore', 'pipe', 'pipe'] })
+        : spawnGroup('node', ['-e', "setTimeout(()=>process.exit(1),300)"], { stdio: ['ignore', 'pipe', 'pipe'] }));
+      const r = await runStageWith(['slow', 'bad'], { spawnStep, limit: 4, log: () => {} });
+      expect(r.failed).toBe(true);
+      expect(existsSync(marker)).toBe(false);
+    });
+  });
+
+  it('SIGTERM to check:push kills the running groups and exits 143', async () => {
+    await withDir(async (dir) => {
+      const marker = join(dir, 'marker');
+      const script = join(dir, 'parent.mjs');
+      writeFileSync(script, `import { spawnGroup, installStopHandlers } from ${JSON.stringify(here('./check-push.mjs'))};
+installStopHandlers();
+spawnGroup(${JSON.stringify(lateWriter(marker))}, { shell: true, stdio: ['ignore', 'inherit', 'inherit'] });
+`);
+      const parent = spawn('node', [script], { stdio: ['ignore', 'pipe', 'inherit'] });
+      const done = closed(parent);
+      await new Promise((ready) => parent.stdout.on('data', (d) => String(d).includes('ready') && ready()));
+      parent.kill('SIGTERM');
+      const { code } = await done;
+      expect(code).toBe(143);
+      expect(existsSync(marker)).toBe(false);
+    });
+  });
+
+  it('killGroup falls back to child.kill() for a child without a pid', () => {
+    let killed = false;
+    killGroup({ kill: () => (killed = true) });
+    expect(killed).toBe(true);
+  });
+});
+
+describe('every guard check:fast and check:push run resolves against package.json', () => {
+  const { scripts } = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  it.each(GUARD_STEPS)('check:fast guard %s', (name) => {
+    if (scripts[name] === undefined) return expect(['check-orphaned-selectors', 'check-class-resolution']).toContain(name);
+    expect(() => resolveGuardCommand(name, scripts)).not.toThrow();
+  });
+  it.each(ALWAYS_GUARD_STEPS)('check:push guard %s', (name) => {
+    expect(guardCommand(name, scripts)).not.toBeNull();
   });
 });
