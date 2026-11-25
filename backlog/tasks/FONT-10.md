@@ -1,10 +1,9 @@
 ---
 id: "FONT-10"
 title: "Export text with fontkit 3 instead of the unmaintained @pdf-lib fork"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "polish"
-horizon: "next"
 depends_on: []
 ---
 
@@ -45,8 +44,10 @@ HarfBuzz on every bundled font, with no string that matched before getting worse
 - Cold `astro dev` (`4998bb8b7`): it failed before this work too, because Astro's dependency scan read a test helper that
   imports `@napi-rs/canvas`. `astro.config.mjs` keeps test files out of the scan, `scripts/dev-scan-entries.test.mjs`
   guards it, and 20 pages (every tool page among them) hydrate from a cleared cache.
+- Read on a real iPhone by Shlomi (2026-11-25): a Thai and a Bengali export from `main`, 4 faces each with the strings
+  above, next to Chrome's own picture of every line. Both match.
 
-**Done when:** an export of the Thai and Bengali strings, read on a real iPhone, looks right. That is the one item left.
+**Done when:** an export of the Thai and Bengali strings, read on a real iPhone, looks right. Met, nothing left.
 
 Measured: `sign-vendor.js` 268,018 to 71,041 brotli, `/sign/` install 1,424,609 to 1,225,065.
 
