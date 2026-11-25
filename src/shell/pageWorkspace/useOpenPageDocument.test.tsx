@@ -140,9 +140,9 @@ describe('useOpenPageDocument', () => {
     await older.started;
     await act(async () => { current.open(newer); });
     await waitUntil(() => current.file === newer && current.loadStatus === 'idle' && current.pageCount === 2);
-    await act(async () => { older.release(); });
+    await act(async () => { older.release(); await drainPromises(); });
     // The older probe really ran and found a password.
-    await waitUntil(() => vi.mocked(probeEncryption).mock.calls.length === 2);
+    expect(probeEncryption).toHaveBeenCalledTimes(2);
     const probed = await Promise.all(vi.mocked(probeEncryption).mock.results.map((r) => r.value));
     expect(probed).toContain('needs-password');
     await flush();
