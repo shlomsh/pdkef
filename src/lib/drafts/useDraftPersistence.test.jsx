@@ -6,6 +6,8 @@ import { holdDraftStore } from './heldStore.test-helper.ts';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import 'fake-indexeddb/auto';
 import { IDBFactory } from 'fake-indexeddb';
+import { PDFDocument } from '@cantoo/pdf-lib';
+import '../../test/support/realPdfjs.ts';
 import { useDraftPersistence } from './useDraftPersistence.js';
 import { DRAFT_SCHEMA_VERSION } from './draftPolicy.js';
 import { flushBeforeUpdateReload, isUpdateHeld } from '../appUpdate/updateHolds.ts';
@@ -19,14 +21,12 @@ import { flushBeforeUpdateReload, isUpdateHeld } from '../appUpdate/updateHolds.
 // lets a test see which calls happened; a failed write is a real one (an element structured clone refuses), a held
 // write is a real held transaction, and the browser's persistence answer is forced.
 vi.mock('./draftStore.ts', { spy: true });
-// Until LAND-04's canvas wave a test says what preview was drawn; otherwise the real one runs.
-vi.mock('../pdf/thumbnails.js', { spy: true });
 
 import { renderDraftPreview } from '../pdf/thumbnails.js';
 import { saveDraft, attachDraftPreview, isStoragePersisted, loadDraft, readRecentFiles, cacheRecentFile, hasDraftHint } from './draftStore.ts';
 import { takeArrival, noteRecentOpen, resetFileArrivalForTests } from '../handoff/fileArrival.ts';
 
-// A real store, empty, for every test; the previews are not drawn unless a test says so.
+// A real store, empty, for every test.
 beforeEach(() => {
   indexedDB = new IDBFactory();
   localStorage.clear();
@@ -35,8 +35,17 @@ beforeEach(() => {
   vi.mocked(loadDraft).mockReset();
   vi.mocked(isStoragePersisted).mockReset();
   vi.mocked(attachDraftPreview).mockClear();
-  vi.mocked(renderDraftPreview).mockReset();
 });
+
+// A real one-page PDF of the given size, as a file and as the bytes the draft keeps. Two sizes draw two different
+// previews, and the expected preview is whatever the real renderDraftPreview makes of the same file.
+async function realPdf(name, width, height) {
+  const doc = await PDFDocument.create();
+  doc.addPage([width, height]);
+  const bytes = await doc.save();
+  const file = new File([bytes], name, { type: 'application/pdf' });
+  return { file, fileBytes: bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength), expectedPreview: await renderDraftPreview(file) };
+}
 
 // The debounce is the only clock a test moves; the store's own async work (fake-indexeddb) keeps real
 // timers, so only these are faked.
@@ -111,19 +120,19 @@ describe('useDraftPersistence - save outcome reporting', () => {
   });
 
   it('keeps a preview that finishes before the debounced save writes its older snapshot', async () => {
-    // Forced: until LAND-04's canvas wave (jsdom draws real pixels since 31)
-    vi.mocked(renderDraftPreview).mockResolvedValueOnce('data:image/jpeg;base64,preview');
-    const props = baseProps();
+    const { file, fileBytes, expectedPreview } = await realPdf('contract.pdf', 100, 200);
+    expect(expectedPreview).toMatch(/^data:image\/jpeg;base64,/);
+    const props = baseProps({ file, fileBytes });
     await act(async () => {
       render(<Harness apiRef={apiRef} props={props} />, container);
     });
     // The preview is drawn and stored with the opened file before the first edit's debounce ends.
-    await waitUntil(() => expect(readRecentFiles().map((entry) => entry.preview)).toEqual(['data:image/jpeg;base64,preview']));
+    await waitUntil(() => expect(readRecentFiles().map((entry) => entry.preview)).toEqual([expectedPreview]));
     renderFirstEdit(apiRef, props, container);
     await passDebounce();
     await stateIs(apiRef, 'saved');
     await act(async () => { await drainPromises(); });
-    expect(attachDraftPreview).toHaveBeenLastCalledWith('sign', 'data:image/jpeg;base64,preview');
+    expect(attachDraftPreview).toHaveBeenLastCalledWith('sign', expectedPreview);
     expect(vi.mocked(attachDraftPreview).mock.invocationCallOrder.at(-1)).toBeGreaterThan(vi.mocked(saveDraft).mock.invocationCallOrder.at(-1));
   });
 
@@ -485,12 +494,13 @@ describe('useDraftPersistence - same file opened in two tools (real store)', () 
   // whatever entry the pointer named, and the pointer only moves to the new
   // file once cacheRecentFile has hashed and stored it.
   it('opening a second file leaves the first file its own preview', async () => {
-    const alphaBytes = new TextEncoder().encode('%PDF-1.4 alpha').buffer;
-    const bravoBytes = new TextEncoder().encode('%PDF-1.4 bravo').buffer;
-    const props = (name, fileBytes) => ({
+    const alpha = await realPdf('qa-alpha.pdf', 100, 200);
+    const bravo = await realPdf('qa-bravo.pdf', 200, 100);
+    expect(alpha.expectedPreview).not.toBe(bravo.expectedPreview);
+    const props = ({ file, fileBytes }) => ({
       tool: 'sign',
       enabled: true,
-      file: new File(['x'], name, { type: 'application/pdf' }),
+      file,
       fileBytes,
       elements: [],
       extra: {},
@@ -499,24 +509,20 @@ describe('useDraftPersistence - same file opened in two tools (real store)', () 
     });
     const apiRef = { current: null };
 
-    // Forced: until LAND-04's canvas wave (jsdom draws real pixels since 31)
-    vi.mocked(renderDraftPreview).mockResolvedValueOnce('data:image/jpeg;base64,alpha');
     await act(async () => {
-      render(<RealHarness apiRef={apiRef} props={props('qa-alpha.pdf', alphaBytes)} />, container);
+      render(<RealHarness apiRef={apiRef} props={props(alpha)} />, container);
     });
     await waitUntil(previewOf('qa-alpha.pdf'));
 
-    // Forced: until LAND-04's canvas wave (jsdom draws real pixels since 31)
-    vi.mocked(renderDraftPreview).mockResolvedValueOnce('data:image/jpeg;base64,bravo');
     await act(async () => {
-      render(<RealHarness apiRef={apiRef} props={props('qa-bravo.pdf', bravoBytes)} />, container);
+      render(<RealHarness apiRef={apiRef} props={props(bravo)} />, container);
     });
     await waitUntil(previewOf('qa-bravo.pdf'));
 
     const previews = Object.fromEntries(realDraftStore.readRecentFiles().map((entry) => [entry.fileName, entry.preview]));
     expect(previews).toEqual({
-      'qa-alpha.pdf': 'data:image/jpeg;base64,alpha',
-      'qa-bravo.pdf': 'data:image/jpeg;base64,bravo',
+      'qa-alpha.pdf': alpha.expectedPreview,
+      'qa-bravo.pdf': bravo.expectedPreview,
     });
   });
 });

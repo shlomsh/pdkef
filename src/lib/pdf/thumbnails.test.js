@@ -1,178 +1,143 @@
-// jsdom has no canvas backend, so these tests prove pdf.js was *driven*
-// correctly (which pages were requested, in what order, with a white prefill
-// before each render, and the abort/destroy contract) rather than what
-// actually painted - that pixel-level proof is
-// src/tools/merge/e2e/thumbnail-render.spec.js, a real-browser guard, per MERGE-01.
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+// The shipped pdf.js renders real pdf-lib PDFs onto jsdom's real canvas, so the pixels are asserted as
+// they are: the canvas is read back with getImageData, the page order and sizes come from the
+// canvases each toDataURL call was made on, and a mid-render abort is a real RenderingCancelledException.
+// Spies only watch (spy-through); pdf.js's own getDocument, getPage and render still run.
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { PDFDocument } from '@cantoo/pdf-lib';
+import * as pdfjs from 'pdfjs-dist';
+import '../../test/support/realPdfjs.ts';
+import { getPdfjs } from './loadPdfjs.js';
+
+vi.mock('pdfjs-dist', { spy: true });
 
 const PAGE_WIDTH = 612;
 const PAGE_HEIGHT = 792;
+// Three pages of different sizes, so each page shows in its canvas: widths 150 at TARGET_WIDTH,
+// heights 194, 112 and 450. The pages are blank: jsdom has no Path2D, which pdf.js needs to paint a shape.
+const SIZES = [[PAGE_WIDTH, PAGE_HEIGHT], [400, 300], [200, 600]];
+const PNG = 'data:image/png;base64,';
 
-// vi.hoisted so this is initialized before the vi.mock('pdfjs-dist', ...)
-// factory below runs (mock factories are hoisted above imports).
-const { mockState } = vi.hoisted(() => ({
-  mockState: {
-    numPages: 3,
-    destroyCalls: 0,
-    getPageCalls: [],
-    // Per-page override for the render task pdf.js hands back; defaults to
-    // an already-resolved render with a no-op `cancel` spy. Tests that need
-    // to fire an abort signal *during* a render replace the entry for that
-    // page number before calling into thumbnails.js.
-    renderTasks: {},
-    // How many `getDocument()` calls carried a `worker` option, and every
-    // distinct worker instance seen - the throughput fix's whole point is
-    // that opening several documents shares one `PDFWorker`, so a test can
-    // tell "reused" from "one per document" by checking this set's size.
-    getDocumentCalls: [],
-    workerInstances: 0,
-  },
-}));
-
-function defaultRenderTask() {
-  return { promise: Promise.resolve(), cancel: vi.fn() };
+async function pdfOf(sizes = SIZES) {
+  const doc = await PDFDocument.create();
+  for (const [width, height] of sizes) doc.addPage([width, height]);
+  return new File([await doc.save()], 'test.pdf', { type: 'application/pdf' });
 }
 
-// A minimal stand-in for pdf.js's real `PDFWorker`: immediately "ready"
-// (`promise` resolves), spy-able `destroy`, and countable construction so
-// `thumbnails.js`'s shared-worker cache can be told apart from "a fresh
-// worker per document" in `getSharedWorker`'s own test below. Real pdf.js
-// only lets `loadingTask.destroy()` terminate a worker IT created (see the
-// comment on `getSharedWorker` in thumbnails.js) - this mock does not need
-// to reproduce that split, since no test here calls a real `destroy()` on it.
-class MockPDFWorker {
-  constructor() {
-    mockState.workerInstances += 1;
-    this.promise = Promise.resolve();
-    this.destroyed = false;
-    this.destroy = vi.fn();
-  }
-}
+let pdfFile;
+let documentProto;
+let pageProto;
+let getPage;
+let renderCall;
+let toDataUrl;
 
-// Forced: until LAND-04's canvas wave (jsdom draws real pixels since 31)
-vi.mock('pdfjs-dist', () => ({
-  GlobalWorkerOptions: {},
-  PDFWorker: MockPDFWorker,
-  // Forced: until LAND-04's canvas wave (jsdom draws real pixels since 31)
-  getDocument: vi.fn((options) => {
-    mockState.getDocumentCalls.push(options);
-    return {
-      promise: Promise.resolve({
-        numPages: mockState.numPages,
-        // Forced: until LAND-04's canvas wave (jsdom draws real pixels since 31)
-        getPage: vi.fn((pageNumber) => {
-          mockState.getPageCalls.push(pageNumber);
-          return Promise.resolve({
-            getViewport: ({ scale }) => ({ width: PAGE_WIDTH * scale, height: PAGE_HEIGHT * scale }),
-            // Forced: until LAND-04's canvas wave (jsdom draws real pixels since 31)
-            render: vi.fn(() => (mockState.renderTasks[pageNumber] ?? defaultRenderTask)()),
-          });
-        }),
-      }),
-      // Forced: until LAND-04's canvas wave (jsdom draws real pixels since 31)
-      destroy: vi.fn(() => {
-        mockState.destroyCalls += 1;
-        return Promise.resolve();
-      }),
-    };
-  }),
-}));
-
-// Recording 2D context: real assertions live in `contexts` (fillStyle at the
-// moment of each fillRect, and the fillRect call itself), not in a real
-// canvas backend jsdom doesn't have.
-const contexts = [];
-
-function makeRecordingContext() {
-  const ctx = { fillStyle: null, direction: null };
-  ctx.fillRect = vi.fn();
-  contexts.push(ctx);
-  return ctx;
-}
-
-let originalGetContext;
-let originalToDataURL;
+beforeAll(async () => {
+  pdfFile = await pdfOf();
+  // The classes pdf.js does not export, reached through one real document and page.
+  const task = (await getPdfjs()).getDocument({ data: new Uint8Array(await pdfFile.arrayBuffer()) });
+  const doc = await task.promise;
+  documentProto = Object.getPrototypeOf(doc);
+  pageProto = Object.getPrototypeOf(await doc.getPage(1));
+  await task.destroy();
+});
 
 beforeEach(() => {
-  mockState.numPages = 3;
-  mockState.destroyCalls = 0;
-  mockState.getPageCalls = [];
-  mockState.renderTasks = {};
-  mockState.getDocumentCalls = [];
-  contexts.length = 0;
-
-  originalGetContext = HTMLCanvasElement.prototype.getContext;
-  originalToDataURL = HTMLCanvasElement.prototype.toDataURL;
-  HTMLCanvasElement.prototype.getContext = function getContext() {
-    return makeRecordingContext();
-  };
-  HTMLCanvasElement.prototype.toDataURL = function toDataURL() {
-    return 'data:image/png;base64,x';
-  };
+  vi.mocked(pdfjs.getDocument).mockClear();
+  getPage = vi.spyOn(documentProto, 'getPage');
+  renderCall = vi.spyOn(pageProto, 'render');
+  // Spy-through: the real toDataURL encodes; the spy keeps each call's canvas (`this`) to read back.
+  toDataUrl = vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL');
 });
 
 afterEach(() => {
-  HTMLCanvasElement.prototype.getContext = originalGetContext;
-  HTMLCanvasElement.prototype.toDataURL = originalToDataURL;
-  vi.clearAllMocks();
+  getPage.mockRestore();
+  renderCall.mockRestore();
+  toDataUrl.mockRestore();
 });
+
+afterAll(() => {
+  vi.restoreAllMocks();
+});
+
+// Every loading task getDocument handed out, and which of them pdf.js has since destroyed.
+const openedTasks = () => vi.mocked(pdfjs.getDocument).mock.results.map((result) => result.value);
+const destroyedTasks = () => openedTasks().filter((task) => task.destroyed);
+const canvasesEncoded = () => toDataUrl.mock.contexts;
+const pixelAt = (canvas, x, y) => Array.from(canvas.getContext('2d').getImageData(x, y, 1, 1).data);
 
 describe('thumbnails.js', () => {
   describe('renderPdfThumbnails', () => {
     it('calls the callback once per page with 1-based page numbers and returns numPages', async () => {
       const { renderPdfThumbnails } = await import('./thumbnails.js');
-      const file = new File([], 'test.pdf');
       const calls = [];
 
-      const numPages = await renderPdfThumbnails(file, (pageNumber, dataUrl) => {
+      const numPages = await renderPdfThumbnails(pdfFile, (pageNumber, dataUrl) => {
         calls.push([pageNumber, dataUrl]);
       });
 
       expect(numPages).toBe(3);
-      expect(calls).toEqual([
-        [1, 'data:image/png;base64,x'],
-        [2, 'data:image/png;base64,x'],
-        [3, 'data:image/png;base64,x'],
-      ]);
-      expect(mockState.getPageCalls).toEqual([1, 2, 3]);
+      expect(calls.map(([pageNumber]) => pageNumber)).toEqual([1, 2, 3]);
+      // Each data URL is what the real encoder made of that page's canvas, and the canvases follow the pages' sizes.
+      expect(calls.map(([, dataUrl]) => dataUrl)).toEqual(toDataUrl.mock.results.map((result) => result.value));
+      for (const [, dataUrl] of calls) expect(dataUrl.startsWith(PNG)).toBe(true);
+      expect(canvasesEncoded().map((canvas) => [canvas.width, canvas.height])).toEqual([[150, 194], [150, 112], [150, 450]]);
+      expect(getPage.mock.calls.map(([pageNumber]) => pageNumber)).toEqual([1, 2, 3]);
     });
 
     it('prefills white before rendering each page', async () => {
       const { renderPdfThumbnails } = await import('./thumbnails.js');
-      const file = new File([], 'test.pdf');
+      // Spy-through on the real 2D context: pdf.js paints its own white page background, so the order of
+      // the calls is what shows the prefill came first, over the whole canvas, in white.
+      const contextProto = Object.getPrototypeOf(document.createElement('canvas').getContext('2d'));
+      const fillStyle = vi.spyOn(contextProto, 'fillStyle', 'set');
+      const fillRect = vi.spyOn(contextProto, 'fillRect');
+      try {
+        await renderPdfThumbnails(pdfFile, () => {});
 
-      await renderPdfThumbnails(file, () => {});
+        const canvases = canvasesEncoded();
+        expect(canvases).toHaveLength(3);
+        for (const canvas of canvases) {
+          const context = canvas.getContext('2d');
+          const { data } = context.getImageData(0, 0, canvas.width, canvas.height);
+          // Every pixel opaque white: a transparent canvas would read [0, 0, 0, 0].
+          expect(data.every((channel) => channel === 255)).toBe(true);
 
-      expect(contexts).toHaveLength(3);
-      for (const ctx of contexts) {
-        // fillStyle is read by fillRect in a real canvas; here we assert it
-        // was set to white and that a fillRect ran, which together is what
-        // "prefilled white" means for a stubbed context.
-        expect(ctx.fillStyle).toBe('#ffffff');
-        expect(ctx.fillRect).toHaveBeenCalledWith(0, 0, expect.any(Number), expect.any(Number));
+          const render = renderCall.mock.calls.findIndex(([params]) => params.canvasContext === context);
+          const renderedAt = renderCall.mock.invocationCallOrder[render];
+          const filled = fillRect.mock.calls.findIndex((args, call) => fillRect.mock.contexts[call] === context
+            && args[0] === 0 && args[1] === 0 && args[2] === canvas.width && args[3] === canvas.height);
+          expect(filled).toBeGreaterThanOrEqual(0);
+          const filledAt = fillRect.mock.invocationCallOrder[filled];
+          expect(filledAt).toBeLessThan(renderedAt);
+          const whiteSet = fillStyle.mock.calls.findIndex(([value], call) => fillStyle.mock.contexts[call] === context && value === '#ffffff');
+          expect(whiteSet).toBeGreaterThanOrEqual(0);
+          expect(fillStyle.mock.invocationCallOrder[whiteSet]).toBeLessThan(filledAt);
+        }
+      } finally {
+        fillStyle.mockRestore();
+        fillRect.mockRestore();
       }
     });
 
     it('rejects with an AbortError before any page renders when the signal is already aborted', async () => {
       const { renderPdfThumbnails } = await import('./thumbnails.js');
-      const file = new File([], 'test.pdf');
       const controller = new AbortController();
       controller.abort();
 
       const onPageRender = vi.fn();
       await expect(
-        renderPdfThumbnails(file, onPageRender, { signal: controller.signal }),
+        renderPdfThumbnails(pdfFile, onPageRender, { signal: controller.signal }),
       ).rejects.toMatchObject({ name: 'AbortError' });
 
       expect(onPageRender).not.toHaveBeenCalled();
+      expect(renderCall).not.toHaveBeenCalled();
       // The source was still opened (and its document therefore still needs
       // tearing down) even though no page ever rendered.
-      expect(mockState.destroyCalls).toBe(1);
+      expect(openedTasks()).toHaveLength(1);
+      expect(destroyedTasks()).toHaveLength(1);
     });
 
     it('stops before the next page when the signal aborts inside the callback, and destroys the loading task', async () => {
       const { renderPdfThumbnails } = await import('./thumbnails.js');
-      const file = new File([], 'test.pdf');
       const controller = new AbortController();
       const rendered = [];
       const onPageRender = (pageNumber) => {
@@ -181,71 +146,70 @@ describe('thumbnails.js', () => {
       };
 
       await expect(
-        renderPdfThumbnails(file, onPageRender, { signal: controller.signal }),
+        renderPdfThumbnails(pdfFile, onPageRender, { signal: controller.signal }),
       ).rejects.toMatchObject({ name: 'AbortError' });
 
       expect(rendered).toHaveLength(1);
-      expect(mockState.getPageCalls).toEqual([1]);
-      expect(mockState.destroyCalls).toBe(1);
+      expect(getPage.mock.calls.map(([pageNumber]) => pageNumber)).toEqual([1]);
+      expect(openedTasks()).toHaveLength(1);
+      expect(destroyedTasks()).toHaveLength(1);
     });
 
     it('renders exactly the given pageIndices, in that order', async () => {
       const { renderPdfThumbnails } = await import('./thumbnails.js');
-      const file = new File([], 'test.pdf');
       const calls = [];
 
-      await renderPdfThumbnails(file, (pageNumber, dataUrl) => calls.push([pageNumber, dataUrl]), {
+      await renderPdfThumbnails(pdfFile, (pageNumber, dataUrl) => calls.push([pageNumber, dataUrl]), {
         pageIndices: [2, 0],
       });
 
       // 0-based indices 2 and 0 are pages 3 and 1.
-      expect(calls).toEqual([
-        [3, 'data:image/png;base64,x'],
-        [1, 'data:image/png;base64,x'],
-      ]);
-      expect(mockState.getPageCalls).toEqual([3, 1]);
+      expect(calls.map(([pageNumber]) => pageNumber)).toEqual([3, 1]);
+      expect(calls.map(([, dataUrl]) => dataUrl)).toEqual(toDataUrl.mock.results.map((result) => result.value));
+      expect(canvasesEncoded().map((canvas) => [canvas.width, canvas.height])).toEqual([[150, 450], [150, 194]]);
+      expect(getPage.mock.calls.map(([pageNumber]) => pageNumber)).toEqual([3, 1]);
     });
   });
 
   describe('openThumbnailSource', () => {
     it('shares one pdf.js worker across multiple documents instead of one per file (thumbnail throughput)', async () => {
       const { openThumbnailSource } = await import('./thumbnails.js');
-      // thumbnails.js caches its shared worker at module scope (like it
-      // already does for `pdfjsLib` itself), so it may already exist from an
-      // earlier test in this file; what matters here is that opening two
-      // MORE documents constructs no additional one.
-      const before = mockState.workerInstances;
 
-      const first = await openThumbnailSource(new File([], 'a.pdf'));
-      const second = await openThumbnailSource(new File([], 'b.pdf'));
+      const first = await openThumbnailSource(pdfFile);
+      const second = await openThumbnailSource(pdfFile);
 
-      expect(mockState.workerInstances).toBe(Math.max(before, 1));
-      expect(mockState.getDocumentCalls).toHaveLength(2);
-      const [firstOpts, secondOpts] = mockState.getDocumentCalls;
-      expect(firstOpts.worker).toBeInstanceOf(MockPDFWorker);
+      const calls = vi.mocked(pdfjs.getDocument).mock.calls;
+      expect(calls).toHaveLength(2);
+      const [[firstOpts], [secondOpts]] = calls;
+      // thumbnails.js caches its shared worker at module scope, so it may come from an earlier test in
+      // this file; what matters is that both documents were opened through the one real PDFWorker.
+      expect(firstOpts.worker).toBeInstanceOf(pdfjs.PDFWorker);
       expect(secondOpts.worker).toBe(firstOpts.worker);
 
       // Destroying one document's source must not disturb the other: the
       // shared worker is never the thing a per-document destroy() tears
       // down (see the comment on getSharedWorker in thumbnails.js).
       await first.destroy();
-      expect(await second.render(0)).toBe('data:image/png;base64,x');
+      expect(firstOpts.worker.destroyed).toBe(false);
+      expect((await second.render(0)).startsWith(PNG)).toBe(true);
+      await second.destroy();
     });
 
     it('reports every page\'s aspect from its size, without rendering (DEBT-65)', async () => {
       const { openThumbnailSource } = await import('./thumbnails.js');
-      const source = await openThumbnailSource(new File([], 'a.pdf'));
-      mockState.getPageCalls.length = 0;
+      const source = await openThumbnailSource(pdfFile);
+      getPage.mockClear();
 
-      expect(await source.aspects()).toEqual([PAGE_WIDTH / PAGE_HEIGHT, PAGE_WIDTH / PAGE_HEIGHT, PAGE_WIDTH / PAGE_HEIGHT]);
-      expect(mockState.getPageCalls).toEqual([1, 2, 3]);
+      expect(await source.aspects()).toEqual(SIZES.map(([width, height]) => width / height));
+      expect(getPage.mock.calls.map(([pageNumber]) => pageNumber)).toEqual([1, 2, 3]);
+      expect(renderCall).not.toHaveBeenCalled();
+      await source.destroy();
     });
 
     it('rejects a render() call made after destroy()', async () => {
       const { openThumbnailSource } = await import('./thumbnails.js');
-      const file = new File([], 'test.pdf');
 
-      const source = await openThumbnailSource(file);
+      const source = await openThumbnailSource(pdfFile);
       expect(source.pageCount).toBe(3);
       await source.destroy();
 
@@ -254,45 +218,29 @@ describe('thumbnails.js', () => {
 
     it('cancels the pdf.js RenderTask when the signal fires mid-render, and rejects with AbortError', async () => {
       const { openThumbnailSource } = await import('./thumbnails.js');
-      const file = new File([], 'test.pdf');
 
-      let resolveRender;
-      const cancel = vi.fn();
-      mockState.renderTasks[1] = () => ({
-        promise: new Promise((resolve) => {
-          resolveRender = resolve;
-        }),
-        cancel,
-      });
-
-      const source = await openThumbnailSource(file);
+      const source = await openThumbnailSource(pdfFile);
       const controller = new AbortController();
       const renderPromise = source.render(0, { signal: controller.signal });
+      const rejected = expect(renderPromise).rejects.toMatchObject({ name: 'AbortError' });
 
-      // `render()` still has one microtask (`await pdf.getPage(...)`) to run
-      // before it reaches `page.render(...)` and registers the abort
-      // listener; flush the microtask queue so `abort()` below arrives after
-      // that listener is attached, not before.
-      await Promise.resolve();
-      await Promise.resolve();
-
+      // render() awaits the page it asked for; this continuation runs after render()'s own, which has by then
+      // started pdf.js's real render and registered the abort listener, and before the worker finishes painting.
+      await getPage.mock.results[0].value;
       controller.abort();
-      expect(cancel).toHaveBeenCalledTimes(1);
 
-      // pdf.js's own RenderTask would reject its promise once cancelled;
-      // simulate that so the render() call actually settles.
-      resolveRender();
-
-      await expect(renderPromise).rejects.toMatchObject({ name: 'AbortError' });
+      await rejected;
+      // The abort cancelled the real RenderTask: pdf.js rejects it with its own cancellation error.
+      await expect(renderCall.mock.results[0].value.promise).rejects.toBeInstanceOf(pdfjs.RenderingCancelledException);
+      await source.destroy();
     });
   });
 
   describe('renderThumbnailWithMeta', () => {
     it('returns pageCount and the scaled, truncated canvas size for width: 150 on a 612x792 page', async () => {
       const { renderThumbnailWithMeta } = await import('./thumbnails.js');
-      const file = new File([], 'test.pdf');
 
-      const result = await renderThumbnailWithMeta(file, { width: 150 });
+      const result = await renderThumbnailWithMeta(pdfFile, { width: 150 });
 
       // scale = 150 / 612; height = 792 * scale = 194.11...px. Canvas
       // width/height setters coerce via the WebIDL "unsigned long" rule,
@@ -303,43 +251,46 @@ describe('thumbnails.js', () => {
       expect(result.pageCount).toBe(3);
       expect(result.width).toBe(150);
       expect(result.height).toBe(194);
-      expect(result.dataUrl).toBe('data:image/png;base64,x');
-      expect(mockState.destroyCalls).toBe(1);
+      expect(result.dataUrl).toBe(toDataUrl.mock.results[0].value);
+      expect(result.dataUrl.startsWith(PNG)).toBe(true);
+      expect(canvasesEncoded()[0]).toMatchObject({ width: 150, height: 194 });
+      expect(openedTasks()).toHaveLength(1);
+      expect(destroyedTasks()).toHaveLength(1);
     });
   });
 
   describe('renderThumbnail', () => {
     it('still returns a plain data-URL string', async () => {
       const { renderThumbnail } = await import('./thumbnails.js');
-      const file = new File([], 'test.pdf');
 
-      const dataUrl = await renderThumbnail(file);
+      const dataUrl = await renderThumbnail(pdfFile);
 
       expect(typeof dataUrl).toBe('string');
-      expect(dataUrl).toBe('data:image/png;base64,x');
+      expect(dataUrl).toBe(toDataUrl.mock.results[0].value);
+      expect(dataUrl.startsWith(PNG)).toBe(true);
     });
   });
   describe('photos (JPEG/PNG)', () => {
     const closeSpy = vi.fn();
     let decodeSpy;
-    let toDataUrlArgs;
+
+    // The decoded photo: a real jsdom canvas, 400 x 200 and red, with the close() an ImageBitmap has.
+    const decoded = () => {
+      const bitmap = document.createElement('canvas');
+      bitmap.width = 400;
+      bitmap.height = 200;
+      const context = bitmap.getContext('2d');
+      context.fillStyle = '#c81e1e';
+      context.fillRect(0, 0, 400, 200);
+      bitmap.close = closeSpy;
+      return bitmap;
+    };
 
     beforeEach(() => {
       closeSpy.mockClear();
-      toDataUrlArgs = [];
-      // Forced: until LAND-04's canvas wave (jsdom draws real pixels since 31)
-      decodeSpy = vi.fn(() => Promise.resolve({ width: 400, height: 200, close: closeSpy }));
+      // Forced: jsdom has no createImageBitmap, so the decode cannot be real (its bitmap is a real canvas)
+      decodeSpy = vi.fn(() => Promise.resolve(decoded()));
       globalThis.createImageBitmap = decodeSpy;
-      HTMLCanvasElement.prototype.toDataURL = function toDataURL(type, quality) {
-        toDataUrlArgs.push([type, quality]);
-        return `data:${type};base64,photo`;
-      };
-      contexts.length = 0;
-      HTMLCanvasElement.prototype.getContext = function getContext() {
-        const ctx = makeRecordingContext();
-        ctx.drawImage = vi.fn();
-        return ctx;
-      };
     });
 
     afterEach(() => {
@@ -357,17 +308,24 @@ describe('thumbnails.js', () => {
         resizeWidth: 100,
         resizeQuality: 'high',
       });
-      expect(result).toEqual({ dataUrl: 'data:image/jpeg;base64,photo', pageCount: 1, width: 100, height: 50 });
-      expect(toDataUrlArgs).toEqual([['image/jpeg', 0.7]]);
-      expect(contexts[0].drawImage).toHaveBeenCalledWith(expect.anything(), 0, 0, 100, 50);
+      expect(result).toEqual({ dataUrl: toDataUrl.mock.results[0].value, pageCount: 1, width: 100, height: 50 });
+      expect(result.dataUrl.startsWith('data:image/jpeg;base64,')).toBe(true);
+      expect(toDataUrl.mock.calls).toEqual([['image/jpeg', 0.7]]);
+      // The photo was really drawn, scaled over the whole 100 x 50 canvas.
+      const [canvas] = canvasesEncoded();
+      expect([canvas.width, canvas.height]).toEqual([100, 50]);
+      expect(pixelAt(canvas, 0, 0)).toEqual([200, 30, 30, 255]);
+      expect(pixelAt(canvas, 99, 49)).toEqual([200, 30, 30, 255]);
       expect(closeSpy).toHaveBeenCalledTimes(1);
-      expect(mockState.getDocumentCalls).toEqual([]);
+      expect(pdfjs.getDocument).not.toHaveBeenCalled();
     });
 
     it('renderThumbnail returns the data URL string', async () => {
       const { renderThumbnail } = await import('./thumbnails.js');
-      expect(await renderThumbnail(photo())).toBe('data:image/png;base64,photo');
-      expect(mockState.getDocumentCalls).toEqual([]);
+      const dataUrl = await renderThumbnail(photo());
+      expect(dataUrl).toBe(toDataUrl.mock.results[0].value);
+      expect(dataUrl.startsWith(PNG)).toBe(true);
+      expect(pdfjs.getDocument).not.toHaveBeenCalled();
     });
 
     it('openThumbnailSource gives a one-page source whose destroy closes the bitmap', async () => {
@@ -375,7 +333,10 @@ describe('thumbnails.js', () => {
       const source = await openThumbnailSource(photo());
 
       expect(source.pageCount).toBe(1);
-      expect(await source.render(0, { width: 80, type: 'image/png' })).toBe('data:image/png;base64,photo');
+      const url = await source.render(0, { width: 80, type: 'image/png' });
+      expect(url).toBe(toDataUrl.mock.results[0].value);
+      expect(url.startsWith(PNG)).toBe(true);
+      expect(canvasesEncoded()[0]).toMatchObject({ width: 80, height: 40 });
       await expect(source.render(1)).rejects.toThrow();
       // Decoded inside render, closed right after drawing: nothing is held between renders.
       expect(decodeSpy).toHaveBeenCalledTimes(1);
@@ -386,7 +347,7 @@ describe('thumbnails.js', () => {
       await source.destroy();
       expect(closeSpy).toHaveBeenCalledTimes(2);
       await expect(source.render(0)).rejects.toThrow();
-      expect(mockState.getDocumentCalls).toEqual([]);
+      expect(pdfjs.getDocument).not.toHaveBeenCalled();
     });
 
     it('openThumbnailSource decodes nothing until render, and decodes at the target width', async () => {
@@ -403,11 +364,12 @@ describe('thumbnails.js', () => {
 
     it('falls back to a plain decode when the engine rejects the resize options', async () => {
       const { renderThumbnailWithMeta } = await import('./thumbnails.js');
-      // Forced: until LAND-04's canvas wave (jsdom draws real pixels since 31)
+      // Forced: jsdom has no createImageBitmap, so an engine that rejects the resize options cannot happen for real
       decodeSpy.mockImplementationOnce(() => Promise.reject(new TypeError('unsupported')));
       const result = await renderThumbnailWithMeta(photo(), { width: 100 });
       expect(decodeSpy).toHaveBeenLastCalledWith(expect.any(File), { imageOrientation: 'from-image' });
       expect(result.pageCount).toBe(1);
+      expect(pixelAt(canvasesEncoded()[0], 50, 25)).toEqual([200, 30, 30, 255]);
     });
 
     it('renderPdfThumbnails reports the photo as page 1 of 1', async () => {
@@ -415,7 +377,8 @@ describe('thumbnails.js', () => {
       const calls = [];
       const count = await renderPdfThumbnails(photo(), (n, url) => calls.push([n, url]));
       expect(count).toBe(1);
-      expect(calls).toEqual([[1, 'data:image/png;base64,photo']]);
+      expect(calls).toEqual([[1, toDataUrl.mock.results[0].value]]);
+      expect(calls[0][1].startsWith(PNG)).toBe(true);
     });
 
     it('honours an already-aborted signal without decoding at all', async () => {
