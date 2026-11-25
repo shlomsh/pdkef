@@ -6,15 +6,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { peekHandoff, saveHandoff } from '#lib/drafts/draftStore.ts';
 import { reportHandedOn, resetUsageEventsForTests } from '#lib/telemetry/productAnalytics.ts';
 import { recentActions, resetActionTrailForTests } from '#lib/telemetry/actionTrail.ts';
+import { openNewerStore } from '#lib/drafts/newerStore.test-helper.ts';
 import { holdDraftStore } from '#lib/drafts/heldStore.test-helper.ts';
 import { decideDownloadState, deliverParts, useDownloadFlow, type DownloadFlowInput } from './useDownloadFlow.ts';
 
-// Forced: usePdfShare stays replaced here because the tests read the arguments of download, prepare and prepareFiles,
-// and jsdom has no navigator.share or URL.createObjectURL. The share outcomes run the real hook in useDownloadFlow.share.test.tsx.
-const share = vi.hoisted(() => ({ download: vi.fn(), prepare: vi.fn(), prepareFiles: vi.fn(), clearPrepared: vi.fn(), sharePrepared: vi.fn() }));
-vi.mock('#lib/output/usePdfShare.js', () => ({
-  usePdfShare: () => ({ shareReady: false, ...share }),
-}));
 vi.mock('#lib/telemetry/productAnalytics.ts', { spy: true });
 // The draft store runs for real on fake-indexeddb; the spy sees the call. A refused save is a real VersionError,
 // a held save is a real held transaction, and a save that throws or fails late is forced.
@@ -68,13 +63,28 @@ describe('decideDownloadState', () => {
   });
 });
 
-// The database moves to version 2 behind the product's back, so its open at version 1 fails with a real VersionError.
-const upgradeWorkspaceDb = () => new Promise<void>((resolve, reject) => {
-  const request = indexedDB.open('pdf-toolkit-workspace', 2);
-  request.onupgradeneeded = () => { request.result.createObjectStore('workspace', { keyPath: 'tool' }); };
-  request.onsuccess = () => { request.result.close(); resolve(); };
-  request.onerror = () => reject(request.error);
+// The real usePdfShare runs. What download saw is read off the real object URL and the clicked anchor.
+const downloads: [Blob, string][] = [];
+const onDownloadClick = (event: Event) => {
+  const link = event.target as HTMLAnchorElement;
+  if (link.tagName !== 'A' || !link.download) return;
+  event.preventDefault(); // jsdom would try to navigate to the blob: url
+  const urls = vi.mocked(URL.createObjectURL);
+  const at = urls.mock.results.findIndex((result) => result.value === link.href);
+  downloads.push([urls.mock.calls[at][0] as Blob, link.download]);
+};
+const expectDownloads = (expected: [Blob, string][]) => {
+  expect(downloads.map(([, name]) => name)).toEqual(expected.map(([, name]) => name));
+  downloads.forEach(([saved], i) => expect(saved).toBe(expected[i][0]));
+};
+// What the native share sheet was handed, one list of files per share.
+const sheets: File[][] = [];
+// Forced: jsdom has no navigator.share, so the sheet is a function that records the files it is handed.
+const shareSheet = (answer: () => Promise<void> = () => Promise.resolve()) => Object.defineProperty(navigator, 'share', {
+  configurable: true,
+  value: (data: { files: File[] }) => { sheets.push(data.files); return answer(); },
 });
+const described = async (files: File[]) => Promise.all(files.map(async (file) => ({ name: file.name, type: file.type, text: await file.text() })));
 
 describe('useDownloadFlow', () => {
   let container: HTMLElement;
@@ -113,8 +123,16 @@ describe('useDownloadFlow', () => {
     resetUsageEventsForTests();
     indexedDB = new IDBFactory();
     localStorage.clear();
+    downloads.length = 0;
+    sheets.length = 0;
+    vi.spyOn(URL, 'createObjectURL');
+    document.addEventListener('click', onDownloadClick, true);
+    shareSheet();
   });
   afterEach(() => {
+    document.removeEventListener('click', onDownloadClick, true);
+    vi.mocked(URL.createObjectURL).mockRestore();
+    delete (navigator as { share?: unknown }).share;
     render(null, container);
     container.remove();
   });
@@ -147,9 +165,9 @@ describe('useDownloadFlow', () => {
     act(() => flow.onRowPreparingTap());
     expect(waiting.prepareNow).toHaveBeenCalled();
     expect(flow.downloadState).toBe('preparing');
-    expect(share.download).not.toHaveBeenCalled();
+    expect(downloads).toEqual([]);
     mount(base(ready()));
-    expect(share.download).toHaveBeenCalledWith(blob, 'out.pdf');
+    expectDownloads([[blob, 'out.pdf']]);
     expect(flow.downloadState).toBe('saved');
     expect(flow.tap).toBe('done');
     expect(flow.showStrip).toBe(false);
@@ -164,10 +182,9 @@ describe('useDownloadFlow', () => {
     act(() => flow.onRowPreparingTap());
     expect(building.prepareNow).toHaveBeenCalled();
     expect(flow.downloadState).toBe('preparing');
-    expect(share.download).not.toHaveBeenCalled();
+    expect(downloads).toEqual([]);
     mount(base(ready()));
-    expect(share.download).toHaveBeenCalledTimes(1);
-    expect(share.download).toHaveBeenCalledWith(blob, 'out.pdf');
+    expectDownloads([[blob, 'out.pdf']]);
     expect(flow.downloadState).toBe('saved');
     expect(announce).toHaveBeenCalledTimes(1);
     expect(onDelivered).toHaveBeenCalledTimes(1);
@@ -222,27 +239,37 @@ describe('useDownloadFlow', () => {
     expect(flow.downloadState).toBe('one-file');
     expect(flow.downloadLinkReady).toBe(false);
     mount(base(ready()));
+    expect(flow.shareReady).toBe(true);
     act(() => flow.onQuietDownloadTap());
     expect(flow.showStrip).toBe(true);
     act(() => flow.reset());
     expect(flow.tap).toBe('idle');
     expect(flow.downloadedOnce).toBe(false);
     expect(flow.showStrip).toBe(false);
-    expect(share.clearPrepared).toHaveBeenCalled();
+    expect(flow.shareReady).toBe(false);
   });
 
-  it('parts: Share prepares every part, and a ready blob output still uses prepare', () => {
+  it('parts: Share prepares every part, and a ready blob output still uses prepare', async () => {
     mount(base(readyParts()));
-    expect(share.prepareFiles).toHaveBeenCalledWith(parts.map((p) => ({ blob: p.blob, filename: p.filename, type: 'application/pdf' })));
-    expect(share.prepare).not.toHaveBeenCalled();
+    await act(async () => { await flow.handleShare(); });
+    expect(sheets).toHaveLength(1);
+    expect(await described(sheets[0])).toEqual([
+      { name: 'out-page-1.pdf', type: 'application/pdf', text: 'a' },
+      { name: 'out-page-2.pdf', type: 'application/pdf', text: 'b' },
+      { name: 'out-page-3.pdf', type: 'application/pdf', text: 'c' },
+    ]);
     mount(base(ready(2)));
-    expect(share.prepare).toHaveBeenCalledWith(blob, 'out.pdf', 'application/pdf');
+    await act(async () => { await flow.handleShare(); });
+    expect(sheets).toHaveLength(2);
+    expect(await described(sheets[1])).toEqual([{ name: 'out.pdf', type: 'application/pdf', text: 'x' }]);
   });
 
-  it('a single blob is shared with its own type (PDF to Image shares a PNG, not a PDF)', () => {
+  it('a single blob is shared with its own type (PDF to Image shares a PNG, not a PDF)', async () => {
     const png = new Blob(['x'], { type: 'image/png' });
     mount(base({ ...ready(), blob: png }));
-    expect(share.prepare).toHaveBeenCalledWith(png, 'out.pdf', 'image/png');
+    await act(async () => { await flow.handleShare(); });
+    expect(sheets).toHaveLength(1);
+    expect(await described(sheets[0])).toEqual([{ name: 'out.pdf', type: 'image/png', text: 'x' }]);
   });
 
   it('a tap that goes stale while the plan changes mid-build asks the new build to run now', () => {
@@ -255,16 +282,18 @@ describe('useDownloadFlow', () => {
     mount(base(second));
     expect(second.prepareNow).toHaveBeenCalled();
     mount(base(ready()));
-    expect(share.download).toHaveBeenCalledTimes(1);
+    expectDownloads([[blob, 'out.pdf']]);
     const third = pending();
     mount(base(third));
     expect(third.prepareNow).not.toHaveBeenCalled();
   });
 
-  it('parts: Share hands each part over with its own type (PDF to Image shares PNGs)', () => {
+  it('parts: Share hands each part over with its own type (PDF to Image shares PNGs)', async () => {
     const png = new Blob(['x'], { type: 'image/png' });
     mount(base({ ...readyParts(), parts: [{ blob: png, filename: 'a-page-1.png', url: 'blob:p' }] }));
-    expect(share.prepareFiles).toHaveBeenCalledWith([{ blob: png, filename: 'a-page-1.png', type: 'image/png' }]);
+    await act(async () => { await flow.handleShare(); });
+    expect(sheets).toHaveLength(1);
+    expect(await described(sheets[0])).toEqual([{ name: 'a-page-1.png', type: 'image/png', text: 'x' }]);
   });
 
   it('parts: a tap on an already-ready output delivers every part once, ready to saved without preparing', async () => {
@@ -274,10 +303,9 @@ describe('useDownloadFlow', () => {
       const states: string[] = [flow.downloadState];
       act(() => flow.onRowPreparingTap());
       states.push(flow.downloadState);
-      expect(share.download).toHaveBeenCalledTimes(1);
-      expect(share.download).toHaveBeenCalledWith(parts[0].blob, 'out-page-1.pdf');
+      expectDownloads([[parts[0].blob, 'out-page-1.pdf']]);
       await act(async () => { await vi.advanceTimersByTimeAsync(400); });
-      expect(share.download.mock.calls.map((c) => c[1])).toEqual(['out-page-1.pdf', 'out-page-2.pdf', 'out-page-3.pdf']);
+      expectDownloads(parts.map((p) => [p.blob, p.filename]));
       expect(states).toEqual(['ready', 'saved']);
       expect(flow.downloadState).toBe('saved');
       expect(flow.tap).toBe('done');
@@ -294,20 +322,18 @@ describe('useDownloadFlow', () => {
       mount(base(readyParts()));
       act(() => flow.onRowPreparingTap());
       await act(async () => { await vi.advanceTimersByTimeAsync(400); });
-      expect(share.download).toHaveBeenCalledTimes(3);
+      expectDownloads(parts.map((p) => [p.blob, p.filename]));
       expect(flow.downloadState).toBe('saved');
       act(() => flow.onRowPreparingTap());
       await act(async () => { await vi.advanceTimersByTimeAsync(400); });
-      expect(share.download.mock.calls.map((c) => c[1])).toEqual([
-        'out-page-1.pdf', 'out-page-2.pdf', 'out-page-3.pdf', 'out-page-1.pdf', 'out-page-2.pdf', 'out-page-3.pdf',
-      ]);
+      expectDownloads([...parts, ...parts].map((p) => [p.blob, p.filename]));
     } finally {
       vi.useRealTimers();
     }
   });
 
   it('a failed hand-off message is cleared by reset() and by the output going stale', async () => {
-    await upgradeWorkspaceDb();
+    await openNewerStore();
     mount(base(ready()));
     await act(async () => { await flow.requestHandoff('compress'); });
     expect(await vi.mocked(saveHandoff).mock.results.at(-1)!.value).toBe(false);
@@ -405,5 +431,31 @@ describe('useDownloadFlow', () => {
     await act(async () => { failA(false); await runA; });
     expect(flow.handoffBusy).toBe(true);
     expect(flow.handoffFailed).toBe(false);
+  });
+
+  it('a completed Share counts as a tap (processing, then done) and records a share; a canceled or failed one does neither', async () => {
+    resetActionTrailForTests();
+    shareSheet(() => Promise.reject(new DOMException('closed', 'AbortError')));
+    mount(base(ready()));
+    expect(flow.shareReady).toBe(true);
+    const taps: string[] = [flow.tap];
+    await act(async () => { await flow.handleShare(); });
+    expect(flow.tap).toBe('idle');
+    expect(recentActions()).not.toContain('share');
+    shareSheet(() => Promise.reject(new Error('share failed')));
+    await act(async () => { await flow.handleShare(); });
+    expect(recentActions()).not.toContain('share');
+    shareSheet(() => Promise.resolve());
+    await act(async () => { await flow.handleShare(); });
+    taps.push(flow.tap);
+    expect(taps).toEqual(['idle', 'done']);
+    expect(recentActions()).toContain('share');
+  });
+
+  it('an empty share message is still announced, as before the outcome was extracted', async () => {
+    shareSheet(() => Promise.resolve());
+    mount({ ...base(ready()), messages: { ready: 'Ready', shared: '', canceled: 'Canceled', shareError: 'Failed' } });
+    await act(async () => { await flow.handleShare(); });
+    expect(announce).toHaveBeenCalledWith('');
   });
 });

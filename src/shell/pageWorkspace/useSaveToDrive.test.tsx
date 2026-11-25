@@ -2,6 +2,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
 import { peekHandoff, saveHandoff } from '#lib/drafts/draftStore.ts';
+import { openNewerStore } from '#lib/drafts/newerStore.test-helper.ts';
 import { DRIVE_SAVE_CHANNEL, DRIVE_TOKEN_KEY } from '#lib/handoff/driveSaveLink.ts';
 import { reportResult, reportToolLifecycleEvent as report, resetUsageEventsForTests } from '#lib/telemetry/productAnalytics.ts';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
@@ -30,14 +31,6 @@ async function parked(): Promise<unknown[]> {
   await vi.mocked(saveHandoff).mock.results[0].value;
   return vi.mocked(saveHandoff).mock.calls[0];
 }
-
-// The database moves to version 2 behind the product's back, so its open at version 1 fails with a real VersionError.
-const upgradeWorkspaceDb = () => new Promise<void>((resolve, reject) => {
-  const request = indexedDB.open('pdf-toolkit-workspace', 2);
-  request.onupgradeneeded = () => { request.result.createObjectStore('workspace', { keyPath: 'tool' }); };
-  request.onsuccess = () => { request.result.close(); resolve(); };
-  request.onerror = () => reject(request.error);
-});
 
 const pdf = new Blob(['%PDF'], { type: 'application/pdf' });
 
@@ -146,7 +139,7 @@ describe('useSaveToDrive', () => {
     act(() => latest.save());
     expect(events()).toEqual(['tool_drive_shown', 'tool_drive_tapped', 'tool_drive_failed']);
     vi.mocked(report).mockClear();
-    await upgradeWorkspaceDb(); // the store now refuses the file for real: a VersionError
+    await openNewerStore(); // the store now refuses the file for real: a VersionError
     mount({ generation: 2 });
     vi.mocked(report).mockClear();
     act(() => latest.save());
