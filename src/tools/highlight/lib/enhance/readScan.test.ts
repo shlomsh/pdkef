@@ -14,10 +14,10 @@ import { readScan } from './readScan.ts';
 vi.mock('#lib/pdf/renderPage.js', { spy: true });
 pointAtLegacyWorker(pdfjs);
 
-// The sheet is 800 x 500 pt, so the reader's 1000 px scale paints it at 1.25 and one image pixel lands on one canvas pixel.
-const SHEET = { width: 800, height: 500 };
+// The sheet is 800 x 120 pt, so the reader's 1000 px scale paints it at 1.25 and one image pixel lands on one canvas pixel.
+const SHEET = { width: 800, height: 120 };
 const W = 1000;
-const H = 625;
+const H = 150;
 
 /** Two pages leaning apart with a spine between them, as RGBA the way a canvas gives it. */
 function spreadPixels(): Uint8ClampedArray {
