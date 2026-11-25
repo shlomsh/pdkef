@@ -46,6 +46,7 @@ describe('settleHandoff', () => {
 
   it('commits even when the cache write throws', async () => {
     await saveHandoff('sign', { fileName: 'a.pdf', fileBytes: bytes() });
+    // Forced: the real write answers false, it never rejects
     vi.mocked(cacheRecentFile).mockRejectedValueOnce(new Error('quota'));
     await settleHandoff('sign', { fileName: 'a.pdf', fileBytes: bytes() });
     expect(await peekHandoff('sign')).toBeNull();

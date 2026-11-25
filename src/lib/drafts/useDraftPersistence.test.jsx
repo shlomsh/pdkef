@@ -2,8 +2,8 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { waitUntil } from '../../test/support/waitUntil.ts';
 import { drainPromises } from '../../test/support/drainPromises.ts';
+import { holdDraftStore } from './heldStore.test-helper.ts';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import { webcrypto } from 'node:crypto';
 import 'fake-indexeddb/auto';
 import { IDBFactory } from 'fake-indexeddb';
 import { useDraftPersistence } from './useDraftPersistence.js';
@@ -16,8 +16,8 @@ import { flushBeforeUpdateReload, isUpdateHeld } from '../appUpdate/updateHolds.
 // this is the behavior TODO.md's SIGN-06 asked for.
 
 // The draft store runs for real on fake-indexeddb, with the real arrival note and update holds around it. The spy
-// lets a test see which calls happened; a failed write, a write held open, and the browser's persistence answer are
-// the states the real store cannot produce here, so a test forces that one result.
+// lets a test see which calls happened; a failed write is a real one (an element structured clone refuses), a held
+// write is a real held transaction, and the browser's persistence answer is forced.
 vi.mock('./draftStore.ts', { spy: true });
 // Forced: the page preview is drawn on a canvas, which jsdom does not have. Each test says what it drew.
 vi.mock('../pdf/thumbnails.js', { spy: true });
@@ -31,14 +31,12 @@ beforeEach(() => {
   indexedDB = new IDBFactory();
   localStorage.clear();
   sessionStorage.clear();
-  vi.stubGlobal('crypto', webcrypto);
   vi.mocked(saveDraft).mockReset();
   vi.mocked(loadDraft).mockReset();
   vi.mocked(isStoragePersisted).mockReset();
   vi.mocked(attachDraftPreview).mockClear();
-  vi.mocked(renderDraftPreview).mockReset().mockResolvedValue(null); // forced: no canvas in jsdom
+  vi.mocked(renderDraftPreview).mockReset();
 });
-afterEach(() => { vi.unstubAllGlobals(); });
 
 // The debounce is the only clock a test moves; the store's own async work (fake-indexeddb) keeps real
 // timers, so only these are faked.
@@ -76,9 +74,18 @@ async function passDebounceAndDrain() {
 }
 const stateIs = (apiRef, state) => waitUntil(() => expect(apiRef.current.result.draftSaveState).toBe(state));
 
-function renderFirstEdit(apiRef, props, container) {
+// The newest write has answered and the hook has taken the answer in.
+const saveSettled = () => act(async () => {
+  await vi.mocked(saveDraft).mock.results.at(-1).value;
+  await drainPromises();
+});
+
+// A function in an element: structured clone refuses it, so the real write to IndexedDB fails and saveDraft answers false.
+const UNSAVABLE = { unsavable: () => {} };
+
+function renderFirstEdit(apiRef, props, container, extra = {}) {
   act(() => {
-    render(<Harness apiRef={apiRef} props={{ ...props, isDirty: true, elements: [{ id: 'first-edit' }] }} />, container);
+    render(<Harness apiRef={apiRef} props={{ ...props, isDirty: true, elements: [{ id: 'first-edit', ...extra }] }} />, container);
   });
 }
 
@@ -86,8 +93,8 @@ describe('useDraftPersistence - save outcome reporting', () => {
   let container;
   let apiRef;
   const mount = (props) => act(() => { render(<Harness apiRef={apiRef} props={props} />, container); });
-  const edit = (props, id) => act(() => {
-    render(<Harness apiRef={apiRef} props={{ ...props, isDirty: true, elements: [{ id }] }} />, container);
+  const edit = (props, id, extra = {}) => act(() => {
+    render(<Harness apiRef={apiRef} props={{ ...props, isDirty: true, elements: [{ id, ...extra }] }} />, container);
   });
 
   beforeEach(() => {
@@ -104,6 +111,7 @@ describe('useDraftPersistence - save outcome reporting', () => {
   });
 
   it('keeps a preview that finishes before the debounced save writes its older snapshot', async () => {
+    // Forced: no canvas in jsdom to draw the preview.
     vi.mocked(renderDraftPreview).mockResolvedValueOnce('data:image/jpeg;base64,preview');
     const props = baseProps();
     await act(async () => {
@@ -135,13 +143,13 @@ describe('useDraftPersistence - save outcome reporting', () => {
   });
 
   it('reports "error", never "saved", when the write fails without throwing', async () => {
-    vi.mocked(saveDraft).mockResolvedValue(false); // forced: the real store only answers false when IndexedDB fails
     const props = baseProps();
     mount(props);
-    renderFirstEdit(apiRef, props, container);
+    renderFirstEdit(apiRef, props, container, UNSAVABLE);
 
     await passDebounce();
-    await stateIs(apiRef, 'error');
+    await saveSettled();
+    expect(apiRef.current.result.draftSaveState).toBe('error');
 
     expect(saveDraft).toHaveBeenCalled();
   });
@@ -165,10 +173,10 @@ describe('useDraftPersistence - save outcome reporting', () => {
     await stateIs(apiRef, 'saved');
     expect(isUpdateHeld()).toBe(false);
 
-    vi.mocked(saveDraft).mockResolvedValueOnce(false); // forced: one failed write
-    edit(props, 'second-edit');
+    edit(props, 'second-edit', UNSAVABLE);
     await passDebounce();
-    await stateIs(apiRef, 'error');
+    await saveSettled();
+    expect(apiRef.current.result.draftSaveState).toBe('error');
     expect(isUpdateHeld()).toBe(true);
 
     edit(props, 'third-edit');
@@ -199,6 +207,7 @@ describe('useDraftPersistence - save outcome reporting', () => {
 
   it('does not let an older successful write mark a newer failed revision saved', async () => {
     let finishFirst;
+    // Forced: the older write must land after the newer one failed, which a real store cannot be ordered to do.
     vi.mocked(saveDraft).mockImplementationOnce(() => new Promise((resolve) => { finishFirst = resolve; })); // forced: the first write stays in flight
     vi.mocked(saveDraft).mockResolvedValueOnce(false); // forced: the newer write fails
     const props = baseProps();
@@ -221,6 +230,7 @@ describe('useDraftPersistence - save outcome reporting', () => {
 
   it('never flushes an untouched restored document on hide or page exit', async () => {
     const visibilityDescriptor = Object.getOwnPropertyDescriptor(document, 'visibilityState');
+    // Forced: jsdom cannot hide a page.
     Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' });
     try {
       mount(baseProps({ elements: [{ id: 'restored-edit' }], isDirty: false }));
@@ -262,15 +272,8 @@ describe('useDraftPersistence - save outcome reporting', () => {
 
   // MEM-10: an update reload must verify the pending save is written first.
   it('flushBeforeUpdateReload writes the pending edit and waits for the save to settle', async () => {
-    const real = await vi.importActual('./draftStore.ts');
-    const writeStarted = Promise.withResolvers();
-    const releaseWrite = Promise.withResolvers();
-    // forced: hold the write open, then let the real one run, to see the reload wait for it
-    vi.mocked(saveDraft).mockImplementationOnce(async (...args) => {
-      writeStarted.resolve();
-      await releaseWrite.promise;
-      return real.saveDraft(...args);
-    });
+    // A real write transaction held open: the save waits behind it, as it would behind another tab's write.
+    const hold = await holdDraftStore();
     const props = baseProps();
     mount(props);
     renderFirstEdit(apiRef, props, container);
@@ -278,13 +281,13 @@ describe('useDraftPersistence - save outcome reporting', () => {
 
     let done = false;
     const reload = flushBeforeUpdateReload().then(() => { done = true; });
-    await act(async () => { await writeStarted.promise; });
+    await act(async () => { await drainPromises(); });
     expect(saveDraft).toHaveBeenCalledTimes(1);
     expect(vi.mocked(saveDraft).mock.calls[0][1].elements).toEqual([{ id: 'first-edit' }]);
     await act(async () => { await drainPromises(); });
     expect(done).toBe(false);
 
-    await act(async () => { releaseWrite.resolve(); await reload; });
+    await act(async () => { await hold.release(); await reload; });
     expect(done).toBe(true);
     expect(readRecentFiles().map((entry) => entry.fileName)).toEqual(['contract.pdf']);
   });
@@ -310,8 +313,10 @@ describe('useDraftPersistence - unpersisted-storage warning', () => {
   let apiRef;
   let originalMatchMedia;
   let originalStandalone;
+  let heldWrite;
 
   function stubStandalone(isStandalone) {
+    // Forced: jsdom has no matchMedia, and an installed app is told apart by its answer.
     window.matchMedia = vi.fn(() => ({ matches: isStandalone }));
     Object.defineProperty(navigator, 'standalone', { configurable: true, value: undefined });
   }
@@ -325,10 +330,12 @@ describe('useDraftPersistence - unpersisted-storage warning', () => {
     originalStandalone = Object.getOwnPropertyDescriptor(navigator, 'standalone');
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     act(() => render(null, container));
     container.remove();
     vi.useRealTimers();
+    await heldWrite?.release();
+    heldWrite = undefined;
     window.matchMedia = originalMatchMedia;
     if (originalStandalone) Object.defineProperty(navigator, 'standalone', originalStandalone);
     else delete navigator.standalone;
@@ -346,7 +353,8 @@ describe('useDraftPersistence - unpersisted-storage warning', () => {
   it('never appears before a save has succeeded', async () => {
     stubStandalone(true);
     vi.mocked(isStoragePersisted).mockResolvedValue(false); // forced: the browser says storage is not persisted
-    vi.mocked(saveDraft).mockImplementation(() => new Promise(() => {})); // forced: never resolves
+    // A real write held open for the whole test, so the save never finishes; released in afterEach.
+    heldWrite = await holdDraftStore();
     const props = baseProps();
     mount(props);
     renderFirstEdit(apiRef, props, container);
@@ -400,12 +408,12 @@ describe('useDraftPersistence - unpersisted-storage warning', () => {
     await passDebounce();
     await stateIs(apiRef, 'unpersisted');
 
-    vi.mocked(saveDraft).mockResolvedValueOnce(false); // forced: the second write fails
     act(() => {
-      render(<Harness apiRef={apiRef} props={{ ...props, isDirty: true, elements: [{ id: 'second-edit' }] }} />, container);
+      render(<Harness apiRef={apiRef} props={{ ...props, isDirty: true, elements: [{ id: 'second-edit', ...UNSAVABLE }] }} />, container);
     });
     await passDebounce();
-    await stateIs(apiRef, 'error');
+    await saveSettled();
+    expect(apiRef.current.result.draftSaveState).toBe('error');
   });
 });
 
@@ -493,12 +501,14 @@ describe('useDraftPersistence - same file opened in two tools (real store)', () 
     });
     const apiRef = { current: null };
 
+    // Forced: no canvas in jsdom to draw the preview.
     vi.mocked(renderDraftPreview).mockResolvedValueOnce('data:image/jpeg;base64,alpha');
     await act(async () => {
       render(<RealHarness apiRef={apiRef} props={props('qa-alpha.pdf', alphaBytes)} />, container);
     });
     await waitUntil(previewOf('qa-alpha.pdf'));
 
+    // Forced: no canvas in jsdom to draw the preview.
     vi.mocked(renderDraftPreview).mockResolvedValueOnce('data:image/jpeg;base64,bravo');
     await act(async () => {
       render(<RealHarness apiRef={apiRef} props={props('qa-bravo.pdf', bravoBytes)} />, container);

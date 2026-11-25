@@ -3,10 +3,10 @@ import 'fake-indexeddb/auto';
 import { IDBFactory } from 'fake-indexeddb';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { peekHandoff, saveHandoff } from '../drafts/draftStore.ts';
+import { holdDraftStore } from '../drafts/heldStore.test-helper.ts';
 import { drainPromises } from '../../test/support/drainPromises.ts';
 
-// The real store runs on fake-indexeddb; the spy lets a test see when a save settled, and the two tests that
-// need the store to refuse or fail force that one result.
+// The real store runs on fake-indexeddb; the spy lets a test see when a save settled, and one test forces a reject the real store never produces.
 vi.mock('../drafts/draftStore.ts', { spy: true });
 
 import { sendHandoff } from './sendHandoff.ts';
@@ -33,14 +33,12 @@ describe('sendHandoff', () => {
   });
 
   it('saves before it navigates', async () => {
-    let release!: () => void;
-    const held = new Promise<void>((resolve) => { release = resolve; });
-    vi.mocked(saveHandoff).mockImplementationOnce(async (...args) => { await held; return (await vi.importActual<typeof import('../drafts/draftStore.ts')>('../drafts/draftStore.ts')).saveHandoff(...args); }); // forced: the save is held open, then runs for real
+    const hold = await holdDraftStore();
     const sent = sendHandoff('sign', payload(), { navigate });
     await drainPromises();
     expect(saveHandoff).toHaveBeenCalledTimes(1);
     expect(navigate).not.toHaveBeenCalled();
-    release();
+    await hold.release();
     await expect(sent).resolves.toBe(true);
     expect(navigate).toHaveBeenCalledTimes(1);
     expect(navigate).toHaveBeenCalledWith('/sign/');
@@ -78,13 +76,14 @@ describe('sendHandoff', () => {
   });
 
   it('throws and stays put when the store did not take it', async () => {
-    vi.mocked(saveHandoff).mockResolvedValueOnce(false); // forced: the real store only refuses without IndexedDB
-    await expect(sendHandoff('compress', payload(), { navigate })).rejects.toThrow('handoff');
+    // A function in the payload fails the real write: structured clone refuses it and the store answers false.
+    const uncloneable = { ...payload(), fileName: (() => 'a.pdf') as unknown as string };
+    await expect(sendHandoff('compress', uncloneable, { navigate })).rejects.toThrow('handoff');
     expect(navigate).not.toHaveBeenCalled();
   });
 
   it('lets a store error through and does not navigate', async () => {
-    vi.mocked(saveHandoff).mockRejectedValueOnce(new Error('boom')); // forced: the real store reports its own failures and answers false
+    vi.mocked(saveHandoff).mockRejectedValueOnce(new Error('boom')); // Forced: the real store never rejects, it answers false
     await expect(sendHandoff('compress', payload(), { navigate })).rejects.toThrow('boom');
     expect(navigate).not.toHaveBeenCalled();
   });

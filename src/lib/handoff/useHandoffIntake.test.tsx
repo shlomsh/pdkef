@@ -451,7 +451,7 @@ describe('hand-off survives a reload before it is stored (2026-11-12)', () => {
 
   it('still commits when the recents write fails, so a stale record is not re-opened every visit', async () => {
     await saveHandoff('sign', { fileName: 'a.pdf', fileBytes: bytes('%PDF-1.7 quota') });
-    vi.mocked(cacheRecentFile).mockRejectedValueOnce(new Error('quota')); // forced: the real write does not fail here
+    vi.mocked(cacheRecentFile).mockRejectedValueOnce(new Error('quota')); // forced: the real write answers false, it never rejects
     const [onFiles, arrived] = arrivalSpy<[File[], string?]>();
     await act(async () => {
       render(<FilesHarness tool="sign" onFiles={onFiles} />, container);
