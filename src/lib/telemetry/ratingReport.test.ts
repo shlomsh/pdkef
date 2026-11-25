@@ -1,7 +1,8 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { installBeaconRecorder, type BeaconRecorder } from '../../test/support/beaconRecorder.ts';
 
 vi.mock('./errorReport.ts', { spy: true });
-import { sendBeacon } from './errorReport.ts';
+import { sendBeacon, setReportingEnabledForTests } from './errorReport.ts';
 import { hasRated, markAsked, markRated, MY_STARS_KEY, ownStars, ratedKey, RATING_ASK_GAP_MS, ASKED_AT_KEY, reportRating, reportRatingComment, shouldAsk } from './ratingReport.ts';
 
 function memoryStorage(initial: Record<string, string> = {}) {
@@ -18,9 +19,15 @@ const blocked = {
 
 const NOW = 1_800_000_000_000;
 
+let recorder: BeaconRecorder;
 beforeEach(() => {
   vi.mocked(sendBeacon).mockClear();
-  vi.mocked(sendBeacon).mockReturnValue(true); // forced: the send succeeds in every test (the real one returns false under test)
+  setReportingEnabledForTests(true);
+  recorder = installBeaconRecorder();
+});
+afterEach(() => {
+  setReportingEnabledForTests(false);
+  recorder.restore();
 });
 
 describe('shouldAsk / markRated', () => {
@@ -94,40 +101,43 @@ describe('ask cadence', () => {
 });
 
 describe('reportRating', () => {
-  it('sends the validated event and returns true', () => {
+  it('sends the validated event and returns true', async () => {
     expect(reportRating('compress', 5)).toBe(true);
-    expect(sendBeacon).toHaveBeenCalledWith({ name: 'tool_rating', properties: { tool: 'compress', stars: 5 } });
+    expect(await recorder.bodies()).toEqual([{ name: 'tool_rating', properties: { tool: 'compress', stars: 5 } }]);
   });
   it('refuses an invalid rating without sending', () => {
     expect(reportRating('compress', 6 as never)).toBe(false);
     expect(reportRating('nope' as never, 3)).toBe(false);
-    expect(sendBeacon).not.toHaveBeenCalled();
+    expect(recorder.calls).toHaveLength(0);
   });
   it('never throws', () => {
-    vi.mocked(sendBeacon).mockImplementationOnce(() => { throw new Error('x'); }); // forced: a throwing send
+    // Forced: the real sendBeacon catches a throwing beacon itself, so reportRating's own catch needs a throwing send.
+    vi.mocked(sendBeacon).mockImplementationOnce(() => { throw new Error('x'); });
     expect(reportRating('compress', 4)).toBe(false);
   });
 });
 
 describe('reportRatingComment', () => {
-  it('sends the OK to show the words only when it was given', () => {
+  it('sends the OK to show the words only when it was given', async () => {
     reportRatingComment('compress', 5, 'lovely', true);
-    expect(vi.mocked(sendBeacon).mock.lastCall?.[0]).toMatchObject({ properties: { share: true } });
     reportRatingComment('compress', 5, 'lovely');
-    expect(vi.mocked(sendBeacon).mock.lastCall?.[0]).not.toHaveProperty('properties.share');
+    const [shared, plain] = await recorder.bodies();
+    expect(shared).toMatchObject({ properties: { share: true } });
+    expect(plain).not.toHaveProperty('properties.share');
   });
 
-  it('sends the trimmed comment and returns true', () => {
+  it('sends the trimmed comment and returns true', async () => {
     expect(reportRatingComment('compress', 4, '  nice and fast  ')).toBe(true);
-    expect(sendBeacon).toHaveBeenCalledWith({ name: 'tool_rating_comment', properties: { tool: 'compress', stars: 4, comment: 'nice and fast' } });
+    expect(await recorder.bodies()).toEqual([{ name: 'tool_rating_comment', properties: { tool: 'compress', stars: 4, comment: 'nice and fast' } }]);
   });
   it('refuses an empty or over-long comment without sending', () => {
     expect(reportRatingComment('compress', 4, '   ')).toBe(false);
     expect(reportRatingComment('compress', 4, 'x'.repeat(501))).toBe(false);
-    expect(sendBeacon).not.toHaveBeenCalled();
+    expect(recorder.calls).toHaveLength(0);
   });
   it('never throws', () => {
-    vi.mocked(sendBeacon).mockImplementationOnce(() => { throw new Error('x'); }); // forced: a throwing send
+    // Forced: the real sendBeacon catches a throwing beacon itself, so reportRatingComment's own catch needs a throwing send.
+    vi.mocked(sendBeacon).mockImplementationOnce(() => { throw new Error('x'); });
     expect(reportRatingComment('compress', 4, 'hi')).toBe(false);
   });
 });

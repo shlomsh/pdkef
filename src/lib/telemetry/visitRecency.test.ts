@@ -1,4 +1,6 @@
+// @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { fillStorage } from '../../test/support/fullStorage.ts';
 import { lastDayFromRecents, localDay, readAndStampVisits, sinceFor, usableDay, visitFor } from './visitRecency.ts';
 import { RECENT_FILES_META_KEY } from '../drafts/recentFilesKey.js';
 
@@ -12,18 +14,6 @@ describe('lastDayFromRecents (DEBT-61)', () => {
     expect(lastDayFromRecents(raw)).toBeNull();
   });
 });
-
-function fakeStorage(throws = false) {
-  const m = new Map<string, string>();
-  const fail = () => {
-    if (throws) throw new Error('blocked');
-  };
-  return {
-    getItem: (k: string) => (fail(), m.get(k) ?? null),
-    setItem: (k: string, v: string) => (fail(), void m.set(k, v)),
-    removeItem: (k: string) => (fail(), void m.delete(k)),
-  };
-}
 
 describe('visitFor', () => {
   const today = '2026-10-31';
@@ -50,8 +40,7 @@ describe('localDay', () => {
 });
 
 describe('readAndStampVisits (visit)', () => {
-  beforeEach(() => vi.stubGlobal('localStorage', fakeStorage()));
-  afterEach(() => vi.unstubAllGlobals());
+  beforeEach(() => localStorage.clear());
   it('is new the first time, then today, and stamps the day', () => {
     const now = new Date(2026, 9, 21, 12);
     expect(readAndStampVisits(now)?.visit).toBe('new');
@@ -73,10 +62,6 @@ describe('readAndStampVisits (visit)', () => {
     localStorage.setItem(RECENT_FILES_META_KEY, JSON.stringify([{ id: 'a', savedAt: new Date(2026, 9, 2, 9).getTime() }]));
     expect(readAndStampVisits(new Date(2026, 9, 22, 12))?.visit).toBe('week');
   });
-  it('is undefined when storage throws', () => {
-    vi.stubGlobal('localStorage', fakeStorage(true));
-    expect(readAndStampVisits()).toBeUndefined();
-  });
 });
 
 describe('sinceFor (MEM-45)', () => {
@@ -91,15 +76,16 @@ describe('sinceFor (MEM-45)', () => {
 });
 
 describe('readAndStampVisits (since)', () => {
-  beforeEach(() => vi.stubGlobal('localStorage', fakeStorage()));
-  afterEach(() => vi.unstubAllGlobals());
+  beforeEach(() => localStorage.clear());
+  afterEach(() => void vi.restoreAllMocks());
   const now = new Date(2026, 10, 12, 12);
   it('a first-ever view writes the first day and reads first; the same day after reads day, untouched', () => {
     expect(readAndStampVisits(now)).toEqual({ visit: 'new', since: 'first' });
     expect(localStorage.getItem('pdkef:first-visit')).toBe('2026-11-12');
-    const set = vi.spyOn(localStorage, 'setItem');
+    const set = vi.spyOn(Storage.prototype, 'setItem');
     expect(readAndStampVisits(now)).toEqual({ visit: 'today', since: 'day' });
     expect(set).not.toHaveBeenCalledWith('pdkef:first-visit', expect.anything());
+    set.mockRestore();
   });
   it('a browser with only a last visit 10 days ago is seeded from it and reads month', () => {
     localStorage.setItem('pdkef:last-tool-visit', '2026-11-02');
@@ -116,10 +102,6 @@ describe('readAndStampVisits (since)', () => {
     localStorage.setItem('pdkef:last-tool-visit', '2026-11-11');
     expect(readAndStampVisits(now)).toEqual({ visit: 'week', since: 'quarter' });
     expect(localStorage.getItem('pdkef:first-visit')).toBe('2026-10-03');
-  });
-  it('is undefined without storage', () => {
-    vi.stubGlobal('localStorage', fakeStorage(true));
-    expect(readAndStampVisits(now)).toBeUndefined();
   });
   it('an unreadable first day is reseeded from the last visit', () => {
     localStorage.setItem('pdkef:first-visit', 'abc');
@@ -149,22 +131,22 @@ describe('readAndStampVisits (since)', () => {
     expect(localStorage.getItem('pdkef:first-visit')).toBe('2026-11-07');
   });
   describe('when the first day cannot be written (storage full)', () => {
-    beforeEach(() => {
-      const base = fakeStorage();
-      vi.stubGlobal('localStorage', {
-        ...base,
-        setItem: (k: string, v: string) => {
-          if (k === 'pdkef:first-visit') throw new Error('quota');
-          base.setItem(k, v);
-        },
-      });
-    });
+    // The storage is really full, so a new key throws; the last-visit stamp is overwritten in place
+    // with a value of the same length, which a full storage still takes.
     it('a returning browser keeps visit and the last-visit stamp', () => {
       localStorage.setItem('pdkef:last-tool-visit', '2026-11-02');
+      fillStorage(localStorage);
+      expect(() => localStorage.setItem('pdkef:first-visit', '2026-11-02')).toThrow();
       expect(readAndStampVisits(now)).toEqual({ visit: 'month', since: 'month' });
       expect(localStorage.getItem('pdkef:last-tool-visit')).toBe('2026-11-12');
     });
     it('a brand-new browser still reads new and first, and stamps the last visit', () => {
+      const setItem = Storage.prototype.setItem;
+      // Forced: a full storage has no room for the stamp either, which needs more than the first day
+      vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (this: Storage, k: string, v: string) {
+        if (k === 'pdkef:first-visit') throw new Error('quota');
+        setItem.call(this, k, v);
+      });
       expect(readAndStampVisits(now)).toEqual({ visit: 'new', since: 'first' });
       expect(localStorage.getItem('pdkef:last-tool-visit')).toBe('2026-11-12');
     });

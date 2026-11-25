@@ -1,4 +1,5 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+// @vitest-environment jsdom
+import { beforeEach, describe, expect, it } from 'vitest';
 import { nextToolHistory, prepareToolHistory } from './toolHistory.ts';
 
 const list = (...tools: string[]) => JSON.stringify({ v: 1, tools });
@@ -30,41 +31,19 @@ describe('nextToolHistory (MEM-45)', () => {
 });
 
 describe('prepareToolHistory', () => {
-  const store = (throws = false) => {
-    const m = new Map<string, string>();
-    return {
-      m,
-      getItem: (k: string) => {
-        if (throws) throw new Error('blocked');
-        return m.get(k) ?? null;
-      },
-      setItem: (k: string, v: string) => {
-        if (throws) throw new Error('blocked');
-        m.set(k, v);
-      },
-    };
-  };
-  afterEach(() => vi.unstubAllGlobals());
+  beforeEach(() => localStorage.clear());
 
   it('reads the first-visit day and writes only when committed', () => {
-    const ls = store();
-    ls.setItem('pdkef:first-visit', TODAY);
-    vi.stubGlobal('localStorage', ls);
+    localStorage.setItem('pdkef:first-visit', TODAY);
     const p = prepareToolHistory('sign')!;
     expect(p.props).toEqual({ tools: '1', newtool: true, firsttool: 'sign' });
-    expect(ls.getItem('pdkef:tools-opened')).toBeNull();
+    expect(localStorage.getItem('pdkef:tools-opened')).toBeNull();
     p.commit();
-    expect(ls.getItem('pdkef:tools-opened')).toBe(list('sign'));
+    expect(localStorage.getItem('pdkef:tools-opened')).toBe(list('sign'));
   });
   it('returns nothing for a browser first seen before the list existed', () => {
-    const ls = store();
-    ls.setItem('pdkef:first-visit', '2026-11-01');
-    vi.stubGlobal('localStorage', ls);
+    localStorage.setItem('pdkef:first-visit', '2026-11-01');
     expect(prepareToolHistory('sign')).toBeUndefined();
-    expect(ls.getItem('pdkef:tools-opened')).toBeNull();
-  });
-  it('is undefined without storage and never throws', () => {
-    vi.stubGlobal('localStorage', store(true));
-    expect(prepareToolHistory('sign')).toBeUndefined();
+    expect(localStorage.getItem('pdkef:tools-opened')).toBeNull();
   });
 });

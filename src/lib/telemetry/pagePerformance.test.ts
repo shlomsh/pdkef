@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   classifyRequests,
@@ -70,13 +71,15 @@ describe('pageSettled', () => {
     const on = (type: string, cb: () => void) => void (listeners[type] ??= []).push(cb);
     const off = (type: string, cb: () => void) => void (listeners[type] = (listeners[type] ?? []).filter((l) => l !== cb));
     const doc = { readyState, visibilityState, addEventListener: on, removeEventListener: off };
+    // Forced: jsdom's document is already complete, so a loading or hidden page needs a mock document.
     vi.stubGlobal('document', doc);
+    // Forced: the mock page's window, whose listeners the test fires by name.
     vi.stubGlobal('window', { addEventListener: on, removeEventListener: off });
     return { doc, fire: (type: string) => (listeners[type] ?? []).slice().forEach((cb) => cb()), count: () => Object.values(listeners).flat().length };
   };
 
   it('is loaded at once when the document is complete', async () => {
-    page('complete');
+    expect(document.readyState).toBe('complete');
     await expect(pageSettled()).resolves.toBe('loaded');
   });
 
@@ -122,6 +125,7 @@ describe('pageSettled', () => {
 
 describe('collectPageMeasures', () => {
   const resource = (transferSize: number, decodedBodySize: number) => ({ transferSize, decodedBodySize });
+  // Forced: no real navigation or resource entries exist outside a browser page load.
   const stubPerformance = (entries: unknown[]) =>
     vi.stubGlobal('performance', { getEntriesByType: (t: string) => (t === 'navigation' || t === 'resource' ? entries.filter((e) => (e as { t: string }).t === t) : []) });
 
@@ -133,19 +137,22 @@ describe('collectPageMeasures', () => {
       observe(opts: unknown) { expect(opts).toEqual({ type: 'largest-contentful-paint', buffered: true }); queueMicrotask(() => this.cb({ getEntries: () => [{ startTime: 800 }, { startTime: 2100 }] })); }
       takeRecords() { return []; }
     }
+    // Forced: no real largest-contentful-paint entries exist outside a browser page load.
     vi.stubGlobal('PerformanceObserver', FakeObserver);
     expect(await collectPageMeasures()).toEqual({ net: '1', local: '2-5', lcp: 'le2.5s' });
   });
 
   it('leaves out what the browser does not support, never guessing', async () => {
+    // Forced: a browser without Resource Timing; Node has it
     vi.stubGlobal('performance', {});
+    // Forced: a browser without PerformanceObserver; Node has it
     vi.stubGlobal('PerformanceObserver', undefined);
     expect(await collectPageMeasures()).toEqual({});
   });
 
   it('leaves lcp out, without waiting, when the browser does not list the largest-contentful-paint entry type', async () => {
     stubPerformance([{ t: 'navigation', ...resource(500, 500) }]);
-    vi.stubGlobal('PerformanceObserver', class { static supportedEntryTypes = ['event']; observe() { throw new TypeError('unsupported'); } takeRecords() { return []; } });
+    expect(PerformanceObserver.supportedEntryTypes).not.toContain('largest-contentful-paint');
     expect(await collectPageMeasures()).toEqual({ net: '1', local: '0' });
   });
 });
