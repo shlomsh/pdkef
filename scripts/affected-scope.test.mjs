@@ -1113,10 +1113,10 @@ describe('ci.yml gates product e2e on product_e2e (QUAL-32, QUAL-42)', () => {
     for (const s of playwright) expect(s).toContain('needs.plan.outputs.e2e_paths');
   });
 
-  it('plan: Resolve affected scope carries no gate', () => {
+  it('plan: Resolve affected scope is gated on docs-only and nothing else', () => {
     const resolve = steps(jobText('plan')).filter((s) => /^name: Resolve affected scope\n/.test(s));
     expect(resolve.length).toBe(1);
-    expect(ifLine(resolve[0])).toBeUndefined();
+    expect(ifLine(resolve[0])).toBe("if: steps.change.outputs.docs_only != 'true'");
   });
 
   it('ifLine ignores a gate that only appears in a comment', () => {
