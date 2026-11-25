@@ -32,9 +32,9 @@ describe('PdfImageToPdfTool UI flow', () => {
       await act(async () => {
         setInputFiles(container!.querySelector('input[type="file"]'), [new File([png()], 'a.png', { type: 'image/png' })]);
       });
-      await waitUntil(() => scanButton() !== undefined);
+      await waitUntil(() => expect(scanButton()).toBeDefined());
       await act(async () => scanButton()!.click());
-      await waitUntil(() => expect(container!.textContent).toContain('Could not open Scan to PDF. Try again.'), { timeout: 2000 });
+      await waitUntil(() => expect(container!.textContent).toContain('Could not open Scan to PDF. Try again.'));
       expect(navigate).not.toHaveBeenCalled();
     });
   });
