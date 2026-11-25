@@ -31,15 +31,16 @@ Test seams (ARCH-61): an export that only tests import carries a `/** @testSeam 
 
 ## Tests await signals (`npm run lint:landmines`, LAND-*)
 
-The open-source landmines Oxlint rules run as they ship, one rule at a time
-([docs/landmines-adoption.md](../../docs/landmines-adoption.md)). `no-unsignaled-poll` is on: never
-`vi.waitFor` / `expect.poll` on a spy or a recorder; resolve a deferred from the mock or listener, or
-`page.waitForEvent` set up before the action. `no-flake-masking` is on with an `allow` map in
-`.oxlintrc.json`: the 25 raised test timeouts at adoption stay, a new one fails, and
-`test:ratchet-raises` refuses any raised or added entry. A rule that misses or misfires on our code is fixed
-upstream, never with a local guard or an `oxlint-disable`.
+The open-source landmines Oxlint rules (`@interfere/landmines` 0.3.1, one plugin, rules named `landmines/...`)
+run as they ship ([docs/landmines-adoption.md](../../docs/landmines-adoption.md)). `no-unsignaled-poll` is on:
+never `vi.waitFor` / `expect.poll` on a spy or a recorder; resolve a deferred from the mock or listener, or
+`page.waitForEvent` set up before the action. `no-flake-masking` and `no-fixed-sleep` are on with an `allow`
+map in `.oxlintrc.json` (exact per-file counts): a new one fails, and `test:ratchet-raises` refuses any raised or
+added entry. A rule that misses or misfires on our code is fixed upstream, never with a local guard. The one
+disable is `colocated-tests`, a file-level line naming the test's subject. `no-test-doubles` is off.
 
-No fixed sleeps (`no-fixed-sleep`, LAND-02). Wait for what the next assertion reads: `waitUntil` on the
+No fixed sleeps (`no-fixed-sleep`, LAND-02; it counts Playwright `waitForTimeout` too, overlapping
+`check-e2e-sleeps`, which stays until Shlomi decides). Wait for what the next assertion reads: `waitUntil` on the
 DOM, or a deferred the mock resolves. A "must not happen" check first waits for the stale operation to
 finish (a deferred in its mock), then `await drainPromises()` (`src/test/support/drainPromises.ts`)
 inside the same `act`, because the stale result reaches the component a few promise hops later. Prove
@@ -162,11 +163,13 @@ zero tests, and a git-grep fallback was rejected as unreliable), or no base - th
 the full suite" and keeps only the tests `vitest related` reaches; an empty diff runs no unit tests, and an
 unusable `--since` fails instead of widening. A **core-folder** change (`src/lib/`, `src/editor/`,
 `src/shell/`, `src/pages/`) does not force the whole suite for units; Nx's `CORE_PROJECTS` rule (below)
-still forces `everything` for e2e, font and export scope, which is unrelated. CI's `checks` job runs the whole
-unit suite, unnarrowed, on every push; `check:fast` and `check:push` select by impact on their own diff.
+still forces `everything` for e2e, font and export scope, which is unrelated. CI's `units` job (four shards) and
+`units-browser` (two, plus a `browser-test-count` job) run the whole unit suite, unnarrowed, on every push; `check:fast` and `check:push` select by impact on their own diff.
 
-**What runs where.** Local = the diff (guards, reachable units, `tsc`). CI push = the full unit suite,
-`typecheck` as its own job, and e2e, fonts and export guards narrowed by scope on four chromium shards (QUAL-23).
+**What runs where.** Local = the diff (guards, reachable units, `tsc`; `check:fast` runs no browser test). CI push =
+the full unit suite, `typecheck` as its own job, and e2e, fonts and export guards narrowed by scope. `plan` (beside
+`scope`) sizes the chromium e2e matrix, one to four shards, and `scripts/e2e-shard-plan.mjs` splits the specs by
+recorded time (`scripts/e2e-spec-seconds.json`; refresh with `node scripts/e2e-shard-plan.mjs --record <dir>`).
 Nightly = every chromium e2e spec twice (`--repeat-each=2`) to surface flaky specs.
 
 Renames are a special case: `changedFilesWithStatus()` (in `change-scope.mjs`, used only by

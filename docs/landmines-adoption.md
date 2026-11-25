@@ -11,7 +11,7 @@ writing another local guard.
 
 ## The trial (2026-11-18, origin/main 9f43c5d07)
 
-`oxlint@1.94.0` + `@interfere/landmines@0.1.0`, recommended config, over `src scripts e2e api
+`oxlint@1.94.0` + `@interfere/landmines@0.1.0` (0.3.1 is installed now), recommended config, over `src scripts e2e api
 middleware.ts`: 30,908 findings in 2,487 files, about 3 seconds.
 
 | Rule | Hits | Verdict |
@@ -19,11 +19,11 @@ middleware.ts`: 30,908 findings in 2,487 files, about 3 seconds.
 | `no-unsignaled-poll` | 22 in 9 files (+1 parse error in an `.astro` file) | **Adopt first (LAND-01).** `vi.waitFor` / `expect.poll` on a spy or a recorder races a deadline that CPU load (tests on battery) can miss. No flake was reproduced; the gain is a wait bounded by the test timeout instead of a 1 s poll. |
 | `no-fixed-sleep` | 8 | **Rule misses most of ours (LAND-02).** It only sees a sleep whose nearest enclosing function is the `it(...)` callback, so `await act(async () => { ...; await new Promise((r) => setTimeout(r, 50)) })` is invisible, and it drops every sleep in a file that calls `vi.useFakeTimers()`. Unit tests hold 141 `setTimeout` sleeps (61 at 0 ms, about 80 longer). It found none of the 39 e2e `waitForTimeout`s, which `check-e2e-sleeps` already ratchets. |
 | `no-flake-masking` | 25 in 13 files | **Mostly legitimate (LAND-03).** Raised per-test timeouts on real PDF exports and corpus runs, not hidden flakes. One false positive in production code, `src/tools/sign/lib/flatten.js:191`: a local function named `describe` with three arguments reads as a test with a timeout. Playwright's `retries` (the `perf` project) is not a key it checks. |
-| `no-test-doubles` | 1,877 in 266 files | **In waves (LAND-04).** Off on `landmines-all` until upstream takes a per-file `allow` option; the count left then becomes a list that only shrinks. Rules for a real fix: docs/landmines/no-test-doubles.md. |
+| `no-test-doubles` | 1,877 in 266 files | **In waves (LAND-04).** Off (879 sites in 223 files left, 2026-11-25) until upstream takes a per-file `allow` option; the count left then becomes a list that only shrinks. Rules for a real fix: docs/landmines/no-test-doubles.md. |
 | `no-comments` | 26,202 | **Declined.** pdkef comments carry ticket ids and the reason a guard exists, on purpose. |
 | `no-explicit-return-types` | 2,475 | **Declined.** Style choice that does not fit `checkJs` code. |
 | `test-file-names` | 188 | **Declined.** 176 are Playwright `.spec.js`, our convention. |
-| `colocated-tests` | 13 | **Adopted on `landmines-all` (LAND-05).** Tests whose subject the rule cannot see carry a disable line naming it. |
+| `colocated-tests` | 13 | **Adopted (LAND-05).** Ten tests whose subject the rule cannot see carry a disable line naming it; the ticket waits on upstream's colocated-tests fix (PR 33). |
 | `strict-msw`, `package-exports` | 0 | Not applicable: no MSW, not a published package. |
 
 Oxlint's own default `correctness` rules added about 140 findings (45 unused variables, comma and
@@ -38,9 +38,11 @@ Oxlint's built-in categories and enables only the landmines rules adopted so far
 the rule supports one. `scripts/check-ratchet-raises.mjs` treats each rule's `allow` map like
 `scripts/ratchet-limits.json`: a raised count or a new file fails, a lower one passes.
 
-Adopted so far: `no-unsignaled-poll` (LAND-01) and `no-flake-masking` with today's 25 timeouts in 13
-files (LAND-03). The `src/tools/sign/lib/flatten.js` entry is the rule's false positive on a local
-`describe` helper; once the upstream fix ships, the rule reports that entry as stale and it is removed.
+Adopted so far, as `landmines/...` rules of the one 0.3.1 plugin: `no-unsignaled-poll` (LAND-01),
+`no-flake-masking` (LAND-03), `no-fixed-sleep` (LAND-02, its `allow` map includes 47 e2e sites;
+`check-e2e-sleeps` overlaps it and stays until Shlomi decides), `strict-msw`, `colocated-tests` and
+`package-exports`. `no-test-doubles` is off; `no-comments`, `no-explicit-return-types` and `test-file-names`
+are declined and off.
 
 ## Upstream
 

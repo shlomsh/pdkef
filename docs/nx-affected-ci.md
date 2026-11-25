@@ -124,8 +124,9 @@ See DEBT-07's "Investigated (2026-09-17)" note for the measured numbers.
 `scripts/affected-scope.mjs` is the oracle, never the executor: it asks
 `nx show projects --affected --files=<changed files>` once, then CI runs
 ONE `playwright test <paths>` per shard, filtered by what it prints. Since QUAL-42 the `plan` job runs it
-once per run (after its own `npm ci`), builds `dist/`, sizes the e2e matrix from the spec count in scope
-and publishes the verdicts as job outputs; the e2e, webkit, font-guard and export-guard jobs read those
+once per run (after its own `npm ci`), builds `dist/`, sizes the e2e matrix (one to four chromium shards) from the spec count in scope, and
+`scripts/e2e-shard-plan.mjs` splits the specs over the shards by recorded time (`scripts/e2e-spec-seconds.json`,
+refreshed with `--record`), and publishes the verdicts as job outputs; the e2e, webkit, font-guard and export-guard jobs read those
 outputs and download the `dist` artifact instead of each resolving the scope and building for themselves. The per-project `test` targets
 were removed in ARCH-34 (nothing in `ci.yml` or `package.json` called them since ARCH-28).
 
@@ -354,10 +355,8 @@ plugin here infers, and `site` is one of the four core projects every tool depen
   tool imports `site`'s `i18n`/`data` today, so splitting it cleanly needs its own investigation (which
   of `src/pages/`, `src/layouts/`, `src/content/`, `src/data/`, `src/i18n/`, `src/styles/` a tool
   actually needs at runtime vs. build time) rather than a mechanical carve-out.
-- **Shard-skipping for a small narrowed set**: today's `e2e` job always runs both shards even when the
-  narrowed `e2e_paths` would leave shard 2 with nothing (`--pass-with-no-tests` makes that fast, not
-  free - it still pays checkout/npm ci/browser install). Worth an `if:` gate once real-world runs show
-  how often a narrow scope is small enough for one shard to cover it entirely.
+- **Shard-skipping for a small narrowed set**: done. `plan` sizes the e2e matrix from the spec count in scope
+  (`scripts/e2e-shard-count.mjs`), so a small scope runs fewer shards.
 - **A week of real CI runs** to replace this measurement with production numbers, per the ticket's own
   acceptance bar - this record's numbers are all from a single local checkout, not `ci.yml` in
   production. Left to whoever owns the ticket's Notes section next.

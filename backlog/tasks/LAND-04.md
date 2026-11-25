@@ -19,9 +19,9 @@ tests the mock, not the behaviour.
 
 Shlomi's call, 2026-11-19: the count comes down in waves, best value first, by the rules in
 docs/landmines/no-test-doubles.md (a rewrite must run more real code; a syntax-only change does not
-count). The rule is off on `landmines-all` meanwhile.
+count). The rule is off meanwhile.
 
-- Waves land on `landmines-all`, our own modules replaced with `vi.mock` first.
+- Waves land on main (the work branch `landmines-all` landed as 50cd7eba3 on 2026-11-25), our own modules replaced with `vi.mock` first.
 - Upstream: the rule accepts the same per-file `allow` map as `no-fixed-sleep`. Opened only after our
   PRs #21 and #33 are resolved, with Shlomi's OK.
 - pdkef then turns the rule on with the count left as an allow list that only shrinks.
@@ -293,3 +293,4 @@ count). The rule is off on `landmines-all` meanwhile.
   telemetry through a spy, and what jsdom has not is marked forced. Seven mutations on those lines each fail a test.
 - Found on the way: RED-75 (preview documents never freed on pdf.js 6.5), RED-76 (one very long line
   overflows the text preview).
+- Merge comparison (2026-11-25): four mutations the old Merge suite caught got past the new one. Three have fast tests now; the fourth, thumbnails, stays in e2e.

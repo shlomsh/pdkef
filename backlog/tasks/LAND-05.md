@@ -11,13 +11,13 @@ depends_on: ["LAND-02"]
 # LAND-05 · Tests live beside what they test
 
 *Filed 2026-11-19.* `colocated-tests` (landmines) reports a test whose imports all sit in one folder it
-does not live in. On branch `landmines-all` it reported 13 tests.
+does not live in. It reported 13 tests at filing.
 
 ## Outcome
 
 - The tests that were really misplaced move beside their subject.
 - A test whose real subject is something the rule cannot see keeps its place, with a file-level
-  `oxlint-disable landmines-structure/colocated-tests -- <the subject>` line saying what it tests
+  `oxlint-disable landmines/colocated-tests -- <the subject>` line saying what it tests
   (Shlomi's call, 2026-11-19: a permanent exception, not an allow list, which upstream frames as an
   adoption list that shrinks).
 - Upstream: a test that also imports production code outside `src` is cross-boundary and has no `src`
@@ -27,13 +27,11 @@ does not live in. On branch `landmines-all` it reported 13 tests.
 
 - Moved (2): the Sign toolbar's comment-button test beside `ElementToolbar`, and the Highlight
   history-keys test, which only drives the shared hook, beside `useHistoryShortcuts`.
-- Disable line with its subject (9): files read from disk (localized routes, Scan guide photos, the
-  Sign language page, the tool folder tree, three Sign corpus forms), the registry's signature entry
-  reached through `drawElements`, and the island setup files that `vitest.config.js` loads.
-- Waiting on upstream (2): `src/site-lib/reportContract.test.ts` (with `api/report.ts`) and
-  `scripts/ratings-read.test.mjs` (with `scripts/ratings-read.mjs`). Posted as
-  https://github.com/interfere-inc/landmines/pull/33 (upstream's checks green before posting). Once it
-  ships, both lose the disable line they carry meanwhile (2026-11-24).
-- `enhance.worker.browser.test.ts` starts a real module Worker, which the rule cannot trace: a disable line too.
-- The branch no longer enforces the three rules the adoption doc declines (`no-comments`,
+- Ten files carry a disable line, each naming its subject: four read from disk (localized routes, Scan guide
+  photos, the Sign language page, the tool folder tree), three Sign corpus forms, the enhance worker (a real
+  module Worker the rule cannot trace), and two waiting on upstream: `src/site-lib/reportContract.test.ts`
+  (with `api/report.ts`) and `scripts/ratings-read.test.mjs` (with `scripts/ratings-read.mjs`).
+- Upstream: https://github.com/interfere-inc/landmines/pull/33 (checks green when posted). This ticket waits for
+  that colocated-tests fix; once it ships, those two lose their disable line.
+- The three rules the adoption doc declines are off (`no-comments`,
   `no-explicit-return-types`, `test-file-names`), Shlomi's call, 2026-11-24.

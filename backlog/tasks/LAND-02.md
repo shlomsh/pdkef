@@ -35,8 +35,11 @@ The maintainers answered issue https://github.com/interfere-inc/landmines/issues
 https://github.com/interfere-inc/landmines/pull/19, merged the same day. They chose the known list:
 the rule climbs through callbacks passed to `act`, `waitFor`, `then`, `catch`, `finally` and `step`,
 and a `runNow` option replaces the list. Awaited registrations such as `page.route` handlers stay
-unreported. Our local patch for the other design is dropped. Waiting for it to reach npm (0.1.0 is
-the latest; release PR #20 is open).
+unreported. Our local patch for the other design is dropped. It shipped: landmines 0.3.1 is installed
+(one plugin, rules named `landmines/...`), and `no-fixed-sleep` is on in `.oxlintrc.json` with an `allow`
+map, 26 files, 47 of its sites in 24 e2e specs. The rule counts Playwright `waitForTimeout` too, so
+`check-e2e-sleeps` (a ratchet in `scripts/ratchet-limits.json`, still run by CI) overlaps that map. It is
+kept until Shlomi decides whether to retire it.
 
 ## Progress (2026-11-18, branch `landmines-all`)
 
@@ -77,4 +80,4 @@ and waits for the worker to exit normally. The old version froze the worker befo
 started, so a watchdog that caught up on missed time after a pause passed it; now that fails. Six
 mutations proven; the file runs in about 4 s, was about 7 s.
 
-Left in this ticket: landing, which waits for the npm release with #19.
+Landed on main 2026-11-25 (50cd7eba3). Left in this ticket: the decision on `check-e2e-sleeps`.
