@@ -100,7 +100,14 @@ function setup(opts: { held?: boolean; online?: boolean; heldAfterFlush?: boolea
 }
 
 const preloadEvent = () => ({ payload: new TypeError('Failed to fetch dynamically imported module'), preventDefault: vi.fn() });
-const flushMicrotasks = () => drainPromises();
+// The product imports the reporter on demand; awaiting the same import settles after its own. Twice, for a report that follows a report.
+const flushMicrotasks = async () => {
+  for (let i = 0; i < 2; i += 1) {
+    await drainPromises();
+    await import('#lib/telemetry/errorReport.ts');
+  }
+  await drainPromises();
+};
 
 describe('installChunkReload while the page is leaving', () => {
   // WebKit rejects module loads a navigation cancels with "Importing a module script failed.":

@@ -6,6 +6,7 @@ import 'fake-indexeddb/auto';
 import { IDBFactory } from 'fake-indexeddb';
 import { sendHandoff } from '#lib/handoff/sendHandoff.ts';
 import { peekHandoff } from '#lib/drafts/draftStore.ts';
+import { openNewerStore } from '#lib/drafts/newerStore.test-helper.ts';
 import { holdDraftStore } from '#lib/drafts/heldStore.test-helper.ts';
 import { drainPromises } from '../test/support/drainPromises.ts';
 import { waitUntil } from '../test/support/waitUntil.ts';
@@ -15,15 +16,6 @@ vi.mock('#lib/handoff/sendHandoff.ts', { spy: true });
 
 type Consumer = (params: { files: { getFile: () => Promise<File> }[] }) => void | Promise<void>;
 const launchHost = window as Window & { launchQueue?: { setConsumer: (fn: Consumer) => void } };
-
-const upgradeWorkspaceDb = () => new Promise<void>((resolve, reject) => {
-  const request = indexedDB.open('pdf-toolkit-workspace', 2);
-  request.onupgradeneeded = () => {
-    if (!request.result.objectStoreNames.contains('workspace')) request.result.createObjectStore('workspace', { keyPath: 'tool' });
-  };
-  request.onsuccess = () => { request.result.close(); resolve(); };
-  request.onerror = () => reject(request.error);
-});
 
 const flush = () => act(async () => { await drainPromises(); });
 // The real hand-off marks its page pending (sessionStorage) once it has parked the file: that is the signal.
@@ -123,11 +115,12 @@ describe('OpenWithChooser', () => {
 
   it('says so, and offers a retry, when the hand-off fails', async () => {
     // The database moves to version 2 behind the product's back, so the real store's open fails for real.
-    await upgradeWorkspaceDb();
+    await openNewerStore();
     await launch(pdf());
     await act(async () => { button('Sign').click(); });
-    // The real hand-off rejects because the store refused the file, then the line appears.
-    await waitUntil(() => expect(container!.querySelector('[role="alert"]')).toBeTruthy(), { timeout: 2000 });
+    await flush();
+    expect(sendHandoff).toHaveBeenCalledTimes(1);
+    await expect(vi.mocked(sendHandoff).mock.results[0].value).rejects.toThrow();
     await flush();
     expect(container!.querySelector('[role="alert"]')).toBeTruthy();
     expect(button('Sign').disabled).toBe(false);

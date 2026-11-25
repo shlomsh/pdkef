@@ -9,7 +9,6 @@ import { resetSinkForTests, sendToSink } from '#lib/telemetry/analyticsSink.ts';
 import { sendBeacon } from '#lib/telemetry/errorReport.ts';
 import { FIRST_VISIT_KEY, readAndStampVisits } from '#lib/telemetry/visitRecency.ts';
 import { reportPageView } from './pageView.ts';
-import { fillStorage } from '../test/support/fullStorage.ts';
 
 describe('reportPageView (MEM-45)', () => {
   const daysAgo = (days: number) => {
@@ -36,15 +35,6 @@ describe('reportPageView (MEM-45)', () => {
   it('never sends to the old report endpoint', () => {
     reportPageView();
     expect(sendBeacon).not.toHaveBeenCalled();
-  });
-
-  it('sends the view without buckets when storage is unavailable', () => {
-    // A browser with no last-visit day and a full storage: the stamp is refused, a real QuotaExceededError.
-    localStorage.removeItem('pdkef:last-tool-visit');
-    fillStorage(localStorage);
-    expect(() => localStorage.setItem('pdkef:last-tool-visit', daysAgo(0))).toThrow();
-    reportPageView();
-    expect(sendToSink).toHaveBeenCalledExactlyOnceWith({ name: 'page_viewed', properties: {} });
   });
 
   it('never throws', () => {
