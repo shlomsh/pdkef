@@ -6,7 +6,7 @@ import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { MergeFileError, inspectPdf, mergePdfs, mergedFileName, resolvePdfCreationDate } from './merge.js';
 import { redrawPng } from '#lib/images/pngRedraw.ts';
 
-// jsdom has no image decoder: the two DEBT-75 tests below force the browser's redraw. Elsewhere the real one is reached through.
+// Node has no image decoder: the first DEBT-75 test below forces the browser's redraw, the second reaches the real one, which fails here. Elsewhere the real one is reached through.
 vi.mock('#lib/images/pngRedraw.ts', { spy: true });
 
 // PdfMergeTool.test.tsx mocks merge.js outright, so nothing in the component
@@ -467,7 +467,8 @@ describe('mergePdfs library integration with real fixtures', () => {
 
     it('DEBT-75: a truncated PNG the browser can redraw still takes its page', async () => {
       const bytes = fs.readFileSync(path.resolve(__dirname, '../../../lib/__fixtures__/photo-2.png'));
-      vi.mocked(redrawPng).mockResolvedValue(new Uint8Array(bytes));
+      // Forced: the redraw needs the browser's image decoder (Image, blob: urls), which neither Node nor jsdom has.
+      vi.mocked(redrawPng).mockResolvedValueOnce(new Uint8Array(bytes));
       const cut = getPhotoFile('photo-truncated.png', 'image/png');
       const blob = await mergePdfs([getFixtureFile('num-2.pdf'), cut]);
       const { pageCount } = await getPdfPageTexts(blob);
@@ -475,7 +476,6 @@ describe('mergePdfs library integration with real fixtures', () => {
     });
 
     it('DEBT-75: a PNG neither pdf-lib nor the browser can read points at its file', async () => {
-      vi.mocked(redrawPng).mockImplementation(async () => { throw new Error('The source image could not be decoded.'); });
       const cut = getPhotoFile('photo-truncated.png', 'image/png');
       await expect(mergePdfs([getFixtureFile('num-2.pdf'), cut])).rejects.toMatchObject({ name: 'MergeFileError', fileIndex: 1, reason: 'unreadable' });
     });

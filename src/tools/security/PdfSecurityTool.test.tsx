@@ -10,6 +10,13 @@ import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
 vi.mock('#lib/pdf/pdfEncryption.ts', { spy: true });
 vi.mock('./lib/security.js', { spy: true });
 
+// A real file whose encryption reads as {kind} but whose "%PDF" header is broken, so opening it for real fails.
+const withBrokenHeader = (kind: 'needs-password' | 'owner-restricted') => {
+  const bytes = BYTES[kind].slice();
+  bytes[1] = 0x58;
+  return new File([bytes], 'test.pdf', { type: 'application/pdf' });
+};
+
 describe('PdfSecurityTool', () => {
   const s = useSecurityTool();
 
@@ -125,10 +132,8 @@ describe('PdfSecurityTool', () => {
   });
 
   it('says a damaged file could not be unlocked, not that the password is wrong', async () => {
-    // forced: the check calls the file locked while its bytes are damaged, which no real file answers
-    vi.mocked(probeEncryption).mockResolvedValueOnce('needs-password');
     s.mount();
-    await s.load(realFile('unreadable'));
+    await s.load(withBrokenHeader('needs-password'));
     await s.submitPassword('whatever');
     await waitUntil(() => expect(s.text()).toContain('This file could not be unlocked. It may be damaged.'));
     expect(s.text()).not.toContain('The password may be incorrect.');
@@ -164,13 +169,12 @@ describe('PdfSecurityTool', () => {
   });
 
   it('reports what made a file unreadable, not the wrapper that says so', async () => {
-    // forced: the check calls the file locked while its bytes are damaged, which no real file answers
-    vi.mocked(probeEncryption).mockResolvedValueOnce('needs-password');
     const prepare = Error.prepareStackTrace;
+    // Forced: the reported stack is read through the engine's own prepareStackTrace, the one hook for the stack's text.
     Error.prepareStackTrace = (error) => `${error.name}: ${error.message}\n    at run (https://pdkef.com/_astro/${error.constructor.name}.js:1:1)`;
     try {
       s.mount();
-      await s.load(realFile('unreadable'));
+      await s.load(withBrokenHeader('needs-password'));
       await s.submitPassword('whatever');
       expect(s.text()).toContain('This file could not be unlocked. It may be damaged.');
       expect(s.harness.reports()).toMatchObject([{ area: 'pdf_tool_run', step: 'unlock', name: 'MissingPDFHeaderError', stack: ['MissingPDFHeaderError.js:1:1'] }]);

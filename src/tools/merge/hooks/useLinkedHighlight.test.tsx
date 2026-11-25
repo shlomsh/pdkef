@@ -32,16 +32,12 @@ const fire = (id: string, type: string, { pointerType = 'mouse', ...init }: Mous
 });
 const focusIn = (id: string) => act(() => { q(id).dispatchEvent(new FocusEvent('focusin', { bubbles: true })); });
 
-// Keyboard focus matches :focus-visible; jsdom cannot decide it, so stub it.
-function stubFocusVisible(visible: boolean) {
-  const original = Element.prototype.matches;
-  vi.spyOn(Element.prototype, 'matches').mockImplementation(function (this: Element, selector: string) {
-    return selector === ':focus-visible' ? visible : original.call(this, selector);
-  });
-}
+// jsdom answers :focus-visible for real: true once an element holds focus, false for an element that does not.
+const focusVisibly = (id: string) => act(() => { q(id).focus(); });
 const linked = () => [...document.querySelectorAll('[data-linked]')].map((el) => el.id).sort();
 const root = () => host.firstElementChild as HTMLElement;
 
+// Forced: jsdom has no matchMedia (setup.js installs one that always matches); each test needs its own answers.
 function mockMedia(matches: string[]) {
   // Cast 1 of 1: only matches and media are read, a full MediaQueryList has no smaller type.
   window.matchMedia = vi.fn((query: string) => ({ matches: matches.includes(query), media: query }) as unknown as MediaQueryList);
@@ -112,8 +108,7 @@ describe('useLinkedHighlight', () => {
 
   it('focus links and blur clears, even where hover is unavailable', () => {
     mockMedia(['(hover: none)']);
-    stubFocusVisible(true);
-    focusIn('row-btn');
+    focusVisibly('row-btn');
     expect(root().dataset.linking).toBe('row');
     act(() => { q('row-btn').dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: q('outside') })); });
     expect(linked()).toEqual([]);
@@ -136,8 +131,7 @@ describe('useLinkedHighlight', () => {
   });
 
   it('keeps the focus highlight when the pointer leaves another source', () => {
-    stubFocusVisible(true);
-    act(() => { q('row-btn').focus(); });
+    focusVisibly('row-btn');
     fire('row-b', 'pointerover');
     expect(linked()).toEqual(['page-b1', 'row-b']);
     fire('row-b', 'pointerout', { relatedTarget: q('outside') });
@@ -145,7 +139,7 @@ describe('useLinkedHighlight', () => {
   });
 
   it('ignores a focus that is not focus-visible (a tap)', () => {
-    stubFocusVisible(false);
+    expect(q('row-btn').matches(':focus-visible')).toBe(false);
     focusIn('row-btn');
     expect(linked()).toEqual([]);
   });
@@ -159,8 +153,8 @@ describe('useLinkedHighlight', () => {
   });
 
   it('clears on a non-source focusin after the focused row is removed', () => {
-    stubFocusVisible(true);
-    focusIn('row-btn');
+    focusVisibly('row-btn');
+    expect(root().dataset.linking).toBe('row');
     act(() => { q('row-a').remove(); });
     focusIn('outside');
     expect(root().dataset.linking).toBeUndefined();

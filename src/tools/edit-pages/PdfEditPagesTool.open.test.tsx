@@ -70,13 +70,10 @@ describe('PdfEditPagesTool opening a file', () => {
   describe('replacing the file', () => {
     it('does not throw from Sortable.destroy on a detached grid', async () => {
       const errors: unknown[] = [];
-      const prevCatch = preactOptions.__e;
-      preactOptions.__e = (err, ...rest) => {
-        errors.push(err);
-        return prevCatch(err, ...rest);
-      };
+      // Preact hands every error from a render or an effect to this hook; the spy lets the real one run.
+      const caught = vi.spyOn(preactOptions, '__e');
       const realDestroy = Sortable.prototype.destroy;
-      // forced: destroy throws on a detached grid, as it did in production
+      // forced: destroy throws on a detached grid in a browser, as it did in production; jsdom's real one does not
       vi.spyOn(Sortable.prototype, 'destroy').mockImplementation(function (this: Sortable) {
         if (!this.el.isConnected) throw new TypeError("Cannot set properties of null (setting 'sortable')");
         return realDestroy.call(this);
@@ -89,7 +86,8 @@ describe('PdfEditPagesTool opening a file', () => {
         await s.replaceWith(pdf('b.pdf'));
       } finally {
         window.removeEventListener('error', onError);
-        preactOptions.__e = prevCatch;
+        errors.push(...caught.mock.calls.map(([err]) => err));
+        caught.mockRestore();
       }
 
       expect(errors).toEqual([]);

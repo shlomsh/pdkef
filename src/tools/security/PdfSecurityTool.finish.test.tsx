@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { saveHandoff } from '#lib/drafts/draftStore.ts';
+import { openNewerStore } from '#lib/drafts/newerStore.test-helper.ts';
 import { probeEncryption } from '#lib/pdf/pdfEncryption.ts';
 import { formatFileSize } from '#lib/text/format.js';
 import { recentActions, resetActionTrailForTests } from '#lib/telemetry/actionTrail.ts';
@@ -62,6 +63,7 @@ describe('PdfSecurityTool finish', () => {
   describe('Share through the shared download flow', () => {
     const shareDone = async (shareRejection?: Error) => {
       const nativeShare = nativeFileShare();
+      // Forced: jsdom has no navigator.share, so the share sheet's own refusal cannot happen for real.
       if (shareRejection) nativeShare.share.mockRejectedValueOnce(shareRejection);
       s.mount();
       await s.load(realFile('needs-password'));
@@ -297,9 +299,9 @@ describe('PdfSecurityTool finish', () => {
 
     it('shows a quiet line and re-enables the buttons when the save fails', async () => {
       const navigate = vi.fn();
+      // A store already at a newer version: the product's own open fails with a real VersionError, so the save answers false.
+      await openNewerStore();
       await unlockedDone({ navigate });
-      // forced: storage refuses the write, as a locked-down browser without IndexedDB does
-      vi.mocked(saveHandoff).mockResolvedValueOnce(false);
       await s.click(s.buttonByText('Sign'));
       await waitUntil(() => expect(s.text()).toContain(SAVE_FAILED));
       expect(navigate).not.toHaveBeenCalled();

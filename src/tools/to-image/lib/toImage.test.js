@@ -1,61 +1,11 @@
 import fs from 'fs';
 import path from 'path';
-import { describe, expect, it, vi, beforeAll, afterAll } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { PDFDocument, degrees } from '@cantoo/pdf-lib';
-import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
-import { pointAtLegacyWorker } from '../../../test/support/realPdfjs.ts';
+import '../../../test/support/realPdfjs.ts';
 import { convertPdfToImages } from './toImage.js';
 
-const PNG_1X1_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
-
-vi.mock('pdfjs-dist', async () => {
-  return await import('pdfjs-dist/legacy/build/pdf.mjs');
-});
-
 describe('convertPdfToImages library integration with real fixtures', () => {
-  let originalToBlob;
-  let originalGetContext;
-
-  beforeAll(() => {
-    // Resolve absolute path to the node_modules legacy worker file with file:// protocol
-
-    pointAtLegacyWorker(pdfjs);
-
-    // Stub canvas methods
-    originalToBlob = HTMLCanvasElement.prototype.toBlob;
-    originalGetContext = HTMLCanvasElement.prototype.getContext;
-
-    HTMLCanvasElement.prototype.toBlob = function toBlob(callback, type) {
-      const bytes = Uint8Array.from(atob(PNG_1X1_BASE64), (c) => c.charCodeAt(0));
-      callback(new Blob([bytes], { type: type || 'image/png' }));
-    };
-
-    HTMLCanvasElement.prototype.getContext = function getContext() {
-      const canvasEl = this;
-      const baseContext = {
-        canvas: canvasEl,
-        fillStyle: '',
-        strokeStyle: '',
-      };
-      return new Proxy(baseContext, {
-        get(target, prop) {
-          if (prop in target) {
-            return target[prop];
-          }
-          if (prop === 'getTransform') {
-            return () => ({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 });
-          }
-          return vi.fn();
-        },
-      });
-    };
-  });
-
-  afterAll(() => {
-    HTMLCanvasElement.prototype.toBlob = originalToBlob;
-    HTMLCanvasElement.prototype.getContext = originalGetContext;
-  });
-
   function getFixtureFile(name) {
     const filePath = path.resolve(__dirname, '../../../lib/__fixtures__', name);
     const buffer = fs.readFileSync(filePath);
@@ -112,24 +62,27 @@ describe('convertPdfToImages library integration with real fixtures', () => {
 
   it('encodes each page right after rendering it and drops its canvas before the next', async () => {
     const file = getFixtureFile('num-5.pdf');
-    const seen = [];
-    const widthsOfEarlier = [];
-    const original = HTMLCanvasElement.prototype.toBlob;
-    HTMLCanvasElement.prototype.toBlob = function toBlob(callback, type) {
-      widthsOfEarlier.push(seen.map((c) => c.width));
-      seen.push(this);
-      return original.call(this, callback, type);
-    };
+    const encode = vi.spyOn(HTMLCanvasElement.prototype, 'toBlob');
+    const setWidth = vi.spyOn(HTMLCanvasElement.prototype, 'width', 'set');
     try {
       const images = await convertPdfToImages(file, { format: 'image/png', layout: 'separate' });
       expect(images.map((image) => image.pageNumber)).toEqual([1, 2, 3, 4, 5]);
+      const seen = encode.mock.contexts;
+      expect(seen.length).toBe(5);
+      expect(new Set(seen).size).toBe(5);
+      // Before each canvas is encoded, every earlier one has already been shrunk to nothing.
+      encode.mock.invocationCallOrder.forEach((encodedAt, index) => {
+        seen.slice(0, index).forEach((earlier) => {
+          const shrunkAt = setWidth.mock.calls.flatMap((call, at) => (setWidth.mock.contexts[at] === earlier && call[0] === 0 ? [setWidth.mock.invocationCallOrder[at]] : []));
+          expect(shrunkAt.length).toBeGreaterThan(0);
+          expect(Math.min(...shrunkAt)).toBeLessThan(encodedAt);
+        });
+      });
+      expect(seen[0].width).toBe(0);
     } finally {
-      HTMLCanvasElement.prototype.toBlob = original;
+      encode.mockRestore();
+      setWidth.mockRestore();
     }
-    expect(seen.length).toBe(5);
-    expect(new Set(seen).size).toBe(5);
-    widthsOfEarlier.forEach((widths) => expect(widths.every((w) => w === 0)).toBe(true));
-    expect(seen[0].width).toBe(0);
   });
 
   it('stops between pages with an AbortError when its signal fires', async () => {
@@ -154,20 +107,13 @@ describe('convertPdfToImages library integration with real fixtures', () => {
       return new File([await doc.save()], 'turned.pdf', { type: 'application/pdf' });
     }
 
-    // The size of each canvas at the moment it is encoded.
+    // The size of each image made, read from its PNG header.
     async function sizesOf(file, options) {
-      const sizes = [];
-      const original = HTMLCanvasElement.prototype.toBlob;
-      HTMLCanvasElement.prototype.toBlob = function toBlob(callback, type) {
-        sizes.push([this.width, this.height]);
-        return original.call(this, callback, type);
-      };
-      try {
-        await convertPdfToImages(file, { scale: 1, ...options });
-      } finally {
-        HTMLCanvasElement.prototype.toBlob = original;
-      }
-      return sizes;
+      const images = await convertPdfToImages(file, { scale: 1, format: 'image/png', ...options });
+      return Promise.all(images.map(async ({ blob }) => {
+        const header = new DataView(await blob.arrayBuffer());
+        return [header.getUint32(16), header.getUint32(20)];
+      }));
     }
 
     it('leaves a page as it is without a rotation', async () => {

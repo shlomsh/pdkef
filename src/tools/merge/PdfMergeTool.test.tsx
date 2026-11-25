@@ -14,6 +14,7 @@ import { HeldFile } from '../../test/support/heldFile.ts';
 import { pagesPdf } from '../../test/support/mergeFixtures.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { waitUntil } from '../../test/support/waitUntil.ts';
+import { openNewerStore } from '#lib/drafts/newerStore.test-helper.ts';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
 
 describe('PdfMergeTool island', () => {
@@ -437,9 +438,9 @@ describe('the island from the first file to the download', () => {
   });
 
   it('says "Draft not saved" with no retention hint when the draft cannot be written (M53)', async () => {
+    // A store already at a newer version: the product's own open fails with a real VersionError, so the draft write answers false.
+    await openNewerStore();
     start();
-    // forced: a browser without IndexedDB, where the draft write answers false
-    vi.stubGlobal('indexedDB', undefined);
     await add([await twoPages('a.pdf'), await twoPages('b.pdf')]);
     await advance(DEFAULT_QUIET.maxMs);
     await waitUntil(() => q('[data-testid="draft-status-row"]') !== null, { dueFakeTimers: true });

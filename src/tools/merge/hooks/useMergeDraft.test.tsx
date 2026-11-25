@@ -2,9 +2,9 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { useState } from 'preact/hooks';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import { webcrypto } from 'node:crypto';
 import { drainPromises } from '../../../test/support/drainPromises.ts';
 import { waitUntil } from '../../../test/support/waitUntil.ts';
+import { HeldFile } from '../../../test/support/heldFile.ts';
 // fake-indexeddb, not a mock of draftStore.js: MERGE-13's own draftStore.test.js
 // already covers the multi-file record shape against a real (in-memory)
 // IndexedDB, and this file leans on that same backing so the restore and
@@ -169,7 +169,6 @@ describe('useMergeDraft', () => {
     localStorage.clear();
     sessionStorage.clear();
     document.documentElement.removeAttribute('data-draft-hint');
-    vi.stubGlobal('crypto', webcrypto);
     // A fresh backing store per test - draftStore.ts's database has no
     // upgrade path by design, so a record left behind by an earlier test
     // would otherwise leak into the next one's "fresh database" assumptions.
@@ -463,6 +462,7 @@ describe('useMergeDraft', () => {
     // A fake byteLength, not a real 200MB allocation: saveMultiFileDraft sums
     // fileBytes.byteLength before it ever hashes the bytes, exactly like
     // draftStore.test.js's own "over MERGE_DRAFT_MAX_BYTES" case.
+    // Forced: a real 200MB+1 file builds in ~85ms but holds ~800MB of memory (three copies), too heavy.
     vi.spyOn(entry.file, 'arrayBuffer').mockResolvedValue(fakeBuffer(MERGE_DRAFT_MAX_BYTES + 1));
     const apiRef: Ref<UseMergeDraftResult> = { current: null };
     await mount(apiRef, baseOptions({ entries: [entry], plan: planForFile(1, 1), autosaveDebounceMs: 40 }));
@@ -475,6 +475,7 @@ describe('useMergeDraft', () => {
 
   it('holds an update only while a save has failed, and releases once a later save succeeds (MEM-10)', async () => {
     const huge = baseEntry(1, 'huge.pdf', 1);
+    // Forced: a real 200MB+1 file holds ~800MB of memory, too heavy.
     vi.spyOn(huge.file, 'arrayBuffer').mockResolvedValue(fakeBuffer(MERGE_DRAFT_MAX_BYTES + 1));
     const apiRef: Ref<UseMergeDraftResult> = { current: null };
     await mount(apiRef, baseOptions({ entries: [huge], plan: planForFile(1, 1), autosaveDebounceMs: 40 }));
@@ -500,16 +501,12 @@ describe('useMergeDraft', () => {
   });
 
   it('keeps a new revision "pending" while an older write is still resolving, and the stale completion cannot regress it', async () => {
-    let resolveStaleRead: (bytes: ArrayBuffer) => void = () => { throw new Error('arrayBuffer was never read'); };
-    const staleReading = Promise.withResolvers<void>();
-    const entryA = baseEntry(1, 'a.pdf', 1);
-    vi.spyOn(entryA.file, 'arrayBuffer').mockImplementation(
-      () => new Promise<ArrayBuffer>((resolve) => { resolveStaleRead = resolve; staleReading.resolve(); }),
-    );
+    const staleFile = new HeldFile(new TextEncoder().encode('A'), 'a.pdf');
+    const entryA = baseEntry(1, 'a.pdf', 1, { file: staleFile });
     const apiRef: Ref<UseMergeDraftResult> = { current: null };
 
     await mount(apiRef, baseOptions({ entries: [entryA], plan: planForFile(1, 1), autosaveDebounceMs: 40 }));
-    await act(async () => { await vi.advanceTimersByTimeAsync(40 + 1); await staleReading.promise; });
+    await act(async () => { await vi.advanceTimersByTimeAsync(40 + 1); await staleFile.started; });
     // entryA's buildRecord is now stuck awaiting arrayBuffer(); nothing has
     // reached saveDraft yet for this revision.
     expect(api(apiRef).draftSaveState).toBe('pending');
@@ -529,7 +526,7 @@ describe('useMergeDraft', () => {
     // The stale write now finishes. Its completion is for a revision that is
     // no longer current, so it must not be allowed to change the state.
     await act(async () => {
-      resolveStaleRead(new TextEncoder().encode('A').buffer);
+      staleFile.release();
       await drainPromises();
     });
     // The stale write still lands in the store (IndexedDB writes cannot be cancelled): a stored 'a.pdf' means
@@ -666,13 +663,8 @@ describe('useMergeDraft', () => {
   });
   // MEM-10: an update reload must verify the pending save is written first.
   it('flushBeforeUpdateReload writes the pending edit before the debounce and waits for the write', async () => {
-    const entry = baseEntry(1, 'a.pdf', 1);
-    let releaseRead: () => void = () => { throw new Error('arrayBuffer was never read'); };
-    const reading = Promise.withResolvers<void>();
-    const realRead = entry.file.arrayBuffer.bind(entry.file);
-    vi.spyOn(entry.file, 'arrayBuffer').mockImplementation(
-      () => new Promise<ArrayBuffer>((resolve) => { releaseRead = () => resolve(realRead()); reading.resolve(); }),
-    );
+    const held = new HeldFile(new TextEncoder().encode('%PDF-1.4 a.pdf'), 'a.pdf');
+    const entry = baseEntry(1, 'a.pdf', 1, { file: held });
     const apiRef: Ref<UseMergeDraftResult> = { current: null };
     // A debounce far longer than the test: only the reload flush can write.
     await mount(apiRef, baseOptions({
@@ -682,10 +674,10 @@ describe('useMergeDraft', () => {
 
     let done = false;
     const reload = flushBeforeUpdateReload().then(() => { done = true; });
-    await act(async () => { await reading.promise; await drainPromises(); });
+    await act(async () => { await held.started; await drainPromises(); });
     expect(done).toBe(false);
 
-    await act(async () => { releaseRead(); await reload; });
+    await act(async () => { held.release(); await reload; });
     expect(done).toBe(true);
     expect((await storedDraft()).fileName).toBe('latest-title');
   });

@@ -32,7 +32,8 @@ describe('PdfEditPagesTool finish', () => {
   };
 
   it('a failed build points to Unlock, where a protected PDF can be opened', async () => {
-    // forced: the probe answers open for this owner-only file, so the build itself meets its protection
+    // Forced: the probe answers open for this owner-only file, so the build itself meets its protection (no real file reads
+    // as unencrypted to pdf.js yet encrypted to pdf-lib; a broken header or a dangling /Encrypt did not give one).
     vi.mocked(probeEncryption).mockResolvedValueOnce('open');
     await s.load(encryptedFixture('owner-only'));
     await s.click(s.skipButton(2));

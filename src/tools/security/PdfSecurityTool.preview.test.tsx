@@ -1,12 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { probeEncryption } from '#lib/pdf/pdfEncryption.ts';
 import { renderComparePreview } from '#lib/pdf/thumbnails.js';
 import { unlockPdf } from './lib/security.js';
-import { realFile, useSecurityTool, waitUntil } from './components/securityTool.test-helper.tsx';
+import { BYTES, realFile, useSecurityTool, waitUntil } from './components/securityTool.test-helper.tsx';
 
-vi.mock('#lib/pdf/pdfEncryption.ts', { spy: true });
 vi.mock('#lib/pdf/thumbnails.js', { spy: true });
 vi.mock('./lib/security.js', { spy: true });
+
+// A real owner-only file the check opens, but pdf-lib refuses (its "%PDF" header is broken) and whose page count
+// is zeroed, so the preview cannot render it either.
+const damagedOwnerOnly = () => {
+  const bytes = BYTES['owner-restricted'].slice();
+  bytes[1] = 0x58;
+  const at = new TextDecoder('latin1').decode(bytes).indexOf('/Count 3');
+  bytes[at + '/Count '.length] = '0'.charCodeAt(0);
+  return new File([bytes], 'test.pdf', { type: 'application/pdf' });
+};
 
 describe('PdfSecurityTool page preview', () => {
   const s = useSecurityTool();
@@ -28,9 +36,7 @@ describe('PdfSecurityTool page preview', () => {
   });
 
   it('adds no second report for the preview when the run already failed for the same file', async () => {
-    // forced: the check calls the file protected only by its owner while its bytes are damaged, which no real file answers
-    vi.mocked(probeEncryption).mockResolvedValueOnce('owner-restricted');
-    const file = realFile('unreadable');
+    const file = damagedOwnerOnly();
     const read = file.arrayBuffer.bind(file);
     const previewRead = Promise.withResolvers<void>();
     const previewGate = Promise.withResolvers<void>();

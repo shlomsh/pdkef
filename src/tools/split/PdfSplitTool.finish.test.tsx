@@ -115,7 +115,8 @@ describe('PdfSplitTool finish', () => {
   });
 
   it('a build that fails says so on the Download element and counts as a failed operation', async () => {
-    // forced: the probe answers open for this owner-only file, so the split itself meets its protection.
+    // Forced: the probe answers open for this owner-only file, so the split itself meets its protection (no real file reads
+    // as unencrypted to pdf.js yet encrypted to pdf-lib; a broken header or a dangling /Encrypt did not give one).
     vi.mocked(probeEncryption).mockResolvedValueOnce('open');
     s.mount();
     await s.pick(fixtureFile('owner-restricted', 'locked.pdf'));
