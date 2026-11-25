@@ -2,16 +2,16 @@ import 'fake-indexeddb/auto';
 import { IDBFactory } from 'fake-indexeddb';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // The draft store runs for real on fake-indexeddb, with the real hand-off settle, arrival note and recents behind
 // it. The spy lets a test see which calls happened; a record the store would never hand back, and a recents write
-// held open, are forced on it. Forced: the preview would be drawn by real pdf.js from the test's fake '%PDF-1.4' bytes.
+// held open, are forced on it. The recent-file preview is drawn by the shipped pdf.js, on real PDFs.
 vi.mock('#lib/drafts/draftStore.ts', { spy: true });
-vi.mock('#lib/pdf/thumbnails.js', { spy: true });
 
 import { cacheRecentFile, commitHandoff, deleteDraft, loadDraft, peekHandoff, readRecentFiles, saveDraft, saveHandoff } from '#lib/drafts/draftStore.ts';
-import { renderDraftPreview } from '#lib/pdf/thumbnails.js';
+import '../../test/support/realPdfjs.ts';
+import { buildPdf } from '../../test/support/redactCheckPdfs.test-helper.ts';
 import { takeArrival, noteRecentOpen, resetFileArrivalForTests } from '#lib/handoff/fileArrival.ts';
 import { drainPromises } from '../../test/support/drainPromises.ts';
 import { waitUntil } from '../../test/support/waitUntil.ts';
@@ -48,8 +48,13 @@ function loaderRecorder(onCall: () => void = () => {}) {
 const hintSettled = () => waitUntil(() => !document.documentElement.hasAttribute('data-draft-hint'));
 const markHint = () => document.documentElement.setAttribute('data-draft-hint', '1');
 
-const bytesOf = (buffer: ArrayBuffer) => new TextDecoder().decode(buffer);
-const pdfBytes = (text = '%PDF-1.4') => new TextEncoder().encode(text).buffer as ArrayBuffer;
+const bufferOf = (bytes: Uint8Array) => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+// Real PDFs (pdf-lib), told apart by their text.
+const pdfs: Record<string, ArrayBuffer> = {};
+beforeAll(async () => {
+  for (const text of ['plain', 'mixed']) pdfs[text] = bufferOf(await buildPdf([{ lines: [text] }]));
+});
+const pdfBytes = (text = 'plain') => pdfs[text];
 
 // What an earlier session left behind: one draft the real store holds for the tool.
 async function seedDraft(tool: string, record: Record<string, unknown>) {
@@ -67,8 +72,6 @@ beforeEach(() => {
   vi.mocked(peekHandoff).mockReset();
   vi.mocked(cacheRecentFile).mockReset();
   vi.mocked(commitHandoff).mockClear();
-  // Forced: the test files are fake '%PDF-1.4' bytes that real pdf.js cannot draw
-  vi.mocked(renderDraftPreview).mockReset().mockResolvedValue(null as never);
 });
 
 function baseProps(overrides: any = {}) {
@@ -113,7 +116,7 @@ describe('useEditorDraftPersistence - restore migrates and validates', () => {
   it('calls loadPdf once with only the valid elements from a mixed record', async () => {
     const goodElement = { id: 'text-1', type: 'text', pageIndex: 0, left: 10, top: 20, text: 'Hello' };
     const garbageElement = { id: 'bad-1', type: 'not-a-real-type', pageIndex: 0 };
-    await seedDraft('redact', { elements: [goodElement, garbageElement], fileBytes: pdfBytes('%PDF-1.4 mixed') });
+    await seedDraft('redact', { elements: [goodElement, garbageElement], fileBytes: pdfBytes('mixed') });
 
     const props = baseProps();
     mount(props);
@@ -122,7 +125,7 @@ describe('useEditorDraftPersistence - restore migrates and validates', () => {
 
     expect(props.loadPdf.calls).toHaveLength(1);
     const [, calledBytes, initialState, restored] = props.loadPdf.calls[0];
-    expect(bytesOf(calledBytes)).toBe('%PDF-1.4 mixed');
+    expect(new Uint8Array(calledBytes)).toEqual(new Uint8Array(pdfBytes('mixed')));
     expect(initialState.elements).toEqual([goodElement]);
     expect(restored).toBe(true);
   });

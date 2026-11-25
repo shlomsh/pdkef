@@ -4,27 +4,21 @@ import { readFileSync } from 'node:fs';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
-import { pointAtLegacyWorker } from '../../test/support/realPdfjs.ts';
+import '../../test/support/realPdfjs.ts';
 import { useEditorFileSession, type EditorFileSessionOptions } from './useEditorFileSession.ts';
 import { loadPdf as loadEditorPdf } from '#editor/workspace/loadPdf.ts';
 import { useEditorDraftPersistence } from '#editor/workspace/useEditorDraftPersistence.ts';
 import { cacheRecentFile } from '#lib/drafts/draftStore.ts';
-import { getPdfjs } from '#lib/pdf/loadPdfjs.js';
 import { uniqueId } from '#editor/model/ids.ts';
-import { buildPdf, legacyPdfjs } from '../../test/support/redactCheckPdfs.test-helper.ts';
+import { buildPdf } from '../../test/support/redactCheckPdfs.test-helper.ts';
 
-// Spy-through: the real loader, draft persistence and recents store run (on fake-indexeddb, real pdf.js);
+// Spy-through: the real loader, draft persistence and recents store run (on fake-indexeddb, the shipped pdf.js);
 // the spies show what they were handed.
 vi.mock('#editor/workspace/loadPdf.ts', { spy: true });
 vi.mock('#editor/workspace/useEditorDraftPersistence.ts', { spy: true });
 vi.mock('#lib/drafts/draftStore.ts', { spy: true });
-// The shipped pdf.js loader points at a browser Worker, which node does not have. Forced: the same pdf.js,
-// its legacy (node) build.
-vi.mock('#lib/pdf/loadPdfjs.js', { spy: true });
 
 declare const process: { cwd(): string };
-pointAtLegacyWorker(pdfjs);
 
 const mockedLoad = vi.mocked(loadEditorPdf);
 const mockedDraft = vi.mocked(useEditorDraftPersistence);
@@ -44,7 +38,6 @@ beforeEach(() => {
   indexedDB = new IDBFactory();
   localStorage.clear();
   vi.clearAllMocks();
-  vi.mocked(getPdfjs).mockResolvedValue(legacyPdfjs()); // forced: the node build
 });
 
 /** jsdom's File has no arrayBuffer(); this reads the file's real bytes the way the browser's does. */

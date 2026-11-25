@@ -3,17 +3,18 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import { loadPdf } from './loadPdf.ts';
 import { getPdfjs } from '#lib/pdf/loadPdfjs.js';
 import { reportError } from '#lib/telemetry/errorReport.ts';
-import { buildPdf, legacyPdfjs, openedTasks } from '../../test/support/redactCheckPdfs.test-helper.ts';
-import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
-import { pointAtLegacyWorker } from '../../test/support/realPdfjs.ts';
+import { buildPdf } from '../../test/support/redactCheckPdfs.test-helper.ts';
+import { getDocument, type PDFDocumentLoadingTask } from 'pdfjs-dist';
+import '../../test/support/realPdfjs.ts';
 import { drainPromises } from '../../test/support/drainPromises.ts';
 
-// The shipped pdf.js loader points at a browser Worker, which node does not have. Forced: the same pdf.js, its
-// legacy (node) build, so every load below parses a real file with the real loading task and document.
+// The shipped pdf.js runs for real; the spies only read which loading tasks it opened.
 vi.mock('#lib/pdf/loadPdfjs.js', { spy: true });
 vi.mock('#lib/telemetry/errorReport.ts', { spy: true });
+vi.mock('pdfjs-dist', { spy: true });
 
-pointAtLegacyWorker(pdfjs);
+/** The loading task of every getDocument call so far, in order. */
+const openedTasks = (): PDFDocumentLoadingTask[] => vi.mocked(getDocument).mock.results.map((r) => r.value as PDFDocumentLoadingTask);
 
 // Real PDFs: built with pdf-lib, and the repo's encrypted fixtures.
 const fixture = (name: string) => new Uint8Array(readFileSync(`${process.cwd()}/src/lib/__fixtures__/encrypted/${name}.pdf`));
@@ -21,14 +22,13 @@ const toBuffer = (bytes: Uint8Array) => bytes.buffer.slice(bytes.byteOffset, byt
 const page = (lines: string[]) => ({ lines });
 
 beforeEach(() => {
-  openedTasks.length = 0;
-  // Forced: the node build of pdf.js, the shipped loader needs a browser Worker
-  vi.mocked(getPdfjs).mockReset().mockImplementation(async () => legacyPdfjs() as never);
+  vi.mocked(getPdfjs).mockClear();
+  vi.mocked(getDocument).mockClear();
 });
 
 afterEach(() => {
   // Whatever a test left open is released, so no loading task outlives it.
-  for (const task of openedTasks) void task.destroy();
+  for (const task of openedTasks()) void task.destroy();
 });
 
 let plainBytes: Uint8Array;
@@ -57,8 +57,8 @@ describe('loadPdf lifecycle', () => {
     // loadPdf awaits this same promise before it opens its task, so by the time this resumes the first task exists
     // and no pdf.js work (a macrotask) has run: the replacement lands while the first is still loading.
     await vi.mocked(getPdfjs).mock.results[0].value;
-    expect(openedTasks).toHaveLength(1);
-    const firstTask = openedTasks[0];
+    expect(openedTasks()).toHaveLength(1);
+    const firstTask = openedTasks()[0];
     const destroyFirst = vi.spyOn(firstTask, 'destroy');
     const second = loadPdf({ ...shared, bytes: toBuffer(plainBytes), file: new File(['%PDF-1.4'], 'replacement.pdf', { type: 'application/pdf' }) });
     await second;
@@ -67,7 +67,7 @@ describe('loadPdf lifecycle', () => {
     expect(firstTask.destroyed).toBe(true);
     expect(shared.onDocument).toHaveBeenCalledTimes(1);
     const [secondDocument, isCurrent] = shared.onDocument.mock.calls[0];
-    expect(secondDocument).toBe(await openedTasks[1].promise);
+    expect(secondDocument).toBe(await openedTasks()[1].promise);
     expect(secondDocument.numPages).toBe(1);
     expect(isCurrent).toEqual(expect.any(Function));
     expect(shared.setStatus).toHaveBeenLastCalledWith('editing');
@@ -83,13 +83,14 @@ describe('loadPdf lifecycle', () => {
     const gate = Promise.withResolvers<void>();
     let parsed: Promise<unknown> | undefined;
     // A real loading task whose parsed document is handed over only once `gate` opens, as a load that settles late does.
-    const holdOpen = (task: ReturnType<typeof pdfjs.getDocument>) => {
+    const holdOpen = (task: PDFDocumentLoadingTask) => {
       parsed = task.promise;
       Object.defineProperty(task, 'promise', { value: task.promise.then((doc) => gate.promise.then(() => doc)) });
       return task;
     };
-    // Forced: the first load's document arrives late (a held real task)
-    vi.mocked(getPdfjs).mockImplementationOnce(async () => ({ ...legacyPdfjs(), getDocument: (p: never) => holdOpen(legacyPdfjs().getDocument(p)) }) as never); // forced: the first load's document arrives late
+    const { getDocument: realGetDocument } = await vi.importActual<typeof import('pdfjs-dist')>('pdfjs-dist');
+    // Forced: the first load's document arrives late (a held real task); pdf.js has no way to be slow on demand
+    vi.mocked(getDocument).mockImplementationOnce((params) => holdOpen(realGetDocument(params as never)));
     const shared = options({ bytes: toBuffer(await buildPdf([page(['first']), page(['second'])])) });
     const first = loadPdf(shared);
     await vi.waitUntil(() => parsed !== undefined);
@@ -106,8 +107,8 @@ describe('loadPdf lifecycle', () => {
 
     expect(shared.onDocument).toHaveBeenCalledTimes(1);
     expect(shared.onDocument.mock.calls[0][0]).toBe(secondDocument);
-    expect(openedTasks[0].destroyed).toBe(true);
-    expect(openedTasks[1].destroyed).toBe(false);
+    expect(openedTasks()[0].destroyed).toBe(true);
+    expect(openedTasks()[1].destroyed).toBe(false);
     expect(shared.setStatus).toHaveBeenLastCalledWith('editing');
   });
 
@@ -117,7 +118,7 @@ describe('loadPdf lifecycle', () => {
     await loadPdf(config);
     const [document] = config.onDocument.mock.calls[0];
     // pdf.js's document has no destroy of its own: it is released through the loading task it belongs to.
-    expect(document.loadingTask).toBe(openedTasks[0]);
+    expect(document.loadingTask).toBe(openedTasks()[0]);
     expect(document.loadingTask.destroyed).toBe(false);
     config.loadControllerRef.current?.cancel();
 
@@ -125,7 +126,7 @@ describe('loadPdf lifecycle', () => {
   });
 
   it('a 20s timeout fails the load, destroys the loading task and reports nothing', async () => {
-    vi.useFakeTimers();
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] }); // pdf.js hangs under full fake timers
     try {
       vi.mocked(reportError).mockClear();
       const config = options();
@@ -134,14 +135,14 @@ describe('loadPdf lifecycle', () => {
       // The task exists now but pdf.js's own work (a macrotask) has not had a turn, so the real task is still
       // loading when the clock passes 20s; the synchronous advance gives it none.
       await vi.mocked(getPdfjs).mock.results[0].value;
-      expect(openedTasks).toHaveLength(1);
+      expect(openedTasks()).toHaveLength(1);
       vi.advanceTimersByTime(20_001);
       await loading;
 
       expect(config.setStatus).toHaveBeenLastCalledWith('error');
       expect(config.setAnnouncement).toHaveBeenCalledOnce();
-      expect(openedTasks).toHaveLength(1);
-      expect(openedTasks[0].destroyed).toBe(true);
+      expect(openedTasks()).toHaveLength(1);
+      expect(openedTasks()[0].destroyed).toBe(true);
       expect(reportError).not.toHaveBeenCalled();
     } finally {
       vi.useRealTimers();
@@ -160,7 +161,7 @@ describe('loadPdf lifecycle', () => {
       expect(config.clearDraft).not.toHaveBeenCalled();
       expect(config.setStatus).not.toHaveBeenCalledWith('error');
       expect(config.setStatus).not.toHaveBeenCalledWith('editing');
-      expect(openedTasks[0].destroyed).toBe(true);
+      expect(openedTasks()[0].destroyed).toBe(true);
     });
 
     it('a file that opens but carries permissions is owner-restricted, and its document is released', async () => {
@@ -172,7 +173,7 @@ describe('loadPdf lifecycle', () => {
       expect(onNeedsUnlock).toHaveBeenCalledExactlyOnceWith('owner-restricted');
       expect(config.onDocument).not.toHaveBeenCalled();
       expect(config.setStatus).not.toHaveBeenCalledWith('editing');
-      expect(openedTasks[0].destroyed).toBe(true);
+      expect(openedTasks()[0].destroyed).toBe(true);
     });
 
     it('an unprotected file loads as always, callback or not', async () => {
@@ -184,7 +185,7 @@ describe('loadPdf lifecycle', () => {
       expect(onNeedsUnlock).not.toHaveBeenCalled();
       expect(config.onDocument).toHaveBeenCalledOnce();
       expect(config.setStatus).toHaveBeenLastCalledWith('editing');
-      expect(openedTasks[0].destroyed).toBe(false);
+      expect(openedTasks()[0].destroyed).toBe(false);
     });
 
     it('without a callback a password file still fails exactly as before', async () => {

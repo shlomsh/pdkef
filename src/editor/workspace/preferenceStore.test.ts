@@ -248,23 +248,6 @@ describe('editor workspace preferences', () => {
     ]);
   });
 
-  // Forced: jsdom has no way to make reads refuse (workspace tests all run in jsdom, Node has no storage file here)
-  it('degrades without throwing when localStorage is blocked', () => {
-    const originalGetItem = Storage.prototype.getItem;
-    const originalSetItem = Storage.prototype.setItem;
-    Storage.prototype.getItem = () => { throw new Error('blocked'); };
-    Storage.prototype.setItem = () => { throw new Error('blocked'); };
-
-    try {
-      expect(getEditorPreference('penColor', { userScope: scope })).toBeNull();
-      expect(setEditorPreference('penColor', '#000000', { userScope: scope })).toBe(false);
-      expect(setSavedSignatures([{ id: 'memory-only', dataUrl: 'data:image/png;base64,abc', aspectRatio: 2 }], { userScope: scope })).toBe(false);
-    } finally {
-      Storage.prototype.getItem = originalGetItem;
-      Storage.prototype.setItem = originalSetItem;
-    }
-  });
-
   it('keeps image bytes out of every scalar preference write', () => {
     const signatures = [{ id: 'large-signature', dataUrl: `data:image/png;base64,${'A'.repeat(20_000)}`, aspectRatio: 2 }];
     expect(setSavedSignatures(signatures, { userScope: scope })).toBe(true);
@@ -376,6 +359,25 @@ describe('recent whiteout colours (RED-53)', () => {
     expect(getRecentWhiteoutColors({ userScope: scope })).toEqual(['#bbbbbb', '#aaaaaa']);
   });
 
+  it('keeps growing the in-memory list when storage throws', () => {
+    fillStorage(localStorage);
+    expect(() => localStorage.setItem('probe', 'x'.repeat(100))).toThrow(/quota/i);
+    const first = rememberRecentWhiteoutColor('#aaaaaa', [], { userScope: scope });
+    expect(first).toEqual(['#aaaaaa']);
+    expect(rememberRecentWhiteoutColor('#bbbbbb', first, { userScope: scope })).toEqual(['#bbbbbb', '#aaaaaa']);
+  });
+
+  it('keeps every pick in memory when setItem throws with a stored list (the review case)', () => {
+    localStorage.setItem(key, JSON.stringify({ schemaVersion: 1, colors: ['#aaaaaa'] }));
+    fillStorage(localStorage);
+    expect(() => localStorage.setItem(key, 'x'.repeat(1000))).toThrow(/quota/i);
+    const b = rememberRecentWhiteoutColor('#bbbbbb', ['#aaaaaa'], { userScope: scope });
+    expect(b).toEqual(['#bbbbbb', '#aaaaaa']);
+    const c = rememberRecentWhiteoutColor('#cccccc', b, { userScope: scope });
+    expect(c).toEqual(['#cccccc', '#bbbbbb', '#aaaaaa']);
+    expect(rememberRecentWhiteoutColor('#dddddd', c, { userScope: scope })).toEqual(['#dddddd', '#cccccc', '#bbbbbb']);
+  });
+
   it('storage wins when it works: another tab\'s pick merges in and is stored', () => {
     const current = ['#aaaaaa'];
     localStorage.setItem(key, JSON.stringify({ schemaVersion: 1, colors: ['#789abc'] })); // another tab wrote after this tab read
@@ -396,36 +398,7 @@ describe('recent whiteout colours (RED-53)', () => {
     expect(getRecentWhiteoutColors()).toEqual(['#222222', '#111111']);
   });
 
-  // Forced: a read refusal cannot be produced in jsdom
-  it('falls back to the in-memory list when storage cannot be read', () => {
-    const spy = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('blocked'); });
-    try {
-      expect(rememberRecentWhiteoutColor('#bbbbbb', ['#aaaaaa'], { userScope: scope })).toEqual(['#bbbbbb', '#aaaaaa']);
-    } finally {
-      spy.mockRestore();
-    }
-  });
-
-  it('keeps growing the in-memory list when storage throws', () => {
-    fillStorage(localStorage);
-    expect(() => localStorage.setItem('probe', 'x'.repeat(100))).toThrow(/quota/i);
-    const first = rememberRecentWhiteoutColor('#aaaaaa', [], { userScope: scope });
-    expect(first).toEqual(['#aaaaaa']);
-    expect(rememberRecentWhiteoutColor('#bbbbbb', first, { userScope: scope })).toEqual(['#bbbbbb', '#aaaaaa']);
-  });
-
-  it('keeps every pick in memory when setItem throws with a stored list (the review case)', () => {
-    localStorage.setItem(key, JSON.stringify({ schemaVersion: 1, colors: ['#aaaaaa'] }));
-    fillStorage(localStorage);
-    expect(() => localStorage.setItem(key, 'x'.repeat(1000))).toThrow(/quota/i);
-    const b = rememberRecentWhiteoutColor('#bbbbbb', ['#aaaaaa'], { userScope: scope });
-    expect(b).toEqual(['#bbbbbb', '#aaaaaa']);
-    const c = rememberRecentWhiteoutColor('#cccccc', b, { userScope: scope });
-    expect(c).toEqual(['#cccccc', '#bbbbbb', '#aaaaaa']);
-    expect(rememberRecentWhiteoutColor('#dddddd', c, { userScope: scope })).toEqual(['#dddddd', '#cccccc', '#bbbbbb']);
-  });
-
-  // Forced: a read refusal cannot be produced in jsdom
+  // Forced: no storage at all (Node) cannot show that no write was tried, and jsdom's storage cannot refuse reads
   it('falls back to current when getItem throws, and does not write', () => {
     const spy = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('blocked'); });
     const set = vi.spyOn(Storage.prototype, 'setItem');

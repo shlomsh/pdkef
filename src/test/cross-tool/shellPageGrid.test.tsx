@@ -15,21 +15,16 @@ import * as thumbnailsLib from '#lib/pdf/thumbnails.js';
 import { getPdfjs } from '#lib/pdf/loadPdfjs.js';
 import { renderPageToCanvas } from '#lib/pdf/renderPage.js';
 import { reportError } from '#lib/telemetry/errorReport.ts';
-import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
-// @ts-expect-error -- no Node ambient types here.
-import { pathToFileURL } from 'node:url';
-// @ts-expect-error -- no Node ambient types here.
-import nodePath from 'node:path';
+import { getDocument } from 'pdfjs-dist';
+import '../support/realPdfjs.ts';
 import { drainPromises } from '../support/drainPromises.ts';
 import { waitUntil } from '../support/waitUntil.ts';
 // PageGrid opens its preview dialog through a lazy import; loading it here makes that import
 // settle in one turn, so a "no dialog" check after drainPromises() sees a wrongly opened one.
 import '#shell/PagePreviewDialog.tsx';
 
-// The thumbnail source runs for real: real PDFs, opened by pdf.js's legacy (node) build. Forced: the shipped
-// pdf.js loader points at a browser Worker, and painting a page needs a canvas jsdom does not have, so the one
-// paint call answers with a data URL that names the page's own size (each file's pages differ in size).
-vi.mock('#lib/pdf/loadPdfjs.js', { spy: true });
+// The thumbnail source runs for real: real PDFs, the shipped pdf.js, and pages painted into jsdom's real canvas.
+vi.mock('pdfjs-dist', { spy: true });
 vi.mock('#lib/pdf/renderPage.js', { spy: true });
 vi.mock('#lib/pdf/thumbnails.js', { spy: true });
 vi.mock('#lib/telemetry/errorReport.ts', { spy: true });
@@ -44,15 +39,16 @@ const FALLBACK_SIZES: [number, number][] = [[612, 792], [612, 792]];
 const pdfBytes = new Map<string, Uint8Array>();
 let wide = false;
 
-// The legacy pdf.js build, as `getPdfjs()` hands it out. jsdom's own page URL is http, which node's loader
-// refuses, so the worker module is named by file URL. Every loading task is kept, to see one destroyed.
-pdfjs.GlobalWorkerOptions.workerSrc = pathToFileURL(nodePath.resolve(__dirname, '../../../node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs')).href;
-const openedTasks: ReturnType<typeof pdfjs.getDocument>[] = [];
-const legacyPdfjs = () => ({ ...pdfjs, getDocument: ((params) => {
-  const task = pdfjs.getDocument(params);
-  openedTasks.push(task);
-  return task;
-}) as typeof pdfjs.getDocument });
+/** The loading task of every document opened so far, to see one destroyed. */
+const openedTasks = () => vi.mocked(getDocument).mock.results.map((r) => r.value);
+
+/** The pixel size of a JPEG or PNG data URL, read off its header: the size the page was really painted at. */
+const imageSize = (dataUrl: string) => {
+  const bytes = Buffer.from(dataUrl.split(',')[1], 'base64');
+  if (dataUrl.startsWith('data:image/png')) return `${bytes.readUInt32BE(16)}x${bytes.readUInt32BE(20)}`;
+  const at = bytes.indexOf(Buffer.from([0xff, 0xc0, 0x00, 0x11, 0x08]));
+  return `${bytes.readUInt16BE(at + 7)}x${bytes.readUInt16BE(at + 5)}`;
+};
 
 // A controllable IntersectionObserver: tests decide which cards are "near
 // the viewport" by calling `intersect`.
@@ -98,24 +94,18 @@ describe('PageGrid', () => {
       pdfBytes.set(name, await doc.save());
     }
     // pdf.js's first document in a process loads its worker module, once and slowly; later ones are quick.
-    const lib = legacyPdfjs();
-    const task = lib.getDocument({ data: pdfBytes.get('fallback')!.slice() });
+    const task = (await getPdfjs()).getDocument({ data: pdfBytes.get('fallback')!.slice() });
     await (await task.promise).getPage(1);
     await task.destroy();
-    vi.mocked(thumbnailsLib.openThumbnailSource).mockReset();
-    openedTasks.length = 0;
+    vi.mocked(thumbnailsLib.openThumbnailSource).mockClear();
+    vi.mocked(getDocument).mockClear();
   }, 60_000);
 
   beforeEach(() => {
     wide = false;
-    vi.mocked(thumbnailsLib.openThumbnailSource).mockReset(); // a state forced in one test must not reach the next: the real source and a clean call history
-    vi.mocked(getPdfjs).mockReset().mockImplementation(async () => legacyPdfjs() as never); // forced: the node build
-    vi.mocked(renderPageToCanvas).mockReset().mockImplementation((async (page) => ({
-      width: page.view[2],
-      height: page.view[3],
-      toDataURL: () => `data:image/png;base64,${page.view[2]}x${page.view[3]}`,
-    })) as never); // forced: no canvas in jsdom
-    openedTasks.length = 0;
+    vi.mocked(thumbnailsLib.openThumbnailSource).mockClear(); // a state forced in one test must not reach the next: the real source and a clean call history
+    vi.mocked(renderPageToCanvas).mockClear();
+    vi.mocked(getDocument).mockClear();
     observers = [];
     originalIO = globalThis.IntersectionObserver;
     // Forced: jsdom has no IntersectionObserver
@@ -266,8 +256,8 @@ describe('PageGrid', () => {
     await waitFor(() => container.querySelectorAll('[data-thumb-box] img').length === 2);
     expect(thumbnailsLib.openThumbnailSource).toHaveBeenCalledTimes(2);
     const imgs = Array.from(container.querySelectorAll('[data-thumb-box] img')).map((img) => img.getAttribute('src'));
-    // Page 2 of a.pdf and page 1 of b.pdf, read off their own sizes.
-    expect(imgs).toEqual(['data:image/png;base64,201x300', 'data:image/png;base64,210x300']);
+    // Page 2 of a.pdf and page 1 of b.pdf, painted at 96px wide in their own proportions.
+    expect(imgs.map(imageSize)).toEqual(['96x143', '96x137']);
     expect(Array.from(container.querySelectorAll('[data-thumb-box] img')).every((img) => img.draggable === false)).toBe(true);
 
     // Removing file 1 cancels its renders and destroys its document.
@@ -275,10 +265,10 @@ describe('PageGrid', () => {
     const opened = vi.mocked(thumbnailsLib.openThumbnailSource);
     const sourceOf = (name) => opened.mock.results[opened.mock.calls.findIndex(([file]) => file.name === name)].value;
     const [sourceA, sourceB] = [await sourceOf('a.pdf'), await sourceOf('b.pdf')];
-    await waitFor(() => openedTasks.filter((task) => task.destroyed).length === 1);
+    await waitFor(() => openedTasks().filter((task) => task.destroyed).length === 1);
     // a.pdf's real document is gone, b.pdf's still renders.
     await expect(sourceA.render(0)).rejects.toThrow('after destroy');
-    await expect(sourceB.render(0)).resolves.toBe('data:image/png;base64,210x300');
+    expect(imageSize(await sourceB.render(0))).toBe('150x214');
     expect(cards().map((card) => card.dataset.key)).toEqual(['2:0', '2:1']);
   });
 

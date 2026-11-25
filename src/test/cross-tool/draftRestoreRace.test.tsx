@@ -64,7 +64,7 @@ let gate: ReturnType<typeof deferred>;
 
 vi.mock('#lib/drafts/draftStore.ts', { spy: true });
 
-// Forced: the picked files are the bytes '%PDF-1.4' (not a real document), so real pdf.js would reject them
+// Forced: a restored draft's bytes come out of fake-indexeddb as a Node-realm ArrayBuffer, which the shipped pdf.js in jsdom rejects ('Invalid PDF binary data', tried with real pdf-lib bytes)
 vi.mock('pdfjs-dist', () => ({
   GlobalWorkerOptions: { workerSrc: '' },
   getDocument: vi.fn(() => ({
