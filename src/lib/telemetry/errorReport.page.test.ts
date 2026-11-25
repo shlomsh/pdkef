@@ -20,10 +20,14 @@ describe('readPageContext', () => {
     expect(readPageContext()).toMatchObject({ tool: '/he/sign/', installed: true, sw: true });
   });
   it('falls back to / for a path outside the schema shape', () => {
-    for (const p of ['/x?y', '/Sign/', '/a/b/c/d/e/']) {
+    for (const p of ['/x', '/x%3Fy/', '/Sign/', '/a/b/c/d/', '/a/b/c/d/e/']) {
       history.pushState(null, '', p);
       expect(readPageContext().tool).toBe('/');
     }
+  });
+  it('never carries the query', () => {
+    history.pushState(null, '', '/sign/?x=y');
+    expect(readPageContext().tool).toBe('/sign/');
   });
   it('falls back for that one fact when matchMedia throws, keeping the others', () => {
     history.pushState(null, '', '/sign/');

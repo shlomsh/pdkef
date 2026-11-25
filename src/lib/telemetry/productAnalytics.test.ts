@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { drainPromises } from '../../test/support/drainPromises.ts';
 import { installBeaconRecorder, type BeaconRecorder } from '../../test/support/beaconRecorder.ts';
 import { markArrival } from '../handoff/fileArrival.ts';
+import { finishLoading, startLoading } from './loadingPage.test-helper.ts';
 import { sendToSink } from './analyticsSink.ts';
 import * as pagePerformance from './pagePerformance.ts';
 import { setReportingEnabledForTests } from './errorReport.ts';
@@ -38,12 +39,6 @@ const sentEvents = async () => (await rec.bodies()) as { name: string; propertie
 // One page view goes out after the load event and the measures settle, a few microtasks on.
 const settleTick = () => drainPromises();
 
-// A page that has not finished loading; the load or pagehide event then goes through the real pageSettled.
-function pageLoading() {
-  // Forced: jsdom's document is always complete, so a page still loading is put there
-  Object.defineProperty(document, 'readyState', { configurable: true, get: () => 'loading' });
-}
-
 beforeEach(() => {
   localStorage.clear();
   rec = installBeaconRecorder();
@@ -52,9 +47,9 @@ beforeEach(() => {
   vi.mocked(sendToSink).mockClear();
 });
 
-afterEach(() => {
+afterEach(async () => {
   rec.restore();
-  Reflect.deleteProperty(document, 'readyState');
+  await finishLoading();
   setReportingEnabledForTests(false);
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
@@ -362,7 +357,7 @@ describe('performance measures (MEM-45)', () => {
   const clock = (ms: number) => void vi.advanceTimersByTime(ms - performance.now());
 
   it('a tool page view waits for the window load, then sends once with the measures and ready', async () => {
-    pageLoading();
+    startLoading();
     // Forced: a page whose requests the browser counted; jsdom lists no entries
     vi.mocked(pagePerformance.collectPageMeasures).mockResolvedValueOnce({ net: '0', local: '16-30', lcp: 'le2.5s' });
     clock(1800);
@@ -370,7 +365,7 @@ describe('performance measures (MEM-45)', () => {
     await settleTick();
     expect(rec.calls).toHaveLength(0);
     clock(9000); // ready was taken at the call, not at the send
-    window.dispatchEvent(new Event('load'));
+    await finishLoading();
     await settleTick();
     expect(rec.calls).toHaveLength(1);
     expect((await sent())[0].properties).toEqual({ tool: 'sign', first: true, visit: 'new', since: 'first', net: '0', local: '16-30', lcp: 'le2.5s', ready: 'le2.5s' });
@@ -420,12 +415,12 @@ describe('performance measures (MEM-45)', () => {
   });
 
   it('a page hidden before load sends the view at once with ready and no measures, and only once', async () => {
-    pageLoading();
+    startLoading();
     vi.mocked(pagePerformance.collectPageMeasures).mockClear();
     clock(900);
     reportToolLifecycleEvent('tool_page_viewed', 'sign');
     window.dispatchEvent(new Event('pagehide'));
-    window.dispatchEvent(new Event('load')); // a late load changes nothing
+    await finishLoading(); // a late load changes nothing
     await settleTick();
     expect(rec.calls).toHaveLength(1);
     expect((await sent())[0].properties).toEqual({ tool: 'sign', first: true, visit: 'new', since: 'first', ready: 'le1s' });
@@ -433,7 +428,7 @@ describe('performance measures (MEM-45)', () => {
   });
 
   it('a hidden home view sends with no measures at all', async () => {
-    pageLoading();
+    startLoading();
     reportHomePageView();
     window.dispatchEvent(new Event('pagehide'));
     await settleTick();
@@ -484,15 +479,15 @@ describe('performance measures (MEM-45)', () => {
 
 describe('the page view timestamp', () => {
   it('is taken when the page asked for the view, not when it was sent', async () => {
-    vi.useFakeTimers();
+    vi.useFakeTimers({ toFake: ['Date'] });
     try {
       vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
-      pageLoading();
+      startLoading();
       vi.mocked(sendToSink).mockClear();
       reportToolLifecycleEvent('tool_page_viewed', 'merge');
       vi.setSystemTime(new Date('2026-01-01T00:00:05.000Z'));
-      window.dispatchEvent(new Event('load'));
-      await vi.advanceTimersByTimeAsync(0);
+      await finishLoading();
+      await settleTick();
       expect(sendToSink).toHaveBeenCalledTimes(1);
       const at = vi.mocked(sendToSink).mock.calls[0][1];
       expect(at?.toISOString()).toBe('2026-01-01T00:00:00.000Z');

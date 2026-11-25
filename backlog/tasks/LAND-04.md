@@ -308,3 +308,11 @@ count). The rule is off meanwhile.
   after: `ensureMigrated`'s early return and the inner deadline check of the size search.
 - Found on the way: jsdom 31 (2026-11-25) draws real 2D pixels through `@napi-rs/canvas`, so most "no canvas" reasons
   (27 in 17 test files) are no longer true. They are a wave of their own.
+- `src/lib/telemetry` (2026-11-25): 809 sites in 208 files down to 753 in 209 (a file split leaves forced sites in two files).
+  Page facts, the URL, the referrer and storage are jsdom's own; Node without a browser stands for "no browser"; full
+  storage, real message ports and the beacon recorder take the rest. A page still loading is really loading:
+  `document.open()` puts jsdom there and `document.close()` fires the load (`loadingPage.test-helper.ts`). 34 sites stay, each
+  with its forced line: a beacon or `matchMedia` that throws, an offline browser, a hidden page, a service worker, Server-Timing,
+  navigation and LCP entries. A fresh review ran 33 mutations: no coverage lost. Two it found were never caught, now are
+  (a four-part path) or have a direct test (a query never reaches the tool path). Never caught, before or after: the
+  `done`, `busy` and message type checks in `workerDownloads`, and the `supportedEntryTypes` check in `pagePerformance`.

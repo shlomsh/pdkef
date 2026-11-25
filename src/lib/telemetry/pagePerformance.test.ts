@@ -8,6 +8,8 @@ import {
   resetPagePerformanceForTests,
   timeBucket,
 } from './pagePerformance.ts';
+import { drainPromises } from '../../test/support/drainPromises.ts';
+import { finishLoading, startLoading } from './loadingPage.test-helper.ts';
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -65,61 +67,70 @@ describe('classifyRequests', () => {
 });
 
 describe('pageSettled', () => {
-  // A page and its window, as far as the function reads them: listeners it adds can be fired by name.
-  const page = (readyState: string, visibilityState = 'visible') => {
-    const listeners: Record<string, Array<() => void>> = {};
-    const on = (type: string, cb: () => void) => void (listeners[type] ??= []).push(cb);
-    const off = (type: string, cb: () => void) => void (listeners[type] = (listeners[type] ?? []).filter((l) => l !== cb));
-    const doc = { readyState, visibilityState, addEventListener: on, removeEventListener: off };
-    // Forced: jsdom's document is already complete, so a loading or hidden page needs a mock document.
-    vi.stubGlobal('document', doc);
-    // Forced: the mock page's window, whose listeners the test fires by name.
-    vi.stubGlobal('window', { addEventListener: on, removeEventListener: off });
-    return { doc, fire: (type: string) => (listeners[type] ?? []).slice().forEach((cb) => cb()), count: () => Object.values(listeners).flat().length };
+  // The answer without waiting for anything else to happen.
+  const now = (settled: ReturnType<typeof pageSettled>) => Promise.race([settled, drainPromises().then(() => 'waiting')]);
+  const hide = () => {
+    // Forced: jsdom never hides a page
+    Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' });
   };
+  // Forced: undoes hide
+  const show = () => Reflect.deleteProperty(document, 'visibilityState');
+
+  afterEach(async () => {
+    show();
+    await finishLoading();
+  });
 
   it('is loaded at once when the document is complete', async () => {
     expect(document.readyState).toBe('complete');
-    await expect(pageSettled()).resolves.toBe('loaded');
+    expect(await now(pageSettled())).toBe('loaded');
   });
 
   it('waits for the load event, then says loaded', async () => {
-    const p = page('interactive');
+    startLoading();
     const settled = pageSettled();
-    p.fire('load');
-    await expect(settled).resolves.toBe('loaded');
+    await finishLoading();
+    expect(await now(settled)).toBe('loaded');
   });
 
   it('says hidden when the page is hidden before load, by pagehide or by visibilitychange', async () => {
-    for (const type of ['pagehide', 'visibilitychange']) {
-      const p = page('interactive');
+    for (const [type, target] of [['pagehide', window], ['visibilitychange', document]] as const) {
+      startLoading();
       const settled = pageSettled();
-      p.doc.visibilityState = 'hidden';
-      p.fire(type);
-      await expect(settled).resolves.toBe('hidden');
+      hide();
+      target.dispatchEvent(new Event(type));
+      await finishLoading();
+      expect(await now(settled)).toBe('hidden');
+      show();
     }
   });
 
   it('does not call a visibilitychange to visible hidden', async () => {
-    const p = page('interactive', 'visible');
+    startLoading();
     const settled = pageSettled();
-    p.fire('visibilitychange');
-    p.fire('load');
-    await expect(settled).resolves.toBe('loaded');
+    document.dispatchEvent(new Event('visibilitychange'));
+    await finishLoading();
+    expect(await now(settled)).toBe('loaded');
   });
 
   it('settles once: the other order and every listener are gone after the first', async () => {
-    const p = page('interactive');
+    startLoading();
+    const added = [vi.spyOn(window, 'addEventListener'), vi.spyOn(document, 'addEventListener')];
+    const removed = [vi.spyOn(window, 'removeEventListener'), vi.spyOn(document, 'removeEventListener')];
+    const pairs = (spies: typeof added) => spies.map((spy) => spy.mock.calls.map(([type, listener]) => [type, listener]));
     const settled = pageSettled();
-    p.fire('pagehide');
-    p.fire('load');
-    await expect(settled).resolves.toBe('hidden');
-    expect(p.count()).toBe(0);
+    const during = pairs(added);
+    expect(during.flat().map(([type]) => type)).toEqual(['load', 'pagehide', 'visibilitychange']);
+    window.dispatchEvent(new Event('pagehide'));
+    expect(pairs(removed)).toEqual(during);
+    await finishLoading();
+    expect(await now(settled)).toBe('hidden');
   });
 
   it('says hidden at once for a page already hidden and still loading', async () => {
-    page('loading', 'hidden');
-    await expect(pageSettled()).resolves.toBe('hidden');
+    startLoading();
+    hide();
+    expect(await now(pageSettled())).toBe('hidden');
   });
 });
 
