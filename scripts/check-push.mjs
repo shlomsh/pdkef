@@ -179,7 +179,6 @@ export const ALWAYS_GUARD_STEPS = [
   'test:hook-ratchet',
   'test:any-ratchet',
   'test:ts-nocheck-ratchet',
-  'test:e2e-sleeps',
   'lint:landmines',
   'test:floating-promises',
   'test:reveal-observers',

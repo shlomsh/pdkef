@@ -10,9 +10,6 @@
     "maxPageDeadBytes": 7600,
     "maxSinglePageUtilities": 148
   },
-  "e2eSleeps": {
-    "waitForTimeout": 40
-  },
   "functionSize": {
     "functions": {
       "scripts/seo-refresh.mjs#main": 151,

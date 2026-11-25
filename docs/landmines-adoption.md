@@ -17,7 +17,7 @@ middleware.ts`: 30,908 findings in 2,487 files, about 3 seconds.
 | Rule | Hits | Verdict |
 | --- | --- | --- |
 | `no-unsignaled-poll` | 22 in 9 files (+1 parse error in an `.astro` file) | **Adopt first (LAND-01).** `vi.waitFor` / `expect.poll` on a spy or a recorder races a deadline that CPU load (tests on battery) can miss. No flake was reproduced; the gain is a wait bounded by the test timeout instead of a 1 s poll. |
-| `no-fixed-sleep` | 8 | **Rule misses most of ours (LAND-02).** It only sees a sleep whose nearest enclosing function is the `it(...)` callback, so `await act(async () => { ...; await new Promise((r) => setTimeout(r, 50)) })` is invisible, and it drops every sleep in a file that calls `vi.useFakeTimers()`. Unit tests hold 141 `setTimeout` sleeps (61 at 0 ms, about 80 longer). It found none of the 39 e2e `waitForTimeout`s, which `check-e2e-sleeps` already ratchets. |
+| `no-fixed-sleep` | 8 | **Rule misses most of ours (LAND-02).** It only sees a sleep whose nearest enclosing function is the `it(...)` callback, so `await act(async () => { ...; await new Promise((r) => setTimeout(r, 50)) })` is invisible, and it drops every sleep in a file that calls `vi.useFakeTimers()`. Unit tests hold 141 `setTimeout` sleeps (61 at 0 ms, about 80 longer). It found none of the 39 e2e `waitForTimeout`s, which `check-e2e-sleeps` (since retired) ratcheted. |
 | `no-flake-masking` | 25 in 13 files | **Mostly legitimate (LAND-03).** Raised per-test timeouts on real PDF exports and corpus runs, not hidden flakes. One false positive in production code, `src/tools/sign/lib/flatten.js:191`: a local function named `describe` with three arguments reads as a test with a timeout. Playwright's `retries` (the `perf` project) is not a key it checks. |
 | `no-test-doubles` | 1,877 in 266 files | **In waves (LAND-04).** Off (879 sites in 223 files left, 2026-11-25) until upstream takes a per-file `allow` option; the count left then becomes a list that only shrinks. Rules for a real fix: docs/landmines/no-test-doubles.md. |
 | `no-comments` | 26,202 | **Declined.** pdkef comments carry ticket ids and the reason a guard exists, on purpose. |
@@ -40,7 +40,7 @@ the rule supports one. `scripts/check-ratchet-raises.mjs` treats each rule's `al
 
 Adopted so far, as `landmines/...` rules of the one 0.3.1 plugin: `no-unsignaled-poll` (LAND-01),
 `no-flake-masking` (LAND-03), `no-fixed-sleep` (LAND-02, its `allow` map includes 47 e2e sites;
-`check-e2e-sleeps` overlaps it and stays until Shlomi decides), `strict-msw`, `colocated-tests` and
+it replaced `check-e2e-sleeps`), `strict-msw`, `colocated-tests` and
 `package-exports`. `no-test-doubles` is off; `no-comments`, `no-explicit-return-types` and `test-file-names`
 are declined and off.
 

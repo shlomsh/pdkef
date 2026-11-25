@@ -1,10 +1,9 @@
 ---
 id: "LAND-02"
 title: "landmines sees a sleep inside act(), then guards our unit tests"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "honest-tests"
-horizon: "now"
 depends_on: ["LAND-01"]
 ---
 
@@ -38,8 +37,7 @@ and a `runNow` option replaces the list. Awaited registrations such as `page.rou
 unreported. Our local patch for the other design is dropped. It shipped: landmines 0.3.1 is installed
 (one plugin, rules named `landmines/...`), and `no-fixed-sleep` is on in `.oxlintrc.json` with an `allow`
 map, 26 files, 47 of its sites in 24 e2e specs. The rule counts Playwright `waitForTimeout` too, so
-`check-e2e-sleeps` (a ratchet in `scripts/ratchet-limits.json`, still run by CI) overlaps that map. It is
-kept until Shlomi decides whether to retire it.
+`check-e2e-sleeps` (a ratchet in `scripts/ratchet-limits.json`) overlapped that map and is retired (below).
 
 ## Progress (2026-11-18, branch `landmines-all`)
 
@@ -80,4 +78,9 @@ and waits for the worker to exit normally. The old version froze the worker befo
 started, so a watchdog that caught up on missed time after a pause passed it; now that fails. Six
 mutations proven; the file runs in about 4 s, was about 7 s.
 
-Landed on main 2026-11-25 (50cd7eba3). Left in this ticket: the decision on `check-e2e-sleeps`.
+Landed on main 2026-11-25 (50cd7eba3).
+
+`check-e2e-sleeps` is retired (Shlomi's call, 2026-11-25). Measured first, on every e2e spec: the old guard counted 40 sites,
+the rule counts 47. The rule sees every `waitForTimeout`, in a helper too, and 8 sites the old guard missed. The old guard saw one
+the rule does not: a promise-wrapped `setTimeout` inside a named helper function, the 200 ms between two reads in
+`e2e/demo/workspace-flow.spec.js`. The same shape inside `page.evaluate` is also unseen. A rule that misses is fixed upstream.

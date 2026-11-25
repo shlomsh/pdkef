@@ -99,7 +99,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ### Honest tests: adopt landmines
 
-- [LAND-02](backlog/tasks/LAND-02.md) P2 · landmines sees a sleep inside act(), then guards our unit tests (in progress)
 - [LAND-04](backlog/tasks/LAND-04.md) P3 · Fewer replaced dependencies in unit tests (in progress)
 - [LAND-05](backlog/tasks/LAND-05.md) P3 · Tests live beside what they test (in progress)
 

@@ -28,7 +28,7 @@ export function resolveGuardCommand(name, scripts, extraArgs = []) {
 
 // Guards that read or write scripts/ratchet-limits.json (every npm script running a script that imports
 // ratchet-limits.mjs; run-guards.test.mjs keeps this in step). They share one lane so a lowering is never lost.
-export const RATCHET_FILE_GUARDS = ['test:any-ratchet', 'test:css', 'test:e2e-sleeps', 'test:hook-ratchet', 'test:js-typed', 'test:ratchet-raises', 'test:size-ratchet', 'test:unused-exports'];
+export const RATCHET_FILE_GUARDS = ['test:any-ratchet', 'test:css', 'test:hook-ratchet', 'test:js-typed', 'test:ratchet-raises', 'test:size-ratchet', 'test:unused-exports'];
 
 function readScripts(root) {
   return JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).scripts ?? {};

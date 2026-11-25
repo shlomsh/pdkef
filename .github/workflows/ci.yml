@@ -171,9 +171,6 @@ jobs:
     - name: Verify the raw-tap ratchet
       run: node scripts/check-raw-tap-ratchet.mjs
 
-    - name: Verify e2e sleep ratchet
-      run: npm run test:e2e-sleeps
-
     # landmines rules adopted so far (docs/landmines-adoption.md): tests await signals, not deadlines.
     - name: Lint tests with landmines
       run: npm run lint:landmines
