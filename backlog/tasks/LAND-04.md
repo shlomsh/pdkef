@@ -341,3 +341,8 @@ count). The rule is off meanwhile.
   a build meets a really hidden encryption (`src/test/support/hideEncryption.ts`: pdf.js opens it, pdf-lib refuses it). A fresh
   review ran 73 mutations. It found one lost guard (Split's stale check after the load, held again as a forced site), two false
   reasons and one order-dependent wait, all fixed; 24 were never caught by either version, most of them To Image's options.
+- Compress and Image to PDF (2026-11-25): 625 sites in 183 files down to 599 in 180, 20 left in the two tools. Renders, object URLs and
+  failing or held files are real; the size searches keep a visible mock encoder, because jsdom and Node have no JPEG encoder.
+  A fresh review ran 76 mutations: no coverage lost, 22 never caught by either version (superseded image builds, the batch hook's
+  stale run and URL clean-up, the photo search's white fill and ladder among them). It found one order-dependent test (Download's
+  press, its first build held again as a forced site), two false reasons and one encoder mock hidden from the rule, all fixed.
