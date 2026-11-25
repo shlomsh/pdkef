@@ -3,7 +3,6 @@ import { act } from 'preact/test-utils';
 import { readFileSync } from 'node:fs';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
-import { getPdfjs } from '#lib/pdf/loadPdfjs.js';
 import { loadPdfWithPages } from '#lib/pdf/loadPdfPages.ts';
 import { probeEncryption } from '#lib/pdf/pdfEncryption.ts';
 import { reportError } from '#lib/telemetry/errorReport.ts';
@@ -12,15 +11,14 @@ import { repairedPdfLoader, useOpenPageDocument, type OpenPageDocument, type Ope
 import { waitUntil } from '../../test/support/waitUntil.ts';
 import { drainPromises } from '../../test/support/drainPromises.ts';
 import { noPagesKey } from '../../test/support/pdfPageTreeFixtures.ts';
+import { HeldFile } from '../../test/support/heldFile.ts';
+import '../../test/support/realPdfjs.ts';
 
 vi.mock('#lib/telemetry/errorReport.ts', { spy: true });
-// The probe and the page loader run for real, on real PDFs; the spies only let a test see a call, or hold
-// one back to put two picks in a race (forced, per test).
+// The probe and the page loader run for real, on real PDFs; the spies only let a test see a call. The one
+// race that cannot be held by a file's bytes holds the page loader (forced, in that test).
 vi.mock('#lib/pdf/pdfEncryption.ts', { spy: true });
 vi.mock('#lib/pdf/loadPdfPages.ts', { spy: true });
-// The shipped pdf.js loader points at a browser Worker, which node does not have. Forced: the same pdf.js,
-// its legacy (node) build, so the probe still parses the file for real.
-vi.mock('#lib/pdf/loadPdfjs.js', { spy: true });
 
 const fixture = (name: string) => new File([readFileSync(`src/lib/__fixtures__/encrypted/${name}.pdf`)], `${name}.pdf`, { type: 'application/pdf' });
 async function pdfOfPages(name: string, pages: number): Promise<File> {
@@ -53,7 +51,6 @@ beforeEach(() => {
   announce = vi.fn();
   vi.mocked(probeEncryption).mockReset();
   vi.mocked(loadPdfWithPages).mockReset();
-  vi.mocked(getPdfjs).mockReset().mockImplementation(async () => (await import('pdfjs-dist/legacy/build/pdf.mjs')) as never); // forced: the node build
   vi.mocked(reportError).mockClear();
   resetActionTrailForTests();
 });
@@ -116,7 +113,7 @@ describe('useOpenPageDocument', () => {
     let releaseOld: (v: never) => void = () => {};
     let oldReachedLoad: () => void = () => {};
     const oldLoadStarted = new Promise<void>((r) => { oldReachedLoad = r; });
-    // Forced: the older load is held back so the newer one can finish first; the newer pick loads for real.
+    // Forced: the page loader takes bytes, not a file, so only its answer can wait; the newer pick loads for real.
     vi.mocked(loadPdfWithPages).mockImplementationOnce(() => new Promise((r) => { releaseOld = r; oldReachedLoad(); }));
     mount();
     const older = await pdfOfPages('old.pdf', 2);
@@ -134,18 +131,20 @@ describe('useOpenPageDocument', () => {
   });
 
   it('drops a probe result that lands after a newer pick', async () => {
-    let releaseOld: (v: never) => void = () => {};
-    let oldReachedProbe: () => void = () => {};
-    const oldProbeStarted = new Promise<void>((r) => { oldReachedProbe = r; });
-    // Forced: the first probe is held back, to land after the newer pick has finished.
-    vi.mocked(probeEncryption).mockImplementationOnce(() => new Promise((r) => { releaseOld = r; oldReachedProbe(); }));
+    // The older pick is an encrypted file whose bytes are held, so its probe lands after the newer pick has finished.
+    const encrypted = fixture('needs-password');
+    const older = new HeldFile(new Uint8Array(await encrypted.arrayBuffer()), 'old.pdf');
     mount();
     const newer = await pdfOfPages('new.pdf', 2);
-    await act(async () => { current.open(await pdfOfPages('old.pdf', 2)); });
-    await oldProbeStarted;
+    await act(async () => { current.open(older); });
+    await older.started;
     await act(async () => { current.open(newer); });
     await waitUntil(() => current.file === newer && current.loadStatus === 'idle' && current.pageCount === 2);
-    await act(async () => { releaseOld('needs-password' as never); });
+    await act(async () => { older.release(); });
+    // The older probe really ran and found a password.
+    await waitUntil(() => vi.mocked(probeEncryption).mock.calls.length === 2);
+    const probed = await Promise.all(vi.mocked(probeEncryption).mock.results.map((r) => r.value));
+    expect(probed).toContain('needs-password');
     await flush();
     expect(current.file).toBe(newer);
     expect(current.needsUnlock).toBeNull();

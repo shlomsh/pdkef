@@ -5,16 +5,13 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import { recentActions, resetActionTrailForTests } from '#lib/telemetry/actionTrail.ts';
-import { getPdfjs } from '#lib/pdf/loadPdfjs.js';
 import { repairedPdfLoader } from './useOpenPageDocument.ts';
 import { usePageToolSession, type PageToolSession } from './usePageToolSession.ts';
 import { waitUntil } from '../../test/support/waitUntil.ts';
 import { drainPromises } from '../../test/support/drainPromises.ts';
+import '../../test/support/realPdfjs.ts';
 
-// The probe, the page loader and the draft store run for real: real PDFs, and the store on fake-indexeddb.
-// The shipped pdf.js loader points at a browser Worker, which node does not have. Forced: the same pdf.js,
-// its legacy (node) build, so the probe still parses the file for real.
-vi.mock('#lib/pdf/loadPdfjs.js', { spy: true });
+// The probe, the page loader, pdf.js and the draft store run for real: real PDFs, and the store on fake-indexeddb.
 
 const messages = {
   announceNeedsPassword: 'needs password', announceRestricted: 'restricted', loaded: '{name} {count}', loadFailed: 'failed',
@@ -60,7 +57,6 @@ beforeEach(() => {
   announce = vi.fn();
   onPick = vi.fn();
   onRejected = vi.fn();
-  vi.mocked(getPdfjs).mockReset().mockImplementation(async () => (await import('pdfjs-dist/legacy/build/pdf.mjs')) as never); // forced: the node build
   resetActionTrailForTests();
   document.documentElement.setAttribute('data-handoff-pending', '');
   mount();

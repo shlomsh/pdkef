@@ -1,7 +1,11 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
+import { PDFDocument } from '@cantoo/pdf-lib';
 import FilePreview from './FilePreview.tsx';
+import { waitUntil } from '../test/support/waitUntil.ts';
+import { HeldFile } from '../test/support/heldFile.ts';
+import '../test/support/realPdfjs.ts';
 // Asserts the icon-loaded state class (the thumbnail swap is the behaviour).
 import * as thumbnailsLib from '#lib/pdf/thumbnails.js';
 
@@ -13,21 +17,17 @@ function makeImageFile(name = 'photo.jpg', type = 'image/jpeg') {
   return new File(['fake-image-bytes'], name, { type });
 }
 
-// A controllable promise, so a test can assert the glyph-still-showing state
-// before renderThumbnail settles, then resolve or reject on cue.
-function deferred() {
-  let resolve!: (value: string) => void;
-  let reject!: (reason?: unknown) => void;
-  const promise = new Promise<string>((res, rej) => {
-    resolve = res;
-    reject = rej;
-  });
-  return { promise, resolve, reject };
-}
-
-// jsdom has no canvas to paint a page on, so the real renderer stays in place as a spy and each PDF test
-// forces only its answer (`mockReturnValue`), on cue.
+// The real renderer runs on real PDFs (pdf.js legacy paints into jsdom's canvas); the spy only shows the call
+// and hands the test the render's own promise to await.
 vi.mock('#lib/pdf/thumbnails.js', { spy: true });
+
+async function realPdf(name: string, height = 200) {
+  const doc = await PDFDocument.create();
+  doc.addPage([200, height]);
+  return new File([await doc.save()], name, { type: 'application/pdf' });
+}
+const renderOf = (n: number) => vi.mocked(thumbnailsLib.renderThumbnail).mock.results[n].value as Promise<string>;
+const settled = (promise: Promise<unknown>) => act(async () => { await promise.catch(() => {}); });
 
 describe('FilePreview', () => {
   let container: HTMLElement | null = null;
@@ -108,22 +108,17 @@ describe('FilePreview', () => {
     }
   });
 
-  it('calls renderThumbnail for a PDF with no MIME type, via the filename extension fallback', () => {
-    const { promise } = deferred();
-    vi.mocked(thumbnailsLib.renderThumbnail).mockReturnValue(promise);
-
-    const file = makePdfFile('contract.pdf');
+  it('calls renderThumbnail for a PDF with no MIME type, via the filename extension fallback', async () => {
+    const file = await realPdf('contract.pdf');
     Object.defineProperty(file, 'type', { value: '' });
     mount({ file });
 
     expect(thumbnailsLib.renderThumbnail).toHaveBeenCalledWith(file, { width: 192 });
+    await settled(renderOf(0));
   });
 
   it('calls renderThumbnail for a PDF and swaps the glyph for the render once it resolves', async () => {
-    const { promise, resolve } = deferred();
-    vi.mocked(thumbnailsLib.renderThumbnail).mockReturnValue(promise);
-
-    const file = makePdfFile();
+    const file = await realPdf('contract.pdf');
     mount({ file });
 
     expect(thumbnailsLib.renderThumbnail).toHaveBeenCalledWith(file, { width: 192 });
@@ -132,32 +127,23 @@ describe('FilePreview', () => {
     expect(icon.querySelector('img')).toBeNull();
     expect(icon.querySelector('svg')).not.toBeNull();
 
-    await act(async () => {
-      resolve('data:image/png;base64,pdfpage1');
-      await promise;
-    });
+    const rendered = await renderOf(0);
+    await waitUntil(() => container!.querySelector('img'));
 
     icon = container!.querySelector('span[aria-hidden="true"]');
     expect(icon.hasAttribute('data-loaded')).toBe(true);
     const img = icon.querySelector('img');
     expect(img).not.toBeNull();
-    expect(img.getAttribute('src')).toBe('data:image/png;base64,pdfpage1');
+    expect(rendered.startsWith('data:image/png;base64,')).toBe(true);
+    expect(img.getAttribute('src')).toBe(rendered);
   });
 
   it('keeps the glyph when the PDF render rejects (a broken or encrypted PDF)', async () => {
-    const { promise, reject } = deferred();
-    // The rejection is expected and swallowed - stub the handler so vitest's
-    // unhandled-rejection guard doesn't flag it as a real one.
-    promise.catch(() => {});
-    vi.mocked(thumbnailsLib.renderThumbnail).mockReturnValue(promise);
-
-    const file = makePdfFile('locked.pdf');
+    const file = makePdfFile('locked.pdf'); // bytes pdf.js cannot open
     mount({ file });
 
-    await act(async () => {
-      reject(new Error('encrypted'));
-      await promise.catch(() => {});
-    });
+    await expect(renderOf(0)).rejects.toBeInstanceOf(Error);
+    await settled(renderOf(0));
 
     const icon = container!.querySelector('span[aria-hidden="true"]');
     expect(icon.hasAttribute('data-loaded')).toBe(false);
@@ -166,24 +152,23 @@ describe('FilePreview', () => {
   });
 
   it('ignores a PDF render that resolves after the file changed', async () => {
-    const first = deferred();
-    const second = deferred();
-    vi.mocked(thumbnailsLib.renderThumbnail).mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise);
+    const first = new HeldFile(new Uint8Array(await (await realPdf('a.pdf', 200)).arrayBuffer()), 'a.pdf');
+    const second = await realPdf('b.pdf', 300);
+    mount({ file: first });
+    await first.started; // the first render is waiting on its bytes
+    act(() => render(<FilePreview file={second} />, container!));
 
-    mount({ file: makePdfFile('a.pdf') });
-    act(() => render(<FilePreview file={makePdfFile('b.pdf')} />, container!));
+    const secondRender = await renderOf(1);
+    await waitUntil(() => container!.querySelector('img'));
+    expect(container!.querySelector('img')!.getAttribute('src')).toBe(secondRender);
 
-    await act(async () => {
-      first.resolve('data:image/png;base64,old');
-      await first.promise;
-    });
-    expect(container!.querySelector('img')).toBeNull();
-
-    await act(async () => {
-      second.resolve('data:image/png;base64,new');
-      await second.promise;
-    });
-    expect(container!.querySelector('img')!.getAttribute('src')).toBe('data:image/png;base64,new');
+    first.release();
+    const firstRender = await renderOf(0);
+    await settled(renderOf(0));
+    // The first render really finished with a different picture, and the slot still shows the second.
+    expect(firstRender.startsWith('data:image/png;base64,')).toBe(true);
+    expect(firstRender).not.toBe(secondRender);
+    expect(container!.querySelector('img')!.getAttribute('src')).toBe(secondRender);
   });
 
   it('revokes the previous image object URL when the file changes', () => {
