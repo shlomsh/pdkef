@@ -369,3 +369,28 @@ count). The rule is off meanwhile.
   Storage, IndexedDB and fetch (the new dev dependency `undici`), answered by MSW; what is left is the worker scope, its windows and
   storage faults. A fresh review ran 97 mutations: no coverage lost, 11 never caught by either version (the font-pack list checks, the
   observer's type check and the tally's timer guard among them). Four fell only by timing out; they now fail on an assertion.
+- Postponed sites and stale reasons (2026-11-26): 423 sites down to 411 in 157 files. Eleven sites still said "until LAND-04's canvas
+  wave" and a few reasons were no longer true. Thumbnails, draft previews, restored drafts, Merge's lock probe, Redact's document and
+  To Image's canvas now run for real. A fresh review ran 83 mutations: 2 lost (a photo's scaling, an abort just after a render), both
+  caught again by an assertion; 38 were never caught by either version, most of them To Image's output and Redact's find.
+
+## What is left (2026-11-26)
+
+Every site left carries its `// Forced:` reason, 411 in 157 files:
+
+- The largest part is what jsdom and Node do not have: media queries (setup's `matchMedia` answers every query yes), the share sheet,
+  fullscreen, dialogs, the visual viewport, the clipboard, workers, observers that report, a service worker and its windows.
+- Layout, since jsdom gives every box no size, and scrolling.
+- Photo decode, image encoders, the camera and the traces that need a decoded photo.
+- Failures no real file, store or browser makes on demand, and moments held open to test an order.
+- Navigation, Google's sign-in and picker, popups, going offline, and what a browser reports about its own page load.
+
+Open:
+
+- The rule goes on with a per-file `allow` map once https://github.com/interfere-inc/landmines/pull/65 ships.
+- `useMediaQuery` could be tested for real only in a browser test, which needs Shlomi's call.
+- A refused maintenance beacon counts as sent, because `beaconMaintenanceTransport` returns nothing, so
+  `reportSwInstallFailures` never retries. A product fix, which needs Shlomi's call.
+- Mutations no version of the tests caught are listed per wave above.
+- Some files failed shuffled before these waves: `prePickedFiles`, `PdfImageToPdfTool`, Redact's `DetailsSheet`,
+  `highlightSwipeGesture` and `useEditorDraftPersistence` tests.
