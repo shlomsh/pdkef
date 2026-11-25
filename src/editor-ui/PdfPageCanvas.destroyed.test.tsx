@@ -4,12 +4,21 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('#lib/telemetry/errorReport.ts', { spy: true });
 
+import { PDFDocument } from '@cantoo/pdf-lib';
+import { getPdfjs } from '#lib/pdf/loadPdfjs.js';
+import '../test/support/realPdfjs.ts';
 import { fakePdfDocument } from '../test/support/fakePdfJs.ts';
 import { drainPromises } from '../test/support/drainPromises.ts';
 import PdfPageCanvas from './PdfPageCanvas.tsx';
 import { reportError } from '#lib/telemetry/errorReport.ts';
 
 const flush = () => drainPromises();
+
+async function openDocument() {
+  const pdf = await PDFDocument.create();
+  pdf.addPage([10, 10]);
+  return (await getPdfjs()).getDocument({ data: new Uint8Array(await pdf.save()) }).promise;
+}
 
 describe('PdfPageCanvas when the document is destroyed between getPage and render', () => {
   let host: HTMLElement | null = null;
@@ -27,22 +36,14 @@ describe('PdfPageCanvas when the document is destroyed between getPage and rende
 
   it('swallows the TypeError from page.render and paints nothing', async () => {
     const painted = vi.fn();
-    const page = {
-      rotate: 0,
-      getViewport: () => ({ width: 10, height: 10 }),
-      // Forced: a real destroyed transport cannot be caught between getPage and render here.
-      // pdf.js reads `this.#methodPromises` of a destroyed transport
-      render: vi.fn(() => { throw new TypeError("Cannot read properties of null (reading 'get')"); }),
-      cleanup: vi.fn(),
-    };
-    let resolvePage!: (page: unknown) => void;
-    const doc = { getPage: () => new Promise((r) => { resolvePage = r; }), loadingTask: { destroyed: true } };
+    const doc = await openDocument();
+    await doc.getPage(1); // loaded, so the page the canvas asks for next is already there
 
-    act(() => render(<PdfPageCanvas pdfDocument={fakePdfDocument(doc)} pageNum={1} />, host!));
+    act(() => render(<PdfPageCanvas pdfDocument={doc} pageNum={1} />, host!));
     host!.addEventListener('page-painted', painted);
     // the document is replaced and destroyed while getPage is pending
     act(() => render(<PdfPageCanvas pdfDocument={null} pageNum={1} />, host!));
-    resolvePage(page);
+    await doc.loadingTask.destroy();
     await act(flush);
 
     expect(reportError).not.toHaveBeenCalled();
@@ -54,25 +55,22 @@ describe('PdfPageCanvas when the document is destroyed between getPage and rende
     // The real race: the app destroys the old document before Preact has
     // re-rendered, so this effect is still `active` when page.render throws.
     const painted = vi.fn();
-    const page = {
-      rotate: 0,
-      getViewport: () => ({ width: 10, height: 10 }),
-      // Forced: same throw as above.
-      render: vi.fn(() => { throw new TypeError("Cannot read properties of null (reading 'get')"); }),
-      cleanup: vi.fn(),
-    };
-    let resolvePage!: (page: unknown) => void;
-    let destroyed = false;
-    const doc = { getPage: () => new Promise((r) => { resolvePage = r; }), loadingTask: { destroyed: false }, destroy: () => { destroyed = true; doc.loadingTask.destroyed = true; } };
+    const doc = await openDocument();
+    const page = await doc.getPage(1);
+    const renderPage = vi.spyOn(page, 'render');
+    const held = Promise.withResolvers<typeof page>();
+    // Forced: holds the real page until its document is destroyed; pdf.js has no such pause.
+    vi.spyOn(doc, 'getPage').mockReturnValue(held.promise);
 
-    act(() => render(<PdfPageCanvas pdfDocument={fakePdfDocument(doc)} pageNum={1} />, host!));
+    act(() => render(<PdfPageCanvas pdfDocument={doc} pageNum={1} />, host!));
     host!.addEventListener('page-painted', painted);
-    doc.destroy();
-    resolvePage(page);
+    await doc.loadingTask.destroy();
+    held.resolve(page);
     await act(flush);
 
-    expect(destroyed).toBe(true);
-    expect(page.render).toHaveBeenCalled();
+    expect(doc.loadingTask.destroyed).toBe(true);
+    // pdf.js's own throw, from a transport that is gone
+    expect(renderPage.mock.results.map((r) => [r.type, r.value instanceof TypeError])).toEqual([['throw', true]]);
     expect(reportError).not.toHaveBeenCalled();
     expect(painted).not.toHaveBeenCalled();
   });

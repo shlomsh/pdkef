@@ -144,6 +144,5 @@ describe('drawElements', () => {
     const placed = serialize.mock.calls.map(([, ctx]) => [ctx.pdfX, ctx.pdfY]);
     expect(placed[1]).toEqual(placed[0]);
     expect(placed[2]).toEqual(placed[0]);
-    serialize.mockRestore();
   });
 });

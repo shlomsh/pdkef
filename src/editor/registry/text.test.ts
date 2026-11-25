@@ -1,4 +1,8 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
+import { PDFDocument, StandardFonts } from '@cantoo/pdf-lib';
+import * as fontkit from 'fontkit';
+import { embeddedFontFile } from '../text/fonts.js';
 import { applyCombWidth, applyTextPosition, applyTextResize, combWidthFloor, textDefinition } from './text.ts';
 
 describe('applyCombWidth', () => {
@@ -145,19 +149,23 @@ describe('applyTextResize', () => {
 });
 
 describe('text serialize font choice', () => {
-  async function serializeWith(element: Record<string, unknown>) {
+  // A real page and real fonts: the bundled face, or Helvetica, which pdf-lib draws whole, without shaping.
+  async function serializeWith(element: Record<string, unknown>, { shaped = true } = {}) {
     const requested: string[] = [];
-    // Forced: a font of fixed 42pt width, so the line positions are exact; a real font changes every number
-    const loadCustomFont = vi.fn(async (family: string) => {
+    const pdfDoc = await PDFDocument.create();
+    pdfDoc.registerFontkit(fontkit);
+    const loadCustomFont = async (family: string) => {
       requested.push(family);
-      return { widthOfTextAtSize: () => 42 };
-    });
-    const page = { drawText: vi.fn() };
+      if (!shaped) return pdfDoc.embedFont(StandardFonts.Helvetica);
+      return pdfDoc.embedFont(readFileSync(`${process.cwd()}/public/fonts/${embeddedFontFile(family, 'normal', 'normal')}`), { subset: true });
+    };
+    const page = pdfDoc.addPage([612, 792]);
+    const drawText = vi.spyOn(page, 'drawText');
     await textDefinition.serialize(element as never, {
       page, pdfWidth: 612, pdfHeight: 792, pdfX: 100, pdfY: 700,
       loadCustomFont, baselineOffset: () => 0.85,
     } as never);
-    return { requested, page };
+    return { requested, drawText };
   }
 
   const base = { type: 'text', id: 't1', pageIndex: 0, left: 10, top: 10, fontSize: 12, fontWeight: 'normal', fontStyle: 'normal', color: '#000000' };
@@ -177,18 +185,17 @@ describe('text serialize font choice', () => {
   });
 
   it('draws nothing at all for a genuinely empty text value', async () => {
-    const { page, requested } = await serializeWith({ ...base, fontFamily: 'Caveat', text: '' });
+    const { drawText, requested } = await serializeWith({ ...base, fontFamily: 'Caveat', text: '' });
     expect(requested).toEqual([]);
-    expect(page.drawText).not.toHaveBeenCalled();
+    expect(drawText).not.toHaveBeenCalled();
   });
 
   it('keeps leading/trailing spaces and blank physical lines in export layout', async () => {
-    const { page } = await serializeWith({ ...base, fontFamily: 'Arimo', text: ' lead \n\ntrail ' });
-    // The fallback font in this focused serializer harness leaves text whole,
-    // which makes the exact strings and their baselines observable without
-    // duplicating fontkit's shaping implementation in the test.
-    expect(page.drawText.mock.calls.map(([value]) => value)).toEqual([' lead ', 'trail ']);
-    const [first, second] = page.drawText.mock.calls.map(([, options]) => options.y);
+    const { drawText } = await serializeWith({ ...base, fontFamily: 'Arimo', text: ' lead \n\ntrail ' }, { shaped: false });
+    // Helvetica leaves text whole, which makes the exact strings and their
+    // baselines observable without duplicating fontkit's shaping in the test.
+    expect(drawText.mock.calls.map(([value]) => value)).toEqual([' lead ', 'trail ']);
+    const [first, second] = drawText.mock.calls.map(([, options]) => options!.y!);
     // One blank line remains between the two inked lines, so the baseline
     // advances twice at the shared 1.05em line height (12pt * 1.05 * 2).
     expect(first - second).toBeCloseTo(25.2);
