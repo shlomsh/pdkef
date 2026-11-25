@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { searchTargetSize } from './targetSizeSearch.js';
 
 // A fake encoder whose size is a known function of scale and quality, so
@@ -104,19 +104,17 @@ describe('searchTargetSize', () => {
   });
 
   it('respects the deadline and stops trying further scales or quality steps', async () => {
-    let now = 1000;
-    const realNow = Date.now;
-    Date.now = () => now;
+    vi.useFakeTimers({ toFake: ['Date'], now: 1000 });
 
     try {
       const rendered = [];
       const renderAtScale = (scale) => {
         rendered.push(scale);
-        now += 10; // rendering takes some time
+        vi.advanceTimersByTime(10); // rendering takes some time
         return { scale };
       };
       const encode = (handle, quality) => {
-        now += 10; // encoding takes some time too
+        vi.advanceTimersByTime(10); // encoding takes some time too
         return Promise.resolve({ size: sizeFor(handle.scale, quality) });
       };
 
@@ -137,7 +135,7 @@ describe('searchTargetSize', () => {
       expect(rendered).toHaveLength(1);
       expect(result.scale).toBe(1);
     } finally {
-      Date.now = realNow;
+      vi.useRealTimers();
     }
   });
 

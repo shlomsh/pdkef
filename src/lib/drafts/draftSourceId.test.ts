@@ -49,15 +49,19 @@ describe('without Web Crypto (a page that is not a secure context)', () => {
 
   it('sourceIdForBytes returns the same id as with subtle present', async () => {
     const withSubtle = await sourceIdForBytes(bytes);
+    // Forced: Node and jsdom both have Web Crypto
     vi.stubGlobal('crypto', { subtle: undefined });
     expect(await sourceIdForBytes(bytes)).toBe(withSubtle);
+    expect(withSubtle).toBe('sha256:bacdef9c76b37eb70caaf81ea41ecddd56d625b72e453de5eabbd59745279847');
     expect(withSubtle).toMatch(/^sha256:[0-9a-f]{64}$/);
   });
 
   it('sourceIdForFiles returns the same id as with subtle present', async () => {
     const withSubtle = await sourceIdForFiles(files);
+    // Forced: Node and jsdom both have Web Crypto
     vi.stubGlobal('crypto', { subtle: undefined });
     expect(await sourceIdForFiles(files)).toBe(withSubtle);
+    expect(withSubtle).toBe('sha256:760e858f118b1efb08c6d8545eb8da2cba7c6024d2f5ae8a80e046dd1312de5b');
     expect(withSubtle).toMatch(/^sha256:[0-9a-f]{64}$/);
   });
 });

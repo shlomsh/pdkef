@@ -1,4 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+// @vitest-environment jsdom
+import { beforeEach, describe, expect, it } from 'vitest';
 import {
   MAX_RECENT_FILES, clearCurrentEntry, readCurrentEntryId, readIndexEntries, recentFileKey,
   removeRecentMeta, setCurrentEntry, updateIndexHasWork, upsertIndexEntry,
@@ -8,15 +9,7 @@ import { RECENT_FILES_META_KEY } from './recentFilesKey.js';
 const row = (id: string, savedAt: number) => ({ id, tool: 'sign', fileName: `${id}.pdf`, fileType: 'application/pdf', savedAt });
 
 describe('draftRecentIndex', () => {
-  beforeEach(() => {
-    const map = new Map<string, string>();
-    vi.stubGlobal('localStorage', {
-      getItem: (k: string) => map.get(k) ?? null,
-      setItem: (k: string, v: string) => { map.set(k, v); },
-      removeItem: (k: string) => { map.delete(k); },
-    });
-  });
-  afterEach(() => vi.unstubAllGlobals());
+  beforeEach(() => localStorage.clear());
 
   it('keeps a per-tool current-entry pointer', () => {
     expect(readCurrentEntryId('sign')).toBeNull();

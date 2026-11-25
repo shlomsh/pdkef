@@ -85,10 +85,12 @@ describe('startGesture', () => {
     }
 
     function setVisibility(state: 'hidden' | 'visible') {
+      // Forced: jsdom cannot hide a page
       Object.defineProperty(document, 'visibilityState', { configurable: true, value: state });
     }
 
     afterEach(() => {
+      // Forced: jsdom cannot hide a page
       delete (document as { visibilityState?: unknown }).visibilityState;
     });
 

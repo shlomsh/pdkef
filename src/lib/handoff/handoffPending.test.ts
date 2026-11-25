@@ -6,6 +6,7 @@ import {
   releaseHandoffPending,
   releaseHandoffPendingWhenLoaded,
 } from './handoffPending.ts';
+import { fillStorage } from '../../test/support/fullStorage.ts';
 import { waitUntil } from '../../test/support/waitUntil.ts';
 
 const KEY = 'pdkef:handoff-pending:';
@@ -42,11 +43,12 @@ describe('handoff pending marker', () => {
   });
 
   it('swallows blocked storage', () => {
-    const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
-      throw new Error('blocked');
-    });
+    fillStorage(sessionStorage);
+    // Live control: a write that grows the full storage really throws.
+    expect(() => sessionStorage.setItem('control', 'x')).toThrow();
     expect(() => markHandoffPending('merge')).not.toThrow();
-    spy.mockRestore();
+    expect(sessionStorage.getItem(`${KEY}merge`)).toBeNull();
+    sessionStorage.clear();
   });
 
   it('releases the attribute at once', () => {

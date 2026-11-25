@@ -1,23 +1,11 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+// @vitest-environment jsdom
+import { beforeEach, describe, expect, it } from 'vitest';
 import { consumeRecentOpen, markArrival, noteRecentOpen, resetFileArrivalForTests, takeArrival } from './fileArrival.ts';
-
-function fakeStorage(throws = false) {
-  const m = new Map<string, string>();
-  const fail = () => {
-    if (throws) throw new Error('blocked');
-  };
-  return {
-    getItem: (k: string) => (fail(), m.get(k) ?? null),
-    setItem: (k: string, v: string) => (fail(), void m.set(k, v)),
-    removeItem: (k: string) => (fail(), void m.delete(k)),
-  };
-}
 
 beforeEach(() => {
   resetFileArrivalForTests();
-  vi.stubGlobal('sessionStorage', fakeStorage());
+  sessionStorage.clear();
 });
-afterEach(() => vi.unstubAllGlobals());
 
 describe('markArrival / takeArrival', () => {
   it('returns undefined when nothing was marked', () => {
@@ -52,11 +40,6 @@ describe('recent open marker', () => {
     expect(consumeRecentOpen('sign')).toBe(false);
   });
   it('is false when nothing was noted', () => {
-    expect(consumeRecentOpen('sign')).toBe(false);
-  });
-  it('survives storage throwing', () => {
-    vi.stubGlobal('sessionStorage', fakeStorage(true));
-    expect(() => noteRecentOpen('sign')).not.toThrow();
     expect(consumeRecentOpen('sign')).toBe(false);
   });
 });

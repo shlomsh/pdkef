@@ -6,7 +6,7 @@ import { reportError } from '../telemetry/errorReport.ts';
 import { hasIndexedDB, reportStoreError } from './draftIdb.ts';
 
 describe('draftIdb', () => {
-  afterEach(() => { vi.unstubAllGlobals(); vi.mocked(reportError).mockClear(); });
+  afterEach(() => { vi.mocked(reportError).mockClear(); });
 
   it('does not report the two environment errors', () => {
     reportStoreError('drafts', Object.assign(new Error('x'), { name: 'InvalidStateError' }), 'open');
@@ -20,10 +20,13 @@ describe('draftIdb', () => {
     expect(reportError).toHaveBeenCalledWith('drafts', error, 'step');
   });
 
-  it('detects whether IndexedDB exists', () => {
-    vi.stubGlobal('indexedDB', undefined);
+  // Last in the file: importing fake-indexeddb/auto installs a real indexedDB for the rest of it.
+  it('detects whether IndexedDB exists', async () => {
+    // Live control: Node really has no IndexedDB until the real implementation is loaded.
+    expect(typeof indexedDB).toBe('undefined');
     expect(hasIndexedDB()).toBe(false);
-    vi.stubGlobal('indexedDB', {});
+    await import('fake-indexeddb/auto');
+    expect(typeof indexedDB).toBe('object');
     expect(hasIndexedDB()).toBe(true);
   });
 });

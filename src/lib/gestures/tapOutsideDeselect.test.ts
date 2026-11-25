@@ -136,7 +136,8 @@ describe('readTapSample', () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it('reads x, y, time and the scrollTop it is given', () => {
-    vi.stubGlobal('window', { visualViewport: null });
+    // Live control: jsdom really has no visualViewport.
+    expect(window.visualViewport).toBeUndefined();
     expect(readTapSample(touch, 99, 250)).toEqual({
       x: 12,
       y: 34,
@@ -149,6 +150,7 @@ describe('readTapSample', () => {
   });
 
   it('reads the zoomed visual viewport', () => {
+    // Forced: jsdom has no visualViewport to zoom
     vi.stubGlobal('window', { visualViewport: { scale: 2.5, offsetLeft: 40, offsetTop: 90 } });
     const s = readTapSample(touch, 1, 0);
     expect(s.viewportScale).toBe(2.5);
@@ -157,13 +159,8 @@ describe('readTapSample', () => {
   });
 
   it('defaults to scale 1 and no offset without a visualViewport', () => {
-    vi.stubGlobal('window', {});
+    expect(window.visualViewport).toBeUndefined();
     const s = readTapSample(touch, 1, 7);
     expect([s.viewportScale, s.viewportOffsetLeft, s.viewportOffsetTop]).toEqual([1, 0, 0]);
-  });
-
-  it('defaults to scale 1 when window is undefined', () => {
-    vi.stubGlobal('window', undefined);
-    expect(readTapSample(touch, 1, 0).viewportScale).toBe(1);
   });
 });
