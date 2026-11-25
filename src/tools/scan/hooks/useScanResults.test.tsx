@@ -4,6 +4,7 @@ import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { reportError } from '#lib/telemetry/errorReport.ts';
 import { newPage } from '../lib/scanPages.ts';
+import { processPage } from '../lib/scanPipeline.ts';
 import { ScanWork, type ScanPage } from '../state/scanWork.ts';
 import { useScanResults } from './useScanResults.ts';
 
@@ -23,13 +24,21 @@ async function fail(page: ScanPage, before: (work: ScanWork) => void) {
   work.pages = [page];
   before(work);
   const dispatch = vi.fn();
-  const processed = vi.fn().mockRejectedValue(new Error('boom')); // forced: the run rejects
+  // The real run, on a file that is no picture, so it rejects. Kept, so the test can await its end.
+  const runs: ReturnType<typeof processPage>[] = [];
+  const processed = (picked: ScanPage) => {
+    const run = processPage(picked.file, picked.quad, picked.filter);
+    runs.push(run);
+    return run;
+  };
   function Host() {
     useScanResults({ pages: [page], work, processed, unmountedRef: { current: false }, dispatch, results: {}, setResults: vi.fn(), turnedPreviews: {} });
     return null;
   }
   container = document.createElement('div');
   await act(async () => { render(<Host />, container!); });
+  await act(async () => { await Promise.allSettled(runs); });
+  await expect(runs[0]).rejects.toThrow();
   await act(async () => { await drainPromises(); });
   return dispatch;
 }

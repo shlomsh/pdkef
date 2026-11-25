@@ -5,7 +5,7 @@ afterEach(() => {
   vi.resetModules();
 });
 
-/** The worker module loaded against a stand-in `self`; its replies land in `postMessage`. */
+/** The worker module loaded against a mock `self`; its replies land in `postMessage`. */
 async function loadWorker() {
   const postMessage = vi.fn();
   const scope: { postMessage: typeof postMessage; onmessage?: (e: unknown) => Promise<void> } = { postMessage };

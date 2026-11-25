@@ -5,7 +5,7 @@ describe('openCamera', () => {
   it('throws a TypeError when navigator.mediaDevices is missing', () => {
     // Node's navigator is the real thing here and has no mediaDevices, as on an insecure page.
     expect(navigator.mediaDevices).toBeUndefined();
-    expect(() => openCamera()).toThrow(TypeError);
+    expect(() => openCamera()).toThrow(new TypeError('navigator.mediaDevices is not available'));
   });
 });
 
