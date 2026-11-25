@@ -8,7 +8,6 @@ import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { pointAtLegacyWorker } from './realPdfjs.ts';
 import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
-import type { DocumentInitParameters } from 'pdfjs-dist/types/src/display/api';
 
 /** A box in page percent, as the Redact check takes them (structurally its PercentBox). */
 type PercentBox = { left: number; top: number; width: number; height: number };
@@ -54,19 +53,6 @@ export async function buildPdf(pages: PageSpec[], options: { title?: string } = 
 }
 
 pointAtLegacyWorker(pdfjs);
-
-/** Every loading task the check opened through `legacyPdfjs`, so a test can see it was destroyed. */
-export const openedTasks: ReturnType<typeof pdfjs.getDocument>[] = [];
-
-/** The legacy pdf.js build, as `getPdfjs()` hands it out, remembering the tasks the check opens. */
-export function legacyPdfjs(): typeof pdfjs {
-  return { ...pdfjs, getDocument: ((params: DocumentInitParameters) => {
-    // Forwards the check's own wasmUrl, so the run decodes what production decodes.
-    const task = pdfjs.getDocument({ ...params, wasmUrl: params.wasmUrl });
-    openedTasks.push(task);
-    return task;
-  }) as typeof pdfjs.getDocument };
-}
 
 /** The original file as the island holds it: an open pdf.js document. Call `close` when done. */
 export async function openOriginal(bytes: Uint8Array, wasmUrl: string): Promise<{ doc: PDFDocumentProxy; close: () => Promise<void> }> {
