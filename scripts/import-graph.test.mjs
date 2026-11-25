@@ -194,7 +194,7 @@ describe('importSpecifiers and importGlobPatterns skip passes whose trigger is a
     expect(() => importSpecifiers('const m = import // why\n(name);', 'x.js')).toThrow(/computed import at x\.js:1/);
   });
   it('import( inside a comment, or a bare import word, adds nothing', () => {
-    expect(importSpecifiers('// import(x)\n/* import (y) */\nconst important = 1;// import', 'src/x.js')).toEqual([]);
+    expect(importSpecifiers('// import(x)\n/* import (y) */\nconst important = 1; /' + '/ import', 'src/x.js')).toEqual([]);
   });
   it('reads new URL(..., import.meta.url) with whitespace, and ignores one in a comment', () => {
     expect(importSpecifiers("const u = new URL(\n  './w.js',\n  import.meta.url\n);", 'src/x.js')).toEqual(['./w.js']);
