@@ -35,7 +35,7 @@ describe('FontPickerMenu', () => {
     vi.useRealTimers();
     // Undo any installMatchMedia() call so later tests get useCoarsePointer's
     // own no-matchMedia default (fine pointer), same as jsdom's own default.
-    // Forced: removing the matchMedia stub leaves setup.js's always-matching one
+    // Forced: undoes the stub above, leaving no matchMedia, which reads as a fine pointer
     delete (window as any).matchMedia;
     if (container) {
       act(() => render(null, container as any));

@@ -25,7 +25,7 @@ describe('ElementToolbar font picker wiring', () => {
   });
 
   afterEach(() => {
-    // Forced: removing the matchMedia stub leaves setup.js's always-matching one
+    // Forced: undoes the stub above, leaving no matchMedia, which reads as a fine pointer
     delete (window as any).matchMedia;
     if (container) {
       act(() => render(null, container as any));
