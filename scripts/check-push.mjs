@@ -35,7 +35,8 @@ import { execFileSync, spawn, spawnSync } from 'node:child_process';
 import { availableParallelism } from 'node:os';
 import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { dirname, join, resolve as resolvePath } from 'node:path';
+import { delimiter, dirname, join, resolve as resolvePath } from 'node:path';
+import { RATCHET_FILE_GUARDS, resolveGuardCommand } from './run-guards.mjs';
 import { resolveBase, changedFiles, classify, isDocsOnly } from './change-scope.mjs';
 import { resolveScope, runE2eProduct, runE2ePerf, runFonts, runExportGuards } from './affected-scope.mjs';
 import { resolveUnitScope, runUnitByImpact } from './unit-scope.mjs';
@@ -378,15 +379,23 @@ function computeScope() {
 // the rest of the stage. `spawnStep(id)` returns a child-process-like object
 // (stdout/stderr emitters, kill(), a `close` event) so the close handling is
 // testable without real subprocesses.
-export function runStageWith(ids, { spawnStep, limit = Math.max(2, availableParallelism()), log = console.error } = {}) {
+// `laneOf(id)` names a lane and `laneLimits[lane]` caps how many of that lane run at once, beside
+// the overall `limit`: cheap guards get a small lane so the unit step and the build keep the cores.
+// A queued step whose lane is full is skipped past, not waited for.
+export function runStageWith(ids, { spawnStep, limit = Math.max(2, availableParallelism()), log = console.error, laneOf = () => 'step', laneLimits = {} } = {}) {
   return new Promise((resolve) => {
     const queue = [...ids];
     const results = [];
     const running = new Set();
+    const laneCount = {};
     let failed = false;
     const pump = () => {
-      while (!failed && running.size < limit && queue.length > 0) {
-        const id = queue.shift();
+      while (!failed && running.size < limit) {
+        const at = queue.findIndex((id) => (laneCount[laneOf(id)] ?? 0) < (laneLimits[laneOf(id)] ?? Infinity));
+        if (at === -1) break;
+        const [id] = queue.splice(at, 1);
+        const lane = laneOf(id);
+        laneCount[lane] = (laneCount[lane] ?? 0) + 1;
         const t0 = Date.now();
         const child = spawnStep(id);
         let out = '';
@@ -395,6 +404,7 @@ export function runStageWith(ids, { spawnStep, limit = Math.max(2, availablePara
         running.add(child);
         child.on('close', (code, signal) => {
           running.delete(child);
+          laneCount[lane] -= 1;
           // A sibling killed after a failure leaves no result, but it must still
           // fall through to the resolve check below: it may be the last to close.
           if (!(signal && failed)) {
@@ -416,9 +426,42 @@ export function runStageWith(ids, { spawnStep, limit = Math.max(2, availablePara
   });
 }
 
+// Guards run from their package.json command, not `npm run -s` and not a `--step` child that
+// recomputes the scope: a 0.05s guard then costs about that. null when the command needs npm.
+export const GUARD_LANE_LIMIT = 3;
+const LONGEST_GUARD = 'test:spec-file-reads';
+
+export function guardCommand(id, scripts) {
+  if (id === 'check-orphaned-selectors') return 'node scripts/check-orphaned-selectors.mjs';
+  if (id === 'check-class-resolution') return 'node scripts/check-class-resolution.js';
+  try {
+    return resolveGuardCommand(id, scripts);
+  } catch {
+    return null;
+  }
+}
+
+// Long steps first so they start at once, then the longest guard, then the rest in plan order.
+export function orderStage(ids, isGuard) {
+  const rank = (id) => (!isGuard(id) ? 0 : id === LONGEST_GUARD ? 1 : 2);
+  return ids.map((id, i) => ({ id, i })).sort((a, b) => rank(a.id) - rank(b.id) || a.i - b.i).map((x) => x.id);
+}
+
+// The guards that share scripts/ratchet-limits.json take a lane of their own, one at a time.
+export function guardLane(id, isGuard) {
+  if (!isGuard(id)) return 'step';
+  return RATCHET_FILE_GUARDS.includes(id) ? 'ratchet' : 'guard';
+}
+
 function runStage(ids, passthroughArgs) {
-  const spawnStep = (id) => spawn('node', [fileURLToPath(import.meta.url), '--step', id, ...passthroughArgs], { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'] });
-  return runStageWith(ids, { spawnStep });
+  const { scripts } = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
+  const commands = new Map(ids.filter((id) => ALWAYS_GUARD_STEPS.includes(id)).map((id) => [id, guardCommand(id, scripts)]).filter(([, command]) => command));
+  const env = { ...process.env, PATH: [join(ROOT, 'node_modules', '.bin'), process.env.PATH].filter(Boolean).join(delimiter) };
+  const spawnStep = (id) => (commands.has(id)
+    ? spawn(commands.get(id), { shell: true, cwd: ROOT, env, stdio: ['ignore', 'pipe', 'pipe'] })
+    : spawn('node', [fileURLToPath(import.meta.url), '--step', id, ...passthroughArgs], { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'] }));
+  const isGuard = (id) => commands.has(id);
+  return runStageWith(orderStage(ids, isGuard), { spawnStep, laneOf: (id) => guardLane(id, isGuard), laneLimits: { guard: GUARD_LANE_LIMIT, ratchet: 1 } });
 }
 
 async function main() {

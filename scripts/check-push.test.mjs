@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events';
 import { describe, expect, it } from 'vitest';
-import { runStageWith, touchesAstro, fileCannotReachDist, reachesDist, planSteps, stageSteps, localScope, portOwnerVerdict, ALWAYS_GUARD_STEPS, DIST_GUARD_STEPS, DOCS_ONLY_STEPS, distGuardScripts, STEP_RUNNERS } from './check-push.mjs';
+import { runStageWith, touchesAstro, fileCannotReachDist, reachesDist, planSteps, stageSteps, localScope, portOwnerVerdict, ALWAYS_GUARD_STEPS, DIST_GUARD_STEPS, DOCS_ONLY_STEPS, distGuardScripts, STEP_RUNNERS, guardCommand, guardLane, orderStage } from './check-push.mjs';
 import { deriveScope, wide, finishScope } from './affected-scope.mjs';
 import { narrowTestOnlyChange } from './test-only-scope.mjs';
 import { classify } from './change-scope.mjs';
@@ -380,6 +380,65 @@ describe('runStageWith', () => {
     const r = await settled(stage);
     expect(r.failed).toBe(true);
     expect([...children.keys()]).toEqual(['a']);
+  });
+});
+
+describe('guard lane', () => {
+  const fake = () => {
+    const children = new Map();
+    const spawnStep = (id) => {
+      const child = new EventEmitter();
+      child.stdout = new EventEmitter();
+      child.stderr = new EventEmitter();
+      child.kill = () => queueMicrotask(() => child.emit('close', null, 'SIGTERM'));
+      children.set(id, child);
+      return child;
+    };
+    return { children, spawnStep };
+  };
+  const laneOf = (id) => (id.startsWith('g') ? 'guard' : 'step');
+
+  it('caps guards at the lane limit while a long step still starts beside them', async () => {
+    const { children, spawnStep } = fake();
+    const stage = runStageWith(['g1', 'g2', 'g3', 'unit', 'build'], { spawnStep, limit: 8, log: () => {}, laneOf, laneLimits: { guard: 2 } });
+    expect([...children.keys()]).toEqual(['g1', 'g2', 'unit', 'build']);
+    children.get('g1').emit('close', 0, null);
+    expect([...children.keys()]).toEqual(['g1', 'g2', 'unit', 'build', 'g3']);
+    for (const id of ['g2', 'g3', 'unit', 'build']) children.get(id).emit('close', 0, null);
+    const r = await stage;
+    expect(r.failed).toBe(false);
+    expect(r.results).toHaveLength(5);
+  });
+
+  it('a failed guard is named, reports its exit code and stops the rest', async () => {
+    const { children, spawnStep } = fake();
+    const logs = [];
+    const stage = runStageWith(['g1', 'g2', 'g3'], { spawnStep, limit: 8, log: (m) => logs.push(m), laneOf, laneLimits: { guard: 2 } });
+    children.get('g1').stdout.emit('data', 'boom');
+    children.get('g1').emit('close', 3, null);
+    const r = await stage;
+    expect(r.failed).toBe(true);
+    expect([...children.keys()]).toEqual(['g1', 'g2']);
+    expect(logs.join('\n')).toMatch(/g1: .*\(exit 3\)[\s\S]*--- g1 output ---\nboom/);
+  });
+
+  it('a guard that shares the limits file takes the one-at-a-time lane', () => {
+    const isGuard = (id) => id !== 'unit';
+    expect(['unit', 'test:any-ratchet', 'test:licenses'].map((id) => guardLane(id, isGuard))).toEqual(['step', 'ratchet', 'guard']);
+  });
+
+  it('orderStage starts long steps first, then the longest guard, then guards in plan order', () => {
+    const isGuard = (id) => id.startsWith('t') || id === 'test:spec-file-reads';
+    expect(orderStage(['t1', 't2', 'test:spec-file-reads', 'unit', 'build'], isGuard)).toEqual(['unit', 'build', 'test:spec-file-reads', 't1', 't2']);
+  });
+
+  it('guardCommand resolves the package.json command without npm, and null when npm is needed', () => {
+    const scripts = { a: 'node a.mjs', b: 'node b.mjs', prea: 'x', c: 'echo $npm_package_name' };
+    expect(guardCommand('b', scripts)).toBe('node b.mjs');
+    expect(guardCommand('a', scripts)).toBeNull();
+    expect(guardCommand('c', scripts)).toBeNull();
+    expect(guardCommand('missing', scripts)).toBeNull();
+    expect(guardCommand('check-class-resolution', scripts)).toBe('node scripts/check-class-resolution.js');
   });
 });
 

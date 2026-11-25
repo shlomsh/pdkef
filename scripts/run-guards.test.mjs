@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { EventEmitter } from 'node:events';
 import { join } from 'node:path';
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { resolveGuardCommand, shellQuote, runGuards, RATCHET_FILE_GUARDS } from './run-guards.mjs';
 
@@ -175,11 +175,9 @@ describe('guards that share scripts/ratchet-limits.json', () => {
   it('are exactly the npm scripts that run a script importing ratchet-limits.mjs', () => {
     const dir = fileURLToPath(new URL('.', import.meta.url));
     const scripts = JSON.parse(readFileSync(join(dir, '..', 'package.json'), 'utf8')).scripts;
-    const users = readdirSync(dir).filter((f) => /\.(mjs|js)$/.test(f) && !/\.test\./.test(f) && f !== 'ratchet-limits.mjs' && /from '\.\/ratchet-limits\.mjs'/.test(readFileSync(join(dir, f), 'utf8')));
-    expect(users.length).toBeGreaterThan(5);
-    const names = Object.entries(scripts)
-      .filter(([, command]) => users.some((f) => command.includes(`scripts/${f}`)))
-      .map(([name]) => name);
+    const usesLimits = (command) => (command.match(/scripts\/[\w-]+\.m?js/g) ?? []).some((f) => /from '\.\/ratchet-limits\.mjs'/.test(readFileSync(join(dir, '..', f), 'utf8')));
+    const names = Object.entries(scripts).filter(([, command]) => usesLimits(command)).map(([name]) => name);
+    expect(names.length).toBeGreaterThan(5);
     expect(names.sort()).toEqual([...RATCHET_FILE_GUARDS].sort());
   });
 });

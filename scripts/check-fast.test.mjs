@@ -179,5 +179,5 @@ await exitWithMain(async () => {
     expect(out.length).toBeGreaterThan(2e6);
     expect(out.trimEnd().endsWith('check:fast FAIL at big')).toBe(true);
     expect(code).toBe(1);
-  }, 30000);
+  });
 });
