@@ -3,13 +3,10 @@ import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('#lib/telemetry/errorReport.ts', { spy: true });
-// The real getPdfRenderContext runs; jsdom has no 2D context, so its one forced result is set in beforeEach.
-vi.mock('#lib/pdf/pdfRender.js', { spy: true });
 
 import { fakePdfDocument } from '../test/support/fakePdfJs.ts';
 import { drainPromises } from '../test/support/drainPromises.ts';
 import PdfPageCanvas from './PdfPageCanvas.tsx';
-import { getPdfRenderContext } from '#lib/pdf/pdfRender.js';
 import { reportError } from '#lib/telemetry/errorReport.ts';
 
 const flush = () => drainPromises();
@@ -17,7 +14,6 @@ const flush = () => drainPromises();
 describe('PdfPageCanvas when the document is destroyed between getPage and render', () => {
   let host: HTMLElement | null = null;
   beforeEach(() => {
-    vi.mocked(getPdfRenderContext).mockReturnValue({ drawImage: vi.fn() } as unknown as CanvasRenderingContext2D); // forced, every test: jsdom has no 2D context
     vi.mocked(reportError).mockClear();
     vi.spyOn(console, 'error');
     host = document.createElement('div');
@@ -34,6 +30,7 @@ describe('PdfPageCanvas when the document is destroyed between getPage and rende
     const page = {
       rotate: 0,
       getViewport: () => ({ width: 10, height: 10 }),
+      // Forced: a real destroyed transport cannot be caught between getPage and render here.
       // pdf.js reads `this.#methodPromises` of a destroyed transport
       render: vi.fn(() => { throw new TypeError("Cannot read properties of null (reading 'get')"); }),
       cleanup: vi.fn(),
@@ -60,6 +57,7 @@ describe('PdfPageCanvas when the document is destroyed between getPage and rende
     const page = {
       rotate: 0,
       getViewport: () => ({ width: 10, height: 10 }),
+      // Forced: same throw as above.
       render: vi.fn(() => { throw new TypeError("Cannot read properties of null (reading 'get')"); }),
       cleanup: vi.fn(),
     };

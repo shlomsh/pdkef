@@ -32,6 +32,7 @@ beforeEach(() => {
   tasks = [];
   docs = [];
   const lib = legacyPdfjs();
+  // Forced: the shipped pdf.js needs a browser Worker, so the node build.
   vi.mocked(getPdfjs).mockResolvedValue({
     ...lib,
     getDocument: ((params: Parameters<typeof lib.getDocument>[0]) => {

@@ -12,6 +12,7 @@ afterEach(() => {
 
 describe('toggleWorkspaceFullscreen', () => {
   it('asks the workspace for real fullscreen and records it', () => {
+    // Forced: jsdom has no fullscreen API.
     const workspace = { requestFullscreen: vi.fn(() => Promise.resolve()) } as any;
     const setPseudo = vi.fn();
     toggleWorkspaceFullscreen(workspace, false, setPseudo);
@@ -21,6 +22,7 @@ describe('toggleWorkspaceFullscreen', () => {
   });
 
   it('falls back to pseudo fullscreen when the request is refused', async () => {
+    // Forced: jsdom has no fullscreen API.
     const workspace = { requestFullscreen: vi.fn(() => Promise.reject(new Error('no'))) } as any;
     const setPseudo = vi.fn();
     toggleWorkspaceFullscreen(workspace, false, setPseudo);
@@ -35,6 +37,7 @@ describe('toggleWorkspaceFullscreen', () => {
 
     it('falls back to pseudo fullscreen once the wait is over, and not before', () => {
       vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      // Forced: jsdom has no requestFullscreen.
       const workspace = { requestFullscreen: vi.fn(() => new Promise<void>(() => {})) } as any;
       const setPseudo = vi.fn();
       toggleWorkspaceFullscreen(workspace, false, setPseudo);
@@ -46,6 +49,7 @@ describe('toggleWorkspaceFullscreen', () => {
 
     it('does not fall back when the request is granted in time', async () => {
       vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      // Forced: jsdom has no requestFullscreen.
       const workspace = { requestFullscreen: vi.fn(() => Promise.resolve()) } as any;
       const setPseudo = vi.fn();
       toggleWorkspaceFullscreen(workspace, false, setPseudo);
@@ -57,7 +61,9 @@ describe('toggleWorkspaceFullscreen', () => {
     it('leaves real fullscreen again when it is granted after the fallback, so one full screen remains', async () => {
       vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
       let grant!: () => void;
+      // Forced: jsdom has no requestFullscreen.
       const workspace = { requestFullscreen: vi.fn(() => new Promise<void>((resolve) => { grant = resolve; })) } as any;
+      // Forced: jsdom has no exitFullscreen.
       const exit = vi.fn(() => Promise.resolve());
       (document as any).exitFullscreen = exit;
       const setPseudo = vi.fn();
@@ -73,7 +79,9 @@ describe('toggleWorkspaceFullscreen', () => {
     it('a second press during the wait cancels the request instead of asking again', async () => {
       vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
       let grant!: () => void;
+      // Forced: jsdom has no requestFullscreen.
       const workspace = { requestFullscreen: vi.fn(() => new Promise<void>((resolve) => { grant = resolve; })) } as any;
+      // Forced: jsdom has no exitFullscreen.
       const exit = vi.fn(() => Promise.resolve());
       (document as any).exitFullscreen = exit;
       const setPseudo = vi.fn();
@@ -91,6 +99,7 @@ describe('toggleWorkspaceFullscreen', () => {
 
     it('does not fall back for a workspace that has left the page', () => {
       vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      // Forced: jsdom has no requestFullscreen.
       const workspace = { isConnected: true, requestFullscreen: vi.fn(() => new Promise<void>(() => {})) } as any;
       const setPseudo = vi.fn();
       toggleWorkspaceFullscreen(workspace, false, setPseudo);
@@ -101,6 +110,7 @@ describe('toggleWorkspaceFullscreen', () => {
 
     it('does not fall back when real fullscreen is already on', () => {
       vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      // Forced: jsdom has no requestFullscreen.
       const workspace = { requestFullscreen: vi.fn(() => new Promise<void>(() => {})) } as any;
       const setPseudo = vi.fn();
       toggleWorkspaceFullscreen(workspace, false, setPseudo);
@@ -112,7 +122,9 @@ describe('toggleWorkspaceFullscreen', () => {
     it('a late grant of an earlier request leaves alone the full screen a newer request asked for', async () => {
       vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
       const grants: Array<() => void> = [];
+      // Forced: jsdom has no requestFullscreen.
       const workspace = { requestFullscreen: vi.fn(() => new Promise<void>((resolve) => { grants.push(resolve); })) } as any;
+      // Forced: jsdom has no exitFullscreen.
       const exit = vi.fn(() => Promise.resolve());
       (document as any).exitFullscreen = exit;
       const setPseudo = vi.fn();
@@ -129,6 +141,7 @@ describe('toggleWorkspaceFullscreen', () => {
     it('a refusal after the fallback does not fall back a second time', async () => {
       vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
       let refuse!: (err: Error) => void;
+      // Forced: jsdom has no requestFullscreen.
       const workspace = { requestFullscreen: vi.fn(() => new Promise<void>((_, reject) => { refuse = reject; })) } as any;
       const setPseudo = vi.fn();
       toggleWorkspaceFullscreen(workspace, false, setPseudo);

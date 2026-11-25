@@ -145,8 +145,9 @@ describe('which end of the swipe is the press', () => {
 
 describe('startHighlightSwipe with a given reader', () => {
   it('uses the reader it is given and reads no canvas', () => {
-    const getContext = vi.fn(() => ({ getImageData }));
+    const getContext = vi.fn() as never; // never called, so it needs no answer
     const band = { left: 10, top: 20, width: 30, height: 5 };
+    // Forced: a hand-made reader, the one production caller always wraps createSwipeReader.
     const reader = { bandsBetween: vi.fn(() => [band]), onText: vi.fn(), onLine: vi.fn() };
     const { dispatch } = setup(true, undefined, reader as never, getContext);
     move(60, 107);
@@ -159,6 +160,7 @@ describe('startHighlightSwipe with a given reader', () => {
 
 describe('startHighlightSwipe with directionAt', () => {
   const band = { left: 10, top: 20, width: 30, height: 5 };
+  // Forced: a hand-made reader that records the direction it is asked with.
   const readerSpy = () => ({ bandsBetween: vi.fn((..._args: unknown[]) => [band]), onText: vi.fn(), onLine: vi.fn() });
 
   it('asks it at each move, passes the answer to the bands and commits the last one', () => {

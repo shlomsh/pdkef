@@ -22,6 +22,7 @@ const tap = (el: Element) => {
 const button = (name: string) => [...host!.querySelectorAll('button')].filter((b) => b.textContent === name).pop()!;
 
 function mountPhone(text: string) {
+  // Forced: setup.js's matchMedia matches every query, so a coarse pointer is set by hand.
   vi.stubGlobal('matchMedia', (query: string) => ({ matches: query.includes('coarse'), media: query, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} }));
   host = document.createElement('div');
   document.body.appendChild(host);

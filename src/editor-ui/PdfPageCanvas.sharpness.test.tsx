@@ -1,94 +1,100 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
-// The real getPdfRenderContext runs; jsdom has no 2D context, so its one forced result is set in beforeEach.
-vi.mock('#lib/pdf/pdfRender.js', { spy: true });
-
+import { PDFDocument } from '@cantoo/pdf-lib';
+import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
-import { fakePdfDocument } from '../test/support/fakePdfJs.ts';
-import { drainPromises } from '../test/support/drainPromises.ts';
+import { pointAtLegacyWorker } from '../test/support/realPdfjs.ts';
 import PdfPageCanvas from './PdfPageCanvas.tsx';
-import { getPdfRenderContext } from '#lib/pdf/pdfRender.js';
 import { pageRenderScale, bucketWidth } from '#editor/adapters/pdf/pageRenderScale.js';
 
-const flush = () => drainPromises();
+pointAtLegacyWorker(pdfjs);
 const UNIT = { width: 595, height: 842 };
 
 describe('PdfPageCanvas renders at the size the page is shown', () => {
   let host: HTMLElement | null = null;
   let shownWidth: number;
   let observers: { cb: () => void }[];
-  let scales: number[];
+  let viewportSpy: { mock: { calls: Array<[{ scale: number }?]> } };
+  const scales = () => viewportSpy.mock.calls.map(([params]) => params!.scale);
   let doc: PDFDocumentProxy;
 
-  beforeEach(() => {
-    vi.mocked(getPdfRenderContext).mockReturnValue({ drawImage: vi.fn() } as unknown as CanvasRenderingContext2D); // forced, every test: jsdom has no 2D context
+  beforeEach(async () => {
     shownWidth = 790;
     observers = [];
-    scales = [];
-    vi.stubGlobal('devicePixelRatio', 2);
+    // Forced: jsdom has no screen density, so the test sets it.
+    window.devicePixelRatio = 2; // a real value, set on jsdom's own property
+    // Forced: jsdom never calls a ResizeObserver back, so the test calls it.
     vi.stubGlobal('ResizeObserver', class {
       cb: () => void;
       constructor(cb: () => void) { this.cb = cb; observers.push(this); }
       observe() {}
       disconnect() {}
     });
+    // Forced: jsdom has no layout, so the shown width is the test's own number.
     vi.spyOn(HTMLCanvasElement.prototype, 'clientWidth', 'get').mockImplementation(() => shownWidth);
-    const page = {
-      rotate: 0,
-      getViewport: ({ scale }: { scale: number }) => {
-        scales.push(scale);
-        return { width: UNIT.width * scale, height: UNIT.height * scale };
-      },
-      render: vi.fn(() => ({ promise: Promise.resolve(), cancel: vi.fn() })),
-      cleanup: vi.fn(),
-    };
-    doc = fakePdfDocument({ getPage: () => Promise.resolve(page), loadingTask: { destroyed: false } });
+    const pdf = await PDFDocument.create();
+    pdf.addPage([UNIT.width, UNIT.height]);
+    doc = await pdfjs.getDocument({ data: new Uint8Array(await pdf.save()) }).promise;
+    const page = await doc.getPage(1);
+    viewportSpy = vi.spyOn(page, 'getViewport');
     host = document.createElement('div');
     document.body.appendChild(host);
   });
-  afterEach(() => {
+  afterEach(async () => {
     act(() => render(null, host!));
     host!.remove();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+    // Forced: puts jsdom's own density back.
+    window.devicePixelRatio = 1;
+    await doc.loadingTask.destroy();
   });
+
+  // Resolves with the next real paint of the page.
+  const nextPaint = () => new Promise<void>((resolve) => host!.addEventListener('page-painted', () => resolve(), { once: true }));
+  const flush = async () => { await act(async () => { await new Promise((r) => setTimeout(r, 0)); }); };
 
   const expected = (css: number) => pageRenderScale({
     unitWidth: UNIT.width, unitHeight: UNIT.height, cssWidth: bucketWidth(css), dpr: 2,
   });
 
   it('paints the first time at the displayed device-pixel width, once', async () => {
+    const painted = nextPaint();
     act(() => render(<PdfPageCanvas pdfDocument={doc} pageNum={1} />, host!));
-    await act(flush);
+    await act(() => painted);
     const canvas = host!.querySelector<HTMLCanvasElement>('canvas')!;
     expect(canvas.width).toBe(Math.floor(UNIT.width * expected(790)));
     expect(canvas.width).toBeGreaterThan(UNIT.width * 1.5);
     // one paint: the scale-1 size probe plus one render viewport, no repaint at mount
-    expect(scales.filter((s) => s !== 1)).toHaveLength(1);
+    expect(scales().filter((s) => s !== 1)).toHaveLength(1);
   });
 
   it('repaints sharper when the shown width grows, and not for a few pixels', async () => {
+    const painted = nextPaint();
     act(() => render(<PdfPageCanvas pdfDocument={doc} pageNum={1} />, host!));
-    await act(flush);
-    const before = scales.length;
+    await act(() => painted);
+    const before = scales().length;
 
     shownWidth = 800; // same 64px bucket as 790
     act(() => observers.forEach((o) => o.cb()));
     await act(flush);
-    expect(scales.length).toBe(before);
+    expect(scales().length).toBe(before);
 
     shownWidth = 1200;
+    const repainted = nextPaint();
     act(() => observers.forEach((o) => o.cb()));
-    await act(flush);
+    await act(() => repainted);
     expect(host!.querySelector<HTMLCanvasElement>('canvas')!.width).toBe(Math.floor(UNIT.width * expected(1200)));
+    // the 800 px change made no paint of its own: one probe and one render each for 790 and 1200
+    expect(scales().filter((s) => s !== 1)).toHaveLength(2);
   });
 
   it('keeps the old fixed scale when the width cannot be measured', async () => {
     shownWidth = 0;
+    const painted = nextPaint();
     act(() => render(<PdfPageCanvas pdfDocument={doc} pageNum={1} />, host!));
-    await act(flush);
+    await act(() => painted);
     expect(host!.querySelector<HTMLCanvasElement>('canvas')!.width).toBe(Math.floor(UNIT.width * 1.5));
   });
 });

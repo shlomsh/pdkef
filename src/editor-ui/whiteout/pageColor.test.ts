@@ -1,6 +1,8 @@
-import { describe, it, expect, vi } from 'vitest';
+// @vitest-environment jsdom
+import { describe, it, expect } from 'vitest';
 import type { ColorMode } from '#editor/model/editorModel.ts';
-import { autoColorChanges, boxPixelRect, followsPage, medianColor, ringStrips } from './pageColor.ts';
+import { autoColorChanges, boxPixelRect, followsPage, medianColor, ringStrips, type PercentBox } from './pageColor.ts';
+import { sampleRingColor } from './pageSampling.ts';
 
 const px = (r: number, g: number, b: number, a = 255, n = 1) => Array.from({ length: n }, () => [r, g, b, a]).flat();
 
@@ -75,31 +77,47 @@ describe('followsPage', () => {
   });
 });
 
+// The sampler reads the ring of a real jsdom canvas painted one colour, and records what it was asked.
+function pageSampler(color: string) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 100;
+  canvas.height = 100;
+  const ctx = canvas.getContext('2d')!;
+  ctx.fillStyle = color;
+  ctx.fillRect(0, 0, 100, 100);
+  const calls: Array<[number, PercentBox]> = [];
+  const sample = (pageIndex: number, box: PercentBox) => {
+    calls.push([pageIndex, box]);
+    return sampleRingColor(canvas, box);
+  };
+  return { sample, calls };
+}
+
 describe('autoColorChanges', () => {
   const base = { type: 'whiteout', pageIndex: 2, left: 10, top: 10, width: 20, height: 5, color: '#ffffff', colorMode: 'auto' as ColorMode };
   it('re-samples at the new geometry on move and resize', () => {
-    const sample = vi.fn(() => '#eeeeee');
+    const { sample, calls } = pageSampler('#eeeeee');
     expect(autoColorChanges(base, { left: 30 }, sample)).toEqual({ color: '#eeeeee' });
-    expect(sample).toHaveBeenLastCalledWith(2, { left: 30, top: 10, width: 20, height: 5 });
+    expect(calls.at(-1)).toEqual([2, { left: 30, top: 10, width: 20, height: 5 }]);
     expect(autoColorChanges(base, { width: 40, height: 9 }, sample)).toEqual({ color: '#eeeeee' });
-    expect(sample).toHaveBeenLastCalledWith(2, { left: 10, top: 10, width: 40, height: 9 });
+    expect(calls.at(-1)).toEqual([2, { left: 10, top: 10, width: 40, height: 9 }]);
   });
   it('leaves custom boxes and unrelated edits alone without sampling', () => {
-    const sample = vi.fn(() => '#eeeeee');
+    const { sample, calls } = pageSampler('#eeeeee');
     expect(autoColorChanges({ ...base, colorMode: 'custom' as const }, { left: 1 }, sample)).toEqual({});
     expect(autoColorChanges({ ...base, repeatGroupId: 'g' }, { repeatGroupId: 'h' } as never, sample)).toEqual({});
     expect(autoColorChanges({ ...base, type: 'blackout' }, { left: 1 }, sample)).toEqual({});
-    expect(sample).not.toHaveBeenCalled();
+    expect(calls).toEqual([]);
   });
   it('ignores geometry keys whose value did not change', () => {
-    const sample = vi.fn(() => '#eeeeee');
+    const { sample, calls } = pageSampler('#eeeeee');
     expect(autoColorChanges(base, { left: 10, top: 10 }, sample)).toEqual({});
-    expect(sample).not.toHaveBeenCalled();
+    expect(calls).toEqual([]);
     expect(autoColorChanges(base, { left: 10, top: 11 }, sample)).toEqual({ color: '#eeeeee' });
-    expect(sample).toHaveBeenCalledTimes(1);
+    expect(calls).toHaveLength(1);
   });
   it('samples when a custom box switches to auto', () => {
-    const sample = vi.fn(() => '#abcdef');
+    const { sample } = pageSampler('#abcdef');
     expect(autoColorChanges({ ...base, colorMode: 'custom' as ColorMode }, { colorMode: 'auto' }, sample)).toEqual({ color: '#abcdef' });
   });
   it('adds nothing for a null sample or an unchanged colour', () => {

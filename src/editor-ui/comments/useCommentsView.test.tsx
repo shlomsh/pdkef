@@ -35,6 +35,7 @@ function Probe({ showContainer, width, elements = [], activeElementId = null, wi
   ) : null;
 }
 
+// Forced: jsdom never calls a ResizeObserver back.
 beforeEach(() => { vi.stubGlobal('ResizeObserver', FakeResizeObserver); });
 afterEach(() => {
   if (container) { act(() => render(null, container!)); container.remove(); container = null; }

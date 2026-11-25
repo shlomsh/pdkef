@@ -37,7 +37,9 @@ function installMatchMedia({ matches = false, modern = true } = {}) {
           },
         }),
   };
+  // Forced: setup.js's matchMedia matches every query and cannot be flipped.
   const matchMedia = vi.fn(() => query);
+  // Forced: same matchMedia.
   Object.defineProperty(window, 'matchMedia', { value: matchMedia, configurable: true, writable: true });
   return {
     matchMedia,
@@ -107,6 +109,7 @@ describe('useCoarsePointer', () => {
   });
 
   it('stays false where there is no matchMedia at all, rather than throwing', () => {
+    // Forced: matchMedia absent is the state under test.
     Object.defineProperty(window, 'matchMedia', { value: undefined, configurable: true, writable: true });
     const { apiRef } = mount();
     expect(apiRef.current.coarse).toBe(false);

@@ -12,6 +12,7 @@ describe('ArmHint and useAutoArmHint', () => {
   const realMatchMedia = window.matchMedia;
 
   const pretendDevice = (touch: boolean) => {
+    // Forced: setup.js's matchMedia matches every query and cannot be flipped.
     window.matchMedia = ((query: string) => ({
       matches: query.includes('coarse') ? touch : !touch,
       media: query,
@@ -48,6 +49,7 @@ describe('ArmHint and useAutoArmHint', () => {
   afterEach(() => {
     act(() => { render(null, container); });
     container.remove();
+    // Forced: puts the real matchMedia back.
     window.matchMedia = realMatchMedia;
     vi.useRealTimers();
   });
