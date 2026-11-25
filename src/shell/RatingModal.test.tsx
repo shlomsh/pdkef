@@ -176,6 +176,7 @@ describe('RatingPrompt as a modal (merge, sign, highlight-pdf, redact, scan-to-p
     rec.restore();
     rec = installBeaconRecorder({ returns: false });
     act(() => button(/^send$/i)!.click());
+    expect(rec.calls.length).toBeGreaterThan(0); // the send was tried, and refused
     expect(container.querySelector<HTMLTextAreaElement>('textarea')?.value).toBe('Saved my afternoon');
     expect(container.querySelector('[role="alert"]')).not.toBeNull();
   });
@@ -233,6 +234,7 @@ describe('RatingPrompt as a modal (merge, sign, highlight-pdf, redact, scan-to-p
     rec.restore();
     rec = installBeaconRecorder({ returns: false });
     act(() => button(/^send$/i)!.click());
+    expect(rec.calls.length).toBeGreaterThan(0); // the send was tried, and refused
     expect(container.querySelector<HTMLTextAreaElement>('textarea')?.value).toBe('It was slow on my phone today');
     expect(container.querySelector('[role="alert"]')).not.toBeNull();
     expect(localStorage.getItem('pdkef:rated:merge')).toBeNull();

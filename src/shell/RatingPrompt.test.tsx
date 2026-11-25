@@ -188,7 +188,7 @@ describe('RatingPrompt', () => {
     };
     const comments = async () => (await rec.bodies()).filter((e) => (e as { name: string }).name === 'tool_rating_comment');
 
-    it('shows after a high rating, never focused', async () => {
+    it('shows after a high rating, never focused', () => {
       showAfterDelay();
       act(() => stars()[3].click());
       expect(input().maxLength).toBe(500);
@@ -196,7 +196,7 @@ describe('RatingPrompt', () => {
       expect(document.activeElement).not.toBe(input());
     });
 
-    it('shows after a low rating too', async () => {
+    it('shows after a low rating too', () => {
       showAfterDelay();
       act(() => stars()[1].click());
       expect(form()).not.toBeNull();
