@@ -39,6 +39,9 @@ map in `.oxlintrc.json` (exact per-file counts): a new one fails, and `test:ratc
 added entry. A rule that misses or misfires on our code is fixed upstream, never with a local guard. The one
 disable is `colocated-tests`, a file-level line naming the test's subject. `no-test-doubles` is off.
 
+A `File` or `Blob` equals only itself in an assertion (`src/test/support/fileEquality.ts`, registered in `setup.js`); to check a copy, compare its name,
+type, size or bytes.
+
 No fixed sleeps (`no-fixed-sleep`, LAND-02; it counts Playwright `waitForTimeout` too). Wait for what the next assertion reads: `waitUntil` on the
 DOM, or a deferred the mock resolves. A "must not happen" check first waits for the stale operation to
 finish (a deferred in its mock), then `await drainPromises()` (`src/test/support/drainPromises.ts`)

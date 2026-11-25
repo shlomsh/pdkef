@@ -296,4 +296,5 @@ count). The rule is off meanwhile.
 - Merge comparison (2026-11-25): four mutations the old Merge suite caught got past the new one. Three have fast tests now; the fourth, thumbnails, stays in e2e.
 - Compress comparison (2026-11-25): of 113 mutations the new lower tests missed, the old browser suite caught five; each has a
   fast test now, proven. Two lessons: the kill of the result-URL mutation came from an unrelated old test, so it was a flake,
-  and `toHaveBeenCalledWith(file)` proves nothing in jsdom, where any two `File`s count as equal (use `toBe`).
+  and `toHaveBeenCalledWith(file)` proved nothing in jsdom, where any two `File`s counted as equal. The shared setup
+  now makes a `File` or `Blob` equal only to itself (`fileEquality.ts`); every test still passed.

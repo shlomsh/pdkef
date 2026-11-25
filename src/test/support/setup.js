@@ -1,3 +1,6 @@
+import { expect } from 'vitest';
+import { sameFile } from './fileEquality.ts';
+
 // Vitest global setup. jsdom doesn't implement every browser API the components
 // legitimately use, so we provide minimal stubs here rather than weakening the
 // production code to accommodate the test environment.
@@ -57,3 +60,5 @@ if (typeof window !== 'undefined' && window._virtualConsole) {
     if (!knownJsdomError.test(error?.message ?? '')) console.error(error);
   });
 }
+
+expect.addEqualityTesters([sameFile]);
