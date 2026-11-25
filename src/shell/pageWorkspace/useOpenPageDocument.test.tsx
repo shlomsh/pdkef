@@ -154,12 +154,13 @@ describe('useOpenPageDocument', () => {
   });
 
   it('reports a damaged PDF and shows the error state', async () => {
-    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const logged = vi.spyOn(console, 'error');
     mount();
     await act(async () => { current.open(new File(['this is not a pdf'], 'x.pdf', { type: 'application/pdf' })); });
     await waitUntil(() => current.loadStatus === 'error');
     await flush();
     // The literal message pdf.js raises for a file with no header, captured once from the real run.
+    expect(logged).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining('No PDF header found') }));
     expect(vi.mocked(reportError)).toHaveBeenCalledTimes(1);
     expect(vi.mocked(reportError)).toHaveBeenCalledWith(
       'pdf_tool_run',

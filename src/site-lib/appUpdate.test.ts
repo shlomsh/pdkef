@@ -893,7 +893,7 @@ describe('discovery', () => {
     const tab = makeTab(new Bus(), { waiting: worker });
     await tab.start();
     const before = criticalChecks(worker);
-    const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const errors = vi.spyOn(console, 'error');
     tab.reg.update = vi.fn(() => Promise.reject(new Error('offline')));
     tab.win.emit('online');
     await settle();

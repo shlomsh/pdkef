@@ -27,17 +27,19 @@ describe('loadNotes', () => {
     expect(await seen[0].json()).toEqual(COMMANDS);
   });
 
-  it('is empty, without a read or a warning each time, when there is no URL or no read-only token', async () => {
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+  it('is empty, without a read and with one warning, when there is no URL or no read-only token', async () => {
+    const warn = vi.spyOn(console, 'warn');
     const seen = store();
     expect(await loadNotes({})).toEqual([]);
     expect(await loadNotes({ KV_REST_API_URL: 'https://x', KV_REST_API_TOKEN: 'write' })).toEqual([]);
     expect(seen).toHaveLength(0);
+    expect(warn).toHaveBeenCalledTimes(2);
+    expect(warn).toHaveBeenCalledWith('[notes] no read-only store token: this build shows no pinned notes');
     warn.mockRestore();
   });
 
   it('is empty and warns once on a network error, a bad status or an unreadable body', async () => {
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const warn = vi.spyOn(console, 'warn');
     store(() => HttpResponse.error(), () => new HttpResponse(null, { status: 500 }), () => new HttpResponse('not json'), ok({ not: 'an array' }));
     expect(await loadNotes(env)).toEqual([]);
     expect(await loadNotes(env)).toEqual([]);

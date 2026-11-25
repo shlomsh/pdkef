@@ -24,7 +24,7 @@ const goodDeleteElement = {
 describe('validateDraftElements', () => {
   let errorSpy: ReturnType<typeof vi.spyOn>;
   beforeEach(() => {
-    errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    errorSpy = vi.spyOn(console, 'error');
   });
   afterEach(() => {
     errorSpy.mockRestore();
@@ -193,7 +193,7 @@ describe('validateDraftRecord', () => {
 
   let errorSpy: ReturnType<typeof vi.spyOn>;
   beforeEach(() => {
-    errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    errorSpy = vi.spyOn(console, 'error');
   });
   afterEach(() => {
     errorSpy.mockRestore();
@@ -405,7 +405,7 @@ describe('validateDraftRecord', () => {
 describe('dropUnsafeUpdates', () => {
   let errorSpy: ReturnType<typeof vi.spyOn>;
   beforeEach(() => {
-    errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    errorSpy = vi.spyOn(console, 'error');
   });
   afterEach(() => {
     errorSpy.mockRestore();
@@ -594,9 +594,10 @@ describe('remove-place history entries (RED-60)', () => {
   });
 
   it('survives validation, and a malformed one drops only itself', () => {
-    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const spy = vi.spyOn(console, 'error');
     const bad = { ...good, id: 'rp2', place: { kind: 7, text: 'x' } };
     expect(validateDraftRecord(rec([good, bad]))?.extra?.actionHistory).toEqual([good]);
+    expect(spy).toHaveBeenCalledWith('draftValidation: dropped 1 invalid history command(s)');
     spy.mockRestore();
   });
 

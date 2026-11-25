@@ -79,8 +79,9 @@ describe('an open tab whose file was removed', () => {
 
   it('knows its entry before the first write lands, so a failed write still counts', async () => {
     const put = vi.spyOn(IDBObjectStore.prototype, 'put').mockImplementation(() => { throw new Error('quota'); });
-    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const logged = vi.spyOn(console, 'error');
     expect(await saveDraft('sign', record('unsaved'))).toBe(false);
+    expect(logged).toHaveBeenCalledWith('draftStore.saveDraft failed:', expect.any(DOMException));
     put.mockRestore();
     const id = await sourceIdForBytes(record('unsaved').fileBytes);
     peerRemoved([id!]);

@@ -19,7 +19,7 @@ describe('PdfPageCanvas when the document is destroyed between getPage and rende
   beforeEach(() => {
     vi.mocked(getPdfRenderContext).mockReturnValue({ drawImage: vi.fn() } as unknown as CanvasRenderingContext2D); // forced, every test: jsdom has no 2D context
     vi.mocked(reportError).mockClear();
-    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'error');
     host = document.createElement('div');
     document.body.appendChild(host);
   });

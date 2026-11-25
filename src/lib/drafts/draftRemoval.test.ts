@@ -95,11 +95,12 @@ describe('removeRecentEntry (fake-indexeddb)', () => {
     const boom = new Error('boom');
     vi.spyOn(indexedDB, 'open').mockImplementation(() => { throw boom; });
     const report = vi.spyOn(errorReport, 'reportError');
-    const quiet = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const quiet = vi.spyOn(console, 'error');
 
     expect(await removeRecentEntry(id)).toBe(false);
 
     expect(report).toHaveBeenCalledWith('drafts', boom, 'remove_recent_entry');
+    expect(quiet).toHaveBeenCalledWith('draftStore.remove_recent_entry failed:', boom);
     expect(readRecentFiles().map((e) => e.id)).toEqual([id]);
     expect(readCurrentEntryId('sign')).toBe(id);
     expect(signalOf('sign')?.kind).toBe('saved');
