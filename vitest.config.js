@@ -114,7 +114,7 @@ export default defineConfig({
           name: 'browser',
           include: [BROWSER_TESTS],
           exclude: NEVER,
-          // Each parallel file gets its own Playwright context, so its own IndexedDB, localStorage, locks and service worker.
+          // Each parallel session gets its own Playwright context, so files running at once have their own IndexedDB, localStorage, locks and service worker.
           fileParallelism: true,
           maxWorkers: 3,
           browser: {
