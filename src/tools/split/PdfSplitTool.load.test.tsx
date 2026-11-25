@@ -1,11 +1,16 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { loadPdfWithPages } from '#lib/pdf/loadPdfPages.ts';
 import { hebrewSplitMessages } from './messages';
 import { hebrewShellMessages } from '#shell/shellMessages.ts';
-import { HeldFile } from '../../test/support/heldFile.ts';
-import { fixtureFile, fivePages, useSplitTool, waitUntil } from './components/splitTool.test-helper.tsx';
+import { fixtureFile, pdf, fivePages, useSplitTool, waitUntil } from './components/splitTool.test-helper.tsx';
+
+vi.mock('#lib/pdf/loadPdfPages.ts', { spy: true });
 
 describe('PdfSplitTool loading a file', () => {
   const s = useSplitTool();
+  beforeEach(() => {
+    vi.mocked(loadPdfWithPages).mockReset();
+  });
   afterEach(() => {
     vi.restoreAllMocks();
   });
@@ -43,14 +48,23 @@ describe('PdfSplitTool loading a file', () => {
   });
 
   it('ignores a load that was replaced before it finished', async () => {
-    // The first file (five pages) is a real file whose read is held open; the replacement (three pages) is not held.
-    const first = new HeldFile(await fivePages(), 'five.pdf');
+    let releaseFirst: (() => void) | undefined;
+    const before = vi.mocked(loadPdfWithPages).mock.calls.length;
+    // Forced: the loader works on bytes already read, so nothing of the test's own can hold it. The first load (five pages) is
+    // held open, then runs for real; the replacement (three pages) is not held.
+    vi.mocked(loadPdfWithPages).mockImplementationOnce(async (bytes) => {
+      await new Promise<void>((resolve) => { releaseFirst = resolve; });
+      const real = await vi.importActual<typeof import('#lib/pdf/loadPdfPages.ts')>('#lib/pdf/loadPdfPages.ts');
+      return real.loadPdfWithPages(bytes);
+    });
     s.mount();
-    await s.pickOnly(first);
-    await first.started;
+    await s.pickOnly(pdf('five.pdf', await fivePages()));
+    await waitUntil(() => expect(releaseFirst).toBeDefined());
     await s.replaceWith(fixtureFile('three-pages', 'three.pdf'));
     await s.drain();
-    first.release();
+    releaseFirst?.();
+    await s.drain();
+    await vi.mocked(loadPdfWithPages).mock.results[before]?.value;
     await s.drain();
     expect(s.cells()).toHaveLength(3);
     expect(s.field().value).toBe('1-3');

@@ -1,12 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act } from 'preact/test-utils';
-import { probeEncryption } from '#lib/pdf/pdfEncryption.ts';
 import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
 import { HeldFile } from '../../test/support/heldFile.ts';
+import { hideEncryption } from '../../test/support/hideEncryption.ts';
 import { buildSplit } from './lib/splitOutput.ts';
-import { fivePages, fixtureFile, pagesOf, waitUntil, useSplitTool } from './components/splitTool.test-helper.tsx';
+import { fivePages, fixtureFile, pagesOf, pdf, waitUntil, useSplitTool } from './components/splitTool.test-helper.tsx';
 
-vi.mock('#lib/pdf/pdfEncryption.ts', { spy: true });
 vi.mock('./lib/splitOutput.ts', { spy: true });
 
 const SLOW_QUIET = { baseMs: 60000, stepMs: 0, maxMs: 60000, burstWindowMs: 1 };
@@ -19,7 +18,6 @@ describe('PdfSplitTool finish', () => {
   afterEach(() => {
     installedShare?.restore();
     installedShare = undefined;
-    vi.mocked(probeEncryption).mockReset();
     vi.restoreAllMocks();
   });
 
@@ -115,11 +113,10 @@ describe('PdfSplitTool finish', () => {
   });
 
   it('a build that fails says so on the Download element and counts as a failed operation', async () => {
-    // Forced: the probe answers open for this owner-only file, so the split itself meets its protection (no real file reads
-    // as unencrypted to pdf.js yet encrypted to pdf-lib; a broken header or a dangling /Encrypt did not give one).
-    vi.mocked(probeEncryption).mockResolvedValueOnce('open');
+    // The check reads this file as open, so the split itself meets its protection.
     s.mount();
-    await s.pick(fixtureFile('owner-restricted', 'locked.pdf'));
+    const locked = new Uint8Array(await fixtureFile('owner-restricted', 'locked.pdf').arrayBuffer());
+    await s.pick(pdf('locked.pdf', hideEncryption(locked)));
     await waitUntil(() => expect(s.downloadElement().dataset.state).toBe('error'));
     await s.harness.flush();
     expect(s.container.querySelector('[role="alert"] a[href="/unlock/"]')).not.toBeNull();

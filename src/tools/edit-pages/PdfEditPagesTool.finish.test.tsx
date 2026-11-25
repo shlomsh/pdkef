@@ -1,14 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act } from 'preact/test-utils';
-import { probeEncryption } from '#lib/pdf/pdfEncryption.ts';
 import { getPdfLib } from '#lib/pdf/pdfLib.js';
 import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
 import { HeldFile } from '../../test/support/heldFile.ts';
+import { hideEncryption } from '../../test/support/hideEncryption.ts';
 import { healthy, ORIGINAL_WIDTHS } from '../../test/support/pdfPageTreeFixtures.ts';
 import { editPages } from './lib/editPages.js';
 import { encryptedFixture, pagesOf, pdf, useEditPagesTool, waitUntil } from './components/editPagesTool.test-helper.tsx';
 
-vi.mock('#lib/pdf/pdfEncryption.ts', { spy: true });
 vi.mock('./lib/editPages.js', { spy: true });
 
 describe('PdfEditPagesTool finish', () => {
@@ -32,10 +31,9 @@ describe('PdfEditPagesTool finish', () => {
   };
 
   it('a failed build points to Unlock, where a protected PDF can be opened', async () => {
-    // Forced: the probe answers open for this owner-only file, so the build itself meets its protection (no real file reads
-    // as unencrypted to pdf.js yet encrypted to pdf-lib; a broken header or a dangling /Encrypt did not give one).
-    vi.mocked(probeEncryption).mockResolvedValueOnce('open');
-    await s.load(encryptedFixture('owner-only'));
+    // The check reads this file as open, so the build itself meets its protection.
+    const locked = new Uint8Array(await encryptedFixture('owner-only').arrayBuffer());
+    await s.load(pdf('owner-only.pdf', hideEncryption(locked)));
     await s.click(s.skipButton(2));
     await s.prepareNow();
     await s.harness.flush();

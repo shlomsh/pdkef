@@ -442,10 +442,11 @@ describe('the island from the first file to the download', () => {
     await openNewerStore();
     start();
     await add([await twoPages('a.pdf'), await twoPages('b.pdf')]);
-    await advance(DEFAULT_QUIET.maxMs);
+    // The save is scheduled once the files are read; only then does the clock have it to run.
     await waitUntil(() => q('[data-testid="draft-status-row"]') !== null, { dueFakeTimers: true });
+    await advance(DEFAULT_QUIET.maxMs);
+    await waitUntil(() => expect(q('[data-testid="draft-status-row"]')?.textContent).toBe('Draft not saved'), { dueFakeTimers: true });
     const row = q('[data-testid="draft-status-row"]') as HTMLElement;
-    expect(row.textContent).toBe('Draft not saved');
     expect(host.textContent).not.toContain('Draft saved');
     expect(row.querySelector('[tabindex="0"][aria-describedby]')).toBeNull();
   });
