@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { pointAtLegacyWorker } from '../../../test/support/realPdfjs.ts';
+import type { PageGlyph } from '../lib/pageGlyphs.ts';
 import type { DeletablePdfObject } from '../components/DeletableObjectOverlay.tsx';
 import * as errorReport from '#lib/telemetry/errorReport.ts';
 import { PDFJS_WASM_URL } from '#lib/pdf/pdfjsWasm.js';
@@ -11,6 +12,7 @@ import { GLYPH_BUDGET } from '../lib/find/itemGlyphs.ts';
 import { listDeletableObjects } from '../lib/deleteObjects.js';
 import { readGlyphs } from '../lib/readGlyphs.js';
 import useObjectPreviews from './useObjectPreviews.ts';
+import { getPdfjs } from '#editor/adapters/pdf/pdfjsLoader.js';
 import { buildPdf, openOriginal } from '../../../test/support/redactCheckPdfs.test-helper.ts';
 import type { PageSpec } from '../../../test/support/redactCheckPdfs.test-helper.ts';
 import { waitUntil } from '../../../test/support/waitUntil.ts';
@@ -96,10 +98,18 @@ describe('useObjectPreviews', () => {
   });
 
   it('stops reading pages past the glyph cap', async () => {
-    const file = await openFile([{ lines: ['first page'], glyphRun: GLYPH_BUDGET }, { lines: ['later'] }]);
+    const file = await openFile([{ lines: ['first page'] }, { lines: ['later'] }]);
     closers.push(file.close);
     const first = file.objects.find((o) => o.pageIndex === 0)!;
     const second = file.objects.find((o) => o.pageIndex === 1)!;
+    // Page 1 yields its own words, then filler off the page.
+    const actual = await vi.importActual<typeof import('../lib/readGlyphs.js')>('../lib/readGlyphs.js');
+    const own = (await actual.readGlyphs(await getPdfjs(), await file.doc.getPage(1))) as PageGlyph[];
+    const filler: PageGlyph[] = Array.from({ length: GLYPH_BUDGET - own.length }, () => (
+      { unicode: 'x', isSpace: false, matrix: [10, 0, 0, 10, 900, 100], width: 0.5 }
+    ));
+    // Forced: a real page of 400,000 glyphs takes 1.5 s to list and read, and timed out on a loaded machine.
+    vi.mocked(readGlyphs).mockResolvedValueOnce([...own, ...filler]);
     const getPage = vi.spyOn(file.doc, 'getPage');
     const seen = mount(file.doc, file.objects);
     // The hook asks pdf.js for the next page in the same turn it publishes page 1's words, if it will.

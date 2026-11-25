@@ -346,8 +346,8 @@ count). The rule is off meanwhile.
   A fresh review ran 76 mutations: no coverage lost, 22 never caught by either version (superseded image builds, the batch hook's
   stale run and URL clean-up, the photo search's white fill and ladder among them). It found one order-dependent test (Download's
   press, its first build held again as a forced site), two false reasons and one encoder mock hidden from the rule, all fixed.
-- Redact (2026-11-25): 599 sites in 180 files down to 576 in 175, 28 left in the tool (9 in its browser files). The shipped pdf.js runs
+- Redact (2026-11-25): 599 sites in 180 files down to 577 in 175, 29 left in the tool (9 in its browser files). The shipped pdf.js runs
   through its real loader, `applyPageEdits` runs both real passes, the page snapshot is a real canvas and beacons are recorded
   ones. A fresh review ran 90 mutations: no coverage lost, 20 never caught by either version (the delete previews' re-use guards,
-  the box blur's margin and white fill, and the fallback clean-up after a redact among them). It found one false reason (the
-  glyph cap, now a real 400,000-glyph page) and canvas mocks outside the rule's sight, both fixed.
+  the box blur's margin and white fill, and the fallback clean-up after a redact among them). It found
+  canvas mocks outside the rule's sight, now gone. Its real 400,000-glyph page timed out under load, so that site stays forced.
