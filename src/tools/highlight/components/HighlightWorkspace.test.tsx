@@ -352,12 +352,8 @@ describe('HighlightWorkspace notes (R28, R29)', () => {
     for (const fullscreen of [true]) {
       const ws = mount({ fullscreen, pseudoFullscreen: false }, [mark, note]);
       const button = ws.querySelector<HTMLElement>('button[aria-label="Print"]')!;
-      // Forced: jsdom has no layout, so the button's box, the window and menu widths are given numbers
+      // Forced: jsdom has no layout, so the button's box is given numbers
       vi.spyOn(button, 'getBoundingClientRect').mockReturnValue({ left: 300, right: 340, bottom: 100 } as DOMRect);
-      // Forced: jsdom has no window size
-      vi.stubGlobal('innerWidth', 1280);
-      // Forced: jsdom has no element widths
-      vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(192);
       act(() => { button.click(); });
       const menu = ws.querySelector('[role="menu"]')!;
       expect((menu.parentElement as HTMLElement).style.top).toBe('108px');

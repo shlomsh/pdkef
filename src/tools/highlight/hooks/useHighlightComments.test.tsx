@@ -21,7 +21,7 @@ class FakeResizeObserver {
   observe() { this.callback(); }
   disconnect() {}
 }
-// Forced: jsdom's ResizeObserver never reports; this one reports once on observe
+// Forced: jsdom has no ResizeObserver; this one reports once on observe
 beforeEach(() => { vi.stubGlobal('ResizeObserver', FakeResizeObserver); });
 
 const mark: HighlightElement = {

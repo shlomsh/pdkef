@@ -75,10 +75,6 @@ describe('PrintMenu', () => {
   });
 
   it('places itself at the anchor top and the start-aligned left when floating, and sets none otherwise', () => {
-    // Forced: jsdom has no window size or element widths, and the menu is placed from both
-    vi.stubGlobal('innerWidth', 1280);
-    // Forced: jsdom has no element widths
-    vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(192);
     mount();
     const wrap = container!.firstElementChild as HTMLElement;
     expect(wrap.style.top).toBe('108px');
@@ -86,8 +82,6 @@ describe('PrintMenu', () => {
     act(() => render(null, container!));
     mount({ anchor: undefined });
     expect((container!.firstElementChild as HTMLElement).style.top).toBe('');
-    vi.restoreAllMocks();
-    vi.unstubAllGlobals();
   });
 });
 

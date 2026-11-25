@@ -18,7 +18,6 @@ const rect = (el: Element, top: number, bottom: number) => {
 let container: HTMLElement;
 let board: HTMLElement;
 let mark: HTMLElement;
-let moved = '';
 
 // The hook measures two frames after it mounts: run both on the faked clock.
 const mount = (markId: string | null, menu: Menu = null) => {
@@ -27,12 +26,7 @@ const mount = (markId: string | null, menu: Menu = null) => {
 };
 
 beforeEach(() => {
-  moved = '';
   vi.useFakeTimers();
-  // Forced: jsdom has no CSS.escape
-  if (!('CSS' in globalThis)) vi.stubGlobal('CSS', { escape: (s: string) => s });
-  // Forced: jsdom's computed style never reports the translate the board was given
-  vi.spyOn(window, 'getComputedStyle').mockImplementation(() => ({ translate: moved || 'none' }) as unknown as CSSStyleDeclaration);
   board = document.createElement('div');
   board.setAttribute('data-lamp-part', 'board');
   mark = document.createElement('div');
@@ -49,8 +43,6 @@ afterEach(() => {
   act(() => render(null, container));
   container.remove(); board.remove(); panel.querySelectorAll('*').forEach((n) => n.remove()); panel.remove();
   document.querySelectorAll('[data-editor-popover]').forEach((n) => n.remove());
-  vi.restoreAllMocks();
-  vi.unstubAllGlobals();
   vi.useRealTimers();
 });
 
@@ -95,7 +87,6 @@ describe('useMarkGlide', () => {
   });
 
   it('subtracts how far the board has already moved so the answer does not grow', () => {
-    moved = '0px 30px';
     board.style.translate = '0 30px';
     rect(mark, 70, 80);
     mount('m1');
