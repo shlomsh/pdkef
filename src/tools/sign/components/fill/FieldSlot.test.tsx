@@ -8,6 +8,7 @@ import { FILL_INPUT_ATTR, FILL_KEY_ATTR } from '../../lib/fill/fillTypes.ts';
 import type { FillSlot } from '../../lib/fill/fillTypes.ts';
 import type { TextElement } from '#editor/model/editorModel.ts';
 import { slotFrame } from '../../lib/fill/slotFrame.ts';
+import { cssNumber } from '../../../../test/support/cssNumber.ts';
 
 function fillSlot(overrides: Partial<FillSlot> = {}): FillSlot {
   return {
@@ -543,10 +544,10 @@ describe('FieldSlot component', () => {
       // The field dominates: the frame is the field's own top/height.
       expect(expectedFrame.top).toBeCloseTo(30, 6);
       expect(expectedFrame.height).toBeCloseTo(6, 6);
-      expect(input.style.top).toBe(`${expectedFrame.top}%`);
-      expect(input.style.height).toBe(`${expectedFrame.height}%`);
-      expect(input.style.paddingTop).toBe(`${expectedFrame.paddingTopPx}px`);
-      expect(input.style.paddingBottom).toBe(`${expectedFrame.paddingBottomPx}px`);
+      expect(input.style.top).toBe(`${cssNumber(expectedFrame.top)}%`);
+      expect(input.style.height).toBe(`${cssNumber(expectedFrame.height)}%`);
+      expect(input.style.paddingTop).toBe(`${cssNumber(expectedFrame.paddingTopPx)}px`);
+      expect(input.style.paddingBottom).toBe(`${cssNumber(expectedFrame.paddingBottomPx)}px`);
     });
 
     it('grows the frame past a short field to cover a taller text line, still with slotFrame\'s own padding', () => {
@@ -586,10 +587,10 @@ describe('FieldSlot component', () => {
       // to the plain text padding since the element's own box now decides
       // both edges.
       expect(expectedFrame.height).toBeGreaterThan(0.5);
-      expect(input.style.top).toBe(`${expectedFrame.top}%`);
-      expect(input.style.height).toBe(`${expectedFrame.height}%`);
-      expect(input.style.paddingTop).toBe(`${expectedFrame.paddingTopPx}px`);
-      expect(input.style.paddingBottom).toBe(`${expectedFrame.paddingBottomPx}px`);
+      expect(input.style.top).toBe(`${cssNumber(expectedFrame.top)}%`);
+      expect(input.style.height).toBe(`${cssNumber(expectedFrame.height)}%`);
+      expect(input.style.paddingTop).toBe(`${cssNumber(expectedFrame.paddingTopPx)}px`);
+      expect(input.style.paddingBottom).toBe(`${cssNumber(expectedFrame.paddingBottomPx)}px`);
     });
 
     it('leaves a free slot (no field) on its own CSS padding, with no inline padding at all', () => {
@@ -956,7 +957,7 @@ describe('FieldSlot component', () => {
       const cells = Array.from(shell.querySelectorAll<HTMLElement>('[data-text-part="comb-cell"]'));
       const expected = combLayout(committed, layout.direction === 'rtl');
       expect(cells.map((cell) => cell.textContent)).toEqual(expected.map((cell) => cell.char));
-      expect(cells.map((cell) => cell.style.left)).toEqual(expected.map((cell) => `${cell.centerFraction * 100}%`));
+      expect(cells.map((cell) => cell.style.left)).toEqual(expected.map((cell) => `${cssNumber(cell.centerFraction * 100)}%`));
     });
 
     it('starts an RTL page\'s empty field slot dir="rtl", and flips to "ltr" on typed Latin letters', () => {

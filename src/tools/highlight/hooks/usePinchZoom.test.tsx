@@ -22,7 +22,7 @@ describe('usePinchZoom', () => {
     const root = document.createElement('div');
     act(() => render(<Harness workspaceRef={{ current: ws }} columnRef={{ current: col }} enabled inLamp zoomRef={{ current: ZOOM_MAX }} floorRef={{ current: 0.5 }} commit={commit} />, root));
     ws.dispatchEvent(new WheelEvent('wheel', { ctrlKey: true, deltaY: -50, clientX: 10, clientY: 10, cancelable: true }));
-    expect(col.style.transform).toBe('translate(0px, 0px) scale(1)');
+    expect(col.style.transform).toBe('translate(0px) scale(1)');
     vi.advanceTimersByTime(200);
     expect(col.style.transform).toBe('');
     expect(col.style.transformOrigin).toBe('');
@@ -94,7 +94,7 @@ describe('usePinchZoom', () => {
     ws.scrollTop = 500;
     col.dispatchEvent(touchEvent('touchstart', [f(100, 100), f(200, 100)]));
     col.dispatchEvent(touchEvent('touchmove', [f(70, 160), f(170, 160)]));
-    expect(col.style.transform).toBe('translate(-30px, 0px) scale(1)');
+    expect(col.style.transform).toBe('translate(-30px) scale(1)');
     col.dispatchEvent(touchEvent('touchend', [f(70, 160)]));
     expect(commit).not.toHaveBeenCalled();
     expect(ws.scrollLeft).toBe(130);
@@ -107,7 +107,7 @@ describe('usePinchZoom', () => {
     col.dispatchEvent(touchEvent('touchstart', [f(100, 100), f(200, 100)]));
     col.dispatchEvent(touchEvent('touchmove', [f(270, 100), f(370, 100)]));
     // The fingers travelled 170px right, but the column's left edge may only come back to the view's left edge.
-    expect(col.style.transform).toBe('translate(100px, 0px) scale(1)');
+    expect(col.style.transform).toBe('translate(100px) scale(1)');
   });
 
   it('a pan-only release moves the scroll by what the preview showed, so nothing jumps', () => {

@@ -238,11 +238,11 @@ describe('MarkHint', () => {
     afterEach(() => vi.restoreAllMocks());
 
     it('shifts a hint that runs past the page right edge back to wrapper.right - 8', () => {
-      expect(place([250, 350], [0, 300]).style.translate).toBe('-58px 0');
+      expect(place([250, 350], [0, 300]).style.translate).toBe('-58px');
     });
 
     it('shifts a hint that runs past the page left edge back to wrapper.left + 8', () => {
-      expect(place([90, 150], [100, 400]).style.translate).toBe('18px 0');
+      expect(place([90, 150], [100, 400]).style.translate).toBe('18px');
     });
   });
 

@@ -62,7 +62,7 @@ describe('BlurStrengthSlider', () => {
     expect(input.value).toBe('0.18');
     expect(onChange).toHaveBeenCalledTimes(1);
     expect(onChange).toHaveBeenCalledWith(DEFAULT_BLUR_STRENGTH);
-    expect(surface.style.backdropFilter).toContain(`blur(calc(${DEFAULT_BLUR_STRENGTH} * 100cqh))`);
+    expect(surface.style.backdropFilter).toContain(`blur(calc(${DEFAULT_BLUR_STRENGTH * 100}cqh))`);
   });
 
   it('paints the box live during the drag and commits once on release, snapped', async () => {
@@ -76,7 +76,7 @@ describe('BlurStrengthSlider', () => {
     }
     expect(onChange).not.toHaveBeenCalled();
     // 0.19 snapped to 0.18: 0.18 x max(100, 24) / 100 = 0.18.
-    expect(surface.style.backdropFilter).toContain('blur(calc(0.18 * 100cqh))');
+    expect(surface.style.backdropFilter).toContain('blur(calc(18cqh))');
     expect(input.value).toBe('0.18');
     await act(async () => { input.dispatchEvent(new Event('change', { bubbles: true })); });
     expect(onChange).toHaveBeenCalledTimes(1);

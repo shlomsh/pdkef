@@ -118,7 +118,7 @@ describe('useDraggableElement MOBI-31 pinch cancellation', () => {
 
     dispatchTouchStart(el, [touch(300, 400)]);
     dispatchTouchMove([touch(330, 400)]); // single-finger move - live preview only
-    expect(el.style.transform).toBe('translate(30px, 0px)');
+    expect(el.style.transform).toBe('translate(30px)');
 
     dispatchTouchMove([touch(330, 400), touch(370, 440)]); // second finger joins mid-drag
     expect(el.style.transform).toBe('none'); // preview undone, same as a plain cancel

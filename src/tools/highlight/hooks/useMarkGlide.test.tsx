@@ -52,7 +52,7 @@ describe('useMarkGlide', () => {
   it('moves the board down so a mark under the panel clears it', () => {
     rect(mark, 40, 50);
     mount('m1');
-    expect(board.style.translate).toBe('0 68px');
+    expect(board.style.translate).toBe('0px 68px');
   });
 
   it('leaves the board alone when the mark is already below the panel', () => {
@@ -68,7 +68,7 @@ describe('useMarkGlide', () => {
     rect(pop, 100, 220);
     document.body.appendChild(pop);
     mount('m1', 'more');
-    expect(board.style.translate).toBe('0 78px');
+    expect(board.style.translate).toBe('0px 78px');
   });
 
   it('ignores the popover when no menu is open', () => {
@@ -93,7 +93,7 @@ describe('useMarkGlide', () => {
     board.style.translate = '0 30px';
     rect(mark, 70, 80);
     mount('m1');
-    expect(board.style.translate).toBe('0 68px');
+    expect(board.style.translate).toBe('0px 68px');
   });
 
   it('unmount clears it', () => {

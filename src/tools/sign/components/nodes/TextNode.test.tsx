@@ -3,6 +3,7 @@ import { act } from 'preact/test-utils';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import RawTextNode from './TextNode.tsx';
 import { WYSIWYG_STRING_CASES } from '../../../../test/support/fixtures/wysiwygStrings.js';
+import { cssNumber } from '../../../../test/support/cssNumber.ts';
 import { TextFillContext } from '../fill/FillContext.tsx';
 import type { TextFillProps } from '../../lib/fill/fillTypes.ts';
 import type { EditorElementPatch, TextElement } from '#editor/model/editorModel.ts';
@@ -548,7 +549,7 @@ describe('TextNode component', () => {
       expect(cells.map((cell) => cell.textContent)).toEqual(['2', '7', '0']);
       // Centres, not edges: 1/6, 3/6, 5/6 of the span.
       expect(cells.map((cell) => cell.style.left)).toEqual([
-        `${(1 / 6) * 100}%`, '50%', `${(5 / 6) * 100}%`,
+        `${cssNumber((1 / 6) * 100)}%`, '50%', `${cssNumber((5 / 6) * 100)}%`,
       ]);
     });
 
@@ -596,7 +597,7 @@ describe('TextNode component', () => {
 
       const caret = requireElement<HTMLSpanElement>(host, '[data-text-part="comb-caret"]');
       // Boundary between cell 1 and cell 2 of 3, same math as the guide lines.
-      expect(caret.style.left).toBe(`${(2.5 / 3) * 100}%`); // the centre of cell 2
+      expect(caret.style.left).toBe(`${cssNumber((2.5 / 3) * 100)}%`); // the centre of cell 2
 
       act(() => {
         input.blur();
