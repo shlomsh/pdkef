@@ -336,3 +336,8 @@ count). The rule is off meanwhile.
   the idle callback. A fresh review ran 80 mutations: no coverage lost, 20 never caught by either version (among them the retry
   after a lost worker, the print sheets' `onError`, the passage picture's colors). It found one flake, a real scan read that timed
   out under load; the sheet is now small and the test takes 0.2 s.
+- Merge, Security, To Image, Edit Pages and Split (2026-11-25): 644 sites in 189 files down to 625 in 183, 10 left in the five tools. To Image renders real
+  PDFs into real canvases, refused saves are a database at a newer version, held loads and damaged locked files are real files, and
+  a build meets a really hidden encryption (`src/test/support/hideEncryption.ts`: pdf.js opens it, pdf-lib refuses it). A fresh
+  review ran 73 mutations. It found one lost guard (Split's stale check after the load, held again as a forced site), two false
+  reasons and one order-dependent wait, all fixed; 24 were never caught by either version, most of them To Image's options.
