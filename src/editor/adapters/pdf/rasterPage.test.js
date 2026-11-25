@@ -1,5 +1,8 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeAll, afterEach } from 'vitest';
+import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
+import { getPdfLib } from '#lib/pdf/pdfLib.js';
+import { pointAtLegacyWorker } from '../../../test/support/realPdfjs.ts';
 import {
   RASTER_SCALE,
   RASTER_JPEG_QUALITY,
@@ -9,12 +12,17 @@ import {
   rasterizePageToJpeg,
 } from './rasterPage.js';
 
-const pageOf = (w, h) => ({
-  view: [0, 0, w, h],
-  rotate: 0,
-  getViewport: ({ scale }) => ({ scale, width: w * scale, height: h * scale }),
-  render: () => ({ promise: Promise.resolve() }),
-});
+// A real PDF page of the given size, opened by the real pdf.js (no document is kept: tests are short).
+async function pageOf(w, h) {
+  const { PDFDocument } = await getPdfLib();
+  const doc = await PDFDocument.create();
+  doc.addPage([w, h]);
+  const bytes = new Uint8Array(await doc.save());
+  const task = pdfjs.getDocument({ data: bytes, useWorkerFetch: false, isEvalSupported: false });
+  return (await task.promise).getPage(1);
+}
+
+beforeAll(() => pointAtLegacyWorker(pdfjs));
 
 describe('rasterScaleFor', () => {
   it('keeps the shared scale for a normal page', () => {
@@ -30,48 +38,34 @@ describe('rasterScaleFor', () => {
 });
 
 describe('rasterizePageToJpeg', () => {
-  let original;
-  const encode = vi.fn(() => 'data:image/jpeg;base64,/9j/AA==');
-  beforeEach(() => {
-    original = HTMLCanvasElement.prototype.toDataURL;
-    HTMLCanvasElement.prototype.toDataURL = encode;
-    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({ fillRect: vi.fn() });
-  });
   afterEach(() => {
-    HTMLCanvasElement.prototype.toDataURL = original;
     vi.restoreAllMocks();
   });
 
   it('renders at the shared scale, paints between render and encode, returns bytes and point size', async () => {
-    const order = [];
-    const page = {
-      view: [0, 0, 100, 200],
-      rotate: 0,
-      getViewport: ({ scale }) => ({ scale, width: 100 * scale, height: 200 * scale }),
-      render: () => ({ promise: Promise.resolve().then(() => order.push('render')) }),
-    };
-    const paint = vi.fn(() => order.push('paint'));
-    encode.mockImplementationOnce(() => (order.push('encode'), 'data:image/jpeg;base64,/9j/AA=='));
+    const page = await pageOf(100, 200);
+    const render = vi.spyOn(page, 'render');
+    const encode = vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL');
+    const paint = vi.fn();
     const out = await rasterizePageToJpeg(page, { paint });
-    expect(order).toEqual(['render', 'paint', 'encode']);
+    const at = (spy) => spy.mock.invocationCallOrder[0];
+    expect(at(render)).toBeLessThan(at(paint));
+    expect(at(paint)).toBeLessThan(at(encode));
     expect(paint.mock.calls[0][1].width).toBe(100 * RASTER_SCALE);
     expect(encode).toHaveBeenCalledWith('image/jpeg', RASTER_JPEG_QUALITY);
-    expect(Array.from(out.jpeg)).toEqual([0xff, 0xd8, 0xff, 0x00]);
+    const bytes = Array.from(out.jpeg);
+    expect(bytes.slice(0, 3)).toEqual([0xff, 0xd8, 0xff]);
+    expect(bytes.slice(-2)).toEqual([0xff, 0xd9]);
     expect([out.width, out.height]).toEqual([100, 200]);
   });
 
   it('caps the canvas of a huge page and paints with the scale it rendered at', async () => {
     const paint = vi.fn();
-    const canvases = [];
-    const origCreate = document.createElement.bind(document);
-    vi.spyOn(document, 'createElement').mockImplementation((tag) => {
-      const el = origCreate(tag);
-      if (tag === 'canvas') canvases.push(el);
-      return el;
-    });
-    const page = pageOf(10000, 10000);
+    const create = vi.spyOn(document, 'createElement');
+    const page = await pageOf(10000, 10000);
     const getViewport = vi.spyOn(page, 'getViewport');
     await rasterizePageToJpeg(page, { paint });
+    const canvases = create.mock.results.map((r) => r.value).filter((el) => el.tagName === 'CANVAS');
     const { width, height } = canvases[0];
     expect(width * height).toBeLessThanOrEqual(MAX_CANVAS_AREA);
     expect(Math.max(width, height)).toBeLessThanOrEqual(MAX_CANVAS_SIDE);
@@ -79,7 +73,11 @@ describe('rasterizePageToJpeg', () => {
   });
 
   it('throws instead of returning empty bytes when the browser cannot encode', async () => {
-    encode.mockImplementationOnce(() => 'data:,');
-    await expect(rasterizePageToJpeg(pageOf(100, 200))).rejects.toThrow(/came back empty/);
+    // A page too small to have a pixel: the real canvas encodes it as "data:,".
+    const page = await pageOf(0.1, 0.1);
+    const empty = document.createElement('canvas');
+    empty.width = 0;
+    expect(empty.toDataURL('image/jpeg')).toBe('data:,');
+    await expect(rasterizePageToJpeg(page)).rejects.toThrow(/came back empty/);
   });
 });

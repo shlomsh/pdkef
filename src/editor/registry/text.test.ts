@@ -147,6 +147,7 @@ describe('applyTextResize', () => {
 describe('text serialize font choice', () => {
   async function serializeWith(element: Record<string, unknown>) {
     const requested: string[] = [];
+    // Forced: a font of fixed 42pt width, so the line positions are exact; a real font changes every number
     const loadCustomFont = vi.fn(async (family: string) => {
       requested.push(family);
       return { widthOfTextAtSize: () => 42 };

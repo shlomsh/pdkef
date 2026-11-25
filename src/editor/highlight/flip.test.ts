@@ -14,6 +14,7 @@ const twoRows = (direction?: 'ltr' | 'rtl'): HighlightElement => ({
 
 describe('flipChanges recovers the swipe from the bands', () => {
   const ends = (el: HighlightElement) => {
+    // Forced: the swipe reader is a collaborator the tool always supplies; its answer is the test input to the flip
     const bandsBetween = vi.fn(() => []);
     flipChanges(el, bandsBetween);
     return bandsBetween.mock.calls[0];
@@ -29,6 +30,7 @@ describe('flipChanges recovers the swipe from the bands', () => {
 describe('flipChanges', () => {
   it('re-reads the bands in the other direction and returns the new geometry', () => {
     const el = twoRows('rtl');
+    // Forced: the swipe reader is a collaborator the tool always supplies; its answer is the test input to the flip
     const bandsBetween = vi.fn(() => [
       { left: 10, top: 20, width: 40, height: 5 },
       { left: 10, top: 25, width: 20, height: 5 },

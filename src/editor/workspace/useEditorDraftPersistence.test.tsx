@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // The draft store runs for real on fake-indexeddb, with the real hand-off settle, arrival note and recents behind
 // it. The spy lets a test see which calls happened; a record the store would never hand back, and a recents write
-// held open, are forced on it. Forced: the page preview is drawn on a canvas, which jsdom does not have.
+// held open, are forced on it. Forced: the preview would be drawn by real pdf.js from the test's fake '%PDF-1.4' bytes.
 vi.mock('#lib/drafts/draftStore.ts', { spy: true });
 vi.mock('#lib/pdf/thumbnails.js', { spy: true });
 
@@ -67,7 +67,8 @@ beforeEach(() => {
   vi.mocked(peekHandoff).mockReset();
   vi.mocked(cacheRecentFile).mockReset();
   vi.mocked(commitHandoff).mockClear();
-  vi.mocked(renderDraftPreview).mockReset().mockResolvedValue(null as never); // forced: no canvas in jsdom
+  // Forced: the test files are fake '%PDF-1.4' bytes that real pdf.js cannot draw
+  vi.mocked(renderDraftPreview).mockReset().mockResolvedValue(null as never);
 });
 
 function baseProps(overrides: any = {}) {

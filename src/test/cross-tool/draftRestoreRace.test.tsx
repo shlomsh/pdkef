@@ -64,7 +64,7 @@ let gate: ReturnType<typeof deferred>;
 
 vi.mock('#lib/drafts/draftStore.ts', { spy: true });
 
-// Mock getDocument because we don't want to load actual pdf.js workers in jsdom environment
+// Forced: the picked files are the bytes '%PDF-1.4' (not a real document), so real pdf.js would reject them
 vi.mock('pdfjs-dist', () => ({
   GlobalWorkerOptions: { workerSrc: '' },
   getDocument: vi.fn(() => ({
@@ -106,7 +106,7 @@ async function pickFile(container: HTMLElement, file: File) {
 describe('draft-restore vs. manual file pick race', () => {
   let container: HTMLElement | null = null;
 
-  // Forced: the restore read starts at once on the real store but answers when the gate opens.
+  // Forced: a held store would also hold the picked file's own save, so the draft read would not be the stale one the race needs; the restore read starts at once on the real store but answers when the gate opens.
   const holdRestore = () => {
     gate = deferred();
     vi.mocked(loadDraft).mockImplementationOnce(async (name) => {
@@ -133,7 +133,8 @@ describe('draft-restore vs. manual file pick race', () => {
     indexedDB = new IDBFactory();
     localStorage.clear();
     vi.mocked(loadDraft).mockReset();
-    vi.mocked(hasDraftHint).mockReturnValue(false); // forced: straight into the empty state
+    // Forced: a real hint (the seeded pointer) opens the tool in its restoring state, with no file input to pick with
+    vi.mocked(hasDraftHint).mockReturnValue(false);
   });
 
   afterEach(async () => {

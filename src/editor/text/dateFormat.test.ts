@@ -93,11 +93,13 @@ describe('detectLocale', () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it('reads navigator.language when available', () => {
+    // Forced: Node has no way to change navigator.language per test (set by the host locale)
     vi.stubGlobal('navigator', { language: 'fr-FR' });
     expect(detectLocale()).toBe('fr-FR');
   });
 
   it('falls back to en-US when navigator.language is unavailable', () => {
+    // Forced: Node has no way to change navigator.language per test (set by the host locale)
     vi.stubGlobal('navigator', {});
     expect(detectLocale()).toBe('en-US');
   });

@@ -8,6 +8,7 @@ import { vi } from 'vitest';
 // file here fails exactly like a 404 would in the browser).
 export function mockFontFetch() {
   const originalFetch = global.fetch;
+  // Forced: a same-origin /fonts fetch has no origin in Node, so a real fetch cannot reach the files
   global.fetch = vi.fn(async (url) => {
     const match = /\/fonts\/(.+)$/.exec(String(url));
     if (!match) return originalFetch ? originalFetch(url) : Promise.reject(new Error('unexpected fetch'));
@@ -18,5 +19,6 @@ export function mockFontFetch() {
     const buffer = fs.readFileSync(filePath);
     return { ok: true, status: 200, arrayBuffer: async () => new Uint8Array(buffer).buffer };
   });
+  // Forced: restores the fetch replaced above
   return () => { global.fetch = originalFetch; };
 }

@@ -118,6 +118,7 @@ describe('PageGrid', () => {
     openedTasks.length = 0;
     observers = [];
     originalIO = globalThis.IntersectionObserver;
+    // Forced: jsdom has no IntersectionObserver
     globalThis.IntersectionObserver = FakeIntersectionObserver;
   });
 
@@ -127,6 +128,7 @@ describe('PageGrid', () => {
       container.remove();
       container = null;
     }
+    // Forced: jsdom has no IntersectionObserver
     globalThis.IntersectionObserver = originalIO;
     vi.restoreAllMocks();
   });
@@ -771,6 +773,7 @@ describe('PageGrid', () => {
     });
 
     it('marks each rendered cell from its place in the grid', () => {
+      // Forced: jsdom has no layout, so each cell gets the rect a grid would give it
       vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function () {
         if (this.hasAttribute('data-page-grid')) return grid;
         const index = Array.from(this.parentElement.children).indexOf(this);

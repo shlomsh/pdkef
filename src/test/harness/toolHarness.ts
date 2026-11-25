@@ -20,12 +20,14 @@
  *   expect((await harness.takeHandoff('compress'))?.fileName).toBe('extracted_a.pdf');
  */
 // Installs the global IndexedDB classes (IDBKeyRange, ...); the factory itself is replaced per test.
+import { vi } from 'vitest';
 import 'fake-indexeddb/auto';
 import { IDBFactory } from 'fake-indexeddb';
 import { resetErrorReportingForTests, setReportingEnabledForTests } from '#lib/telemetry/errorReport.ts';
 import { resetUsageEventsForTests } from '#lib/telemetry/productAnalytics.ts';
 import { resetActionTrailForTests } from '#lib/telemetry/actionTrail.ts';
 import { loadDraft, readRecentFiles, takeHandoff } from '#lib/drafts/draftStore.ts';
+import { installBeaconRecorder, type RecordedBeacon } from '../support/beaconRecorder.ts';
 import type { UsageEvent } from '#lib/telemetry/usageEventSchema.ts';
 import type { DropRecord, ErrorReport } from '#lib/telemetry/errorReportSchema.ts';
 
@@ -104,33 +106,32 @@ export function installToolHarness({ trackIndexedDb = false }: { trackIndexedDb?
   localStorage.clear();
   sessionStorage.clear();
 
-  const originalBeacon = Object.getOwnPropertyDescriptor(navigator, 'sendBeacon');
   // MEM-45: a page view waits for the window load event; a test's page has already loaded.
   Object.defineProperty(document, 'readyState', { configurable: true, value: 'complete' });
-  const originalCreate = URL.createObjectURL;
-  const originalRevoke = URL.revokeObjectURL;
 
-  const records: BeaconRecord[] = [];
-  const pending: Promise<void>[] = [];
   const blobs: Blob[] = [];
   const blobsByUrl = new Map<string, Blob>();
 
-  Object.defineProperty(navigator, 'sendBeacon', {
-    configurable: true,
-    value: (url: string, data: Blob) => {
-      const record: BeaconRecord = { url, payload: undefined };
-      records.push(record);
-      pending.push(data.text().then((text) => { record.payload = JSON.parse(text); }));
-      return true;
-    },
+  // A real sendBeacon recorder (jsdom has none); each body is read on `flush`.
+  const recorder = installBeaconRecorder();
+  const read = new Map<RecordedBeacon, BeaconRecord>();
+  const reading = new Map<RecordedBeacon, Promise<void>>();
+  // A beacon's body is read the first time anyone looks at it; `flush` waits for those reads.
+  const records = () => recorder.calls.map((call) => {
+    if (!reading.has(call)) {
+      reading.set(call, call.blob.text().then((text) => { read.set(call, { url: call.url, payload: JSON.parse(text) }); }));
+    }
+    return read.get(call) ?? { url: call.url, payload: undefined };
   });
-  URL.createObjectURL = (blob: Blob | MediaSource) => {
-    blobs.push(blob as Blob);
-    const url = `blob:fake-url-${blobs.length}`;
-    blobsByUrl.set(url, blob as Blob);
-    return url;
+  // Spy-through: Node's real object URLs, with the blob each one was made from kept for the test to read.
+  const created = vi.spyOn(URL, 'createObjectURL');
+  const revoked = vi.spyOn(URL, 'revokeObjectURL');
+  const remember = () => {
+    created.mock.calls.forEach(([blob], i) => {
+      const url = created.mock.results[i].value as string;
+      if (!blobsByUrl.has(url)) { blobsByUrl.set(url, blob as Blob); blobs.push(blob as Blob); }
+    });
   };
-  URL.revokeObjectURL = () => {};
 
   const resetUsage = () => {
     resetErrorReportingForTests();
@@ -140,18 +141,18 @@ export function installToolHarness({ trackIndexedDb = false }: { trackIndexedDb?
   resetUsage();
   setReportingEnabledForTests(true);
 
-  const payloads = () => records.map((r) => r.payload).filter((p): p is Record<string, unknown> => typeof p === 'object' && p !== null);
+  const payloads = () => records().map((r) => r.payload).filter((p): p is Record<string, unknown> => typeof p === 'object' && p !== null);
 
   return {
-    beacons: () => [...records],
+    beacons: () => records(),
     reports: () => payloads().filter((p) => 'area' in p && 'step' in p) as unknown as (ErrorReport | DropRecord)[],
     usageEvents: (name) => (payloads().filter((p) => typeof p.name === 'string' && 'properties' in p) as unknown as UsageEvent[])
       .filter((e) => name === undefined || e.name === name),
-    clearBeacons: () => { records.length = 0; pending.length = 0; },
+    clearBeacons: () => { recorder.calls.length = 0; },
     resetUsage,
-    flush: async () => { await Promise.all(pending.splice(0)); },
-    createdBlobs: () => [...blobs],
-    blobForUrl: (url) => (url ? blobsByUrl.get(url) : undefined),
+    flush: async () => { records(); await Promise.all(reading.values()); },
+    createdBlobs: () => { remember(); return [...blobs]; },
+    blobForUrl: (url) => { remember(); return url ? blobsByUrl.get(url) : undefined; },
     storedDraft: (tool) => loadDraft(tool),
     takeHandoff: (tool) => takeHandoff(tool),
     recents: () => readRecentFiles(),
@@ -167,10 +168,9 @@ export function installToolHarness({ trackIndexedDb = false }: { trackIndexedDb?
     restore: () => {
       setReportingEnabledForTests(false);
       delete (document as { readyState?: unknown }).readyState;
-      if (originalBeacon) Object.defineProperty(navigator, 'sendBeacon', originalBeacon);
-      else delete (navigator as { sendBeacon?: unknown }).sendBeacon;
-      URL.createObjectURL = originalCreate;
-      URL.revokeObjectURL = originalRevoke;
+      recorder.restore();
+      created.mockRestore();
+      revoked.mockRestore();
     },
   };
 }

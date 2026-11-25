@@ -87,11 +87,12 @@ async function embedFont(family) {
   return doc.embedFont(new Uint8Array(readFileSync(join(FONT_DIR, fileName))));
 }
 
-function mockPage(font) {
-  // `doc` must be a real PDFDocument (via the embedded font's own `.doc`) so
-  // drawShapedRun's ActualText wrapper can build a real PDFDict through
-  // `page.doc.context.obj(...)` - a bare mock would throw on `.context`.
-  return { doc: font.doc, node: { newFontDictionary: vi.fn(() => 'F1') }, pushOperators: vi.fn() };
+function spiedPage(font) {
+  // A real page of the font's own document; its calls are watched, the real code still runs.
+  const page = font.doc.addPage();
+  vi.spyOn(page, 'pushOperators');
+  vi.spyOn(page.node, 'newFontDictionary');
+  return page;
 }
 
 /**
@@ -110,7 +111,7 @@ function mockPage(font) {
  * to unscaled bbox units - caught once already while building this guard.
  */
 function drawnGlyphs(pdfFont, text, direction = 'rtl') {
-  const page = mockPage(pdfFont);
+  const page = spiedPage(pdfFont);
   const size = pdfFont.embedder.font.unitsPerEm;
   drawShapedRun(page, { text, pdfFont, size, x: 0, y: 0, color: rgb(0, 0, 0), direction });
   const ops = page.pushOperators.mock.calls.flat();

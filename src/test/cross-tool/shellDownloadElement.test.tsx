@@ -117,21 +117,21 @@ describe('DownloadElement', () => {
   });
 
   it('keeps drawing the saved check through a re-render, then settles to static after 700ms', () => {
-    let now = 1000;
-    const spy = vi.spyOn(Date, 'now').mockImplementation(() => now);
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(1000);
     try {
       const { rerender } = mount({ state: 'ready', href: 'blob:x', fileName: 'merged.pdf', detail: '2 pages' });
       rerender({ state: 'saved' });
       expect(box().querySelector(`.${styles['check-mark-animated']}`)).not.toBeNull();
-      now += 100;
+      vi.setSystemTime(1100);
       rerender({ detail: '2 pages · 1 MB' });
       expect(box().querySelector(`.${styles['check-mark-animated']}`)).not.toBeNull();
-      now += 700;
+      vi.setSystemTime(1800);
       rerender({ detail: '2 pages · 2 MB' });
       expect(box().querySelector(`.${styles['check-mark-animated']}`)).toBeNull();
       expect(box().querySelector(`.${styles['check-mark-static']}`)).not.toBeNull();
     } finally {
-      spy.mockRestore();
+      vi.useRealTimers();
     }
   });
 

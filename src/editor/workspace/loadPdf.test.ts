@@ -22,7 +22,8 @@ const page = (lines: string[]) => ({ lines });
 
 beforeEach(() => {
   openedTasks.length = 0;
-  vi.mocked(getPdfjs).mockReset().mockImplementation(async () => legacyPdfjs() as never); // forced: the node build
+  // Forced: the node build of pdf.js, the shipped loader needs a browser Worker
+  vi.mocked(getPdfjs).mockReset().mockImplementation(async () => legacyPdfjs() as never);
 });
 
 afterEach(() => {
@@ -87,6 +88,7 @@ describe('loadPdf lifecycle', () => {
       Object.defineProperty(task, 'promise', { value: task.promise.then((doc) => gate.promise.then(() => doc)) });
       return task;
     };
+    // Forced: the first load's document arrives late (a held real task)
     vi.mocked(getPdfjs).mockImplementationOnce(async () => ({ ...legacyPdfjs(), getDocument: (p: never) => holdOpen(legacyPdfjs().getDocument(p)) }) as never); // forced: the first load's document arrives late
     const shared = options({ bytes: toBuffer(await buildPdf([page(['first']), page(['second'])])) });
     const first = loadPdf(shared);
@@ -186,7 +188,7 @@ describe('loadPdf lifecycle', () => {
     });
 
     it('without a callback a password file still fails exactly as before', async () => {
-      vi.spyOn(console, 'error').mockImplementation(() => {});
+      vi.spyOn(console, 'error');
       const config = options({ bytes: toBuffer(fixture('needs-password')), restored: true });
 
       await loadPdf(config);
@@ -196,7 +198,7 @@ describe('loadPdf lifecycle', () => {
     });
 
     it('an error that is not a password stays a failure even with a callback', async () => {
-      vi.spyOn(console, 'error').mockImplementation(() => {});
+      vi.spyOn(console, 'error');
       const onNeedsUnlock = vi.fn();
       const config = options({ bytes: toBuffer(fixture('truncated')), onNeedsUnlock });
 

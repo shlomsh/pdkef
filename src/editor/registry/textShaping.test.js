@@ -32,11 +32,12 @@ async function embedHeebo() {
   return doc.embedFont(new Uint8Array(readFileSync(join(FONT_DIR, 'Heebo-Regular.ttf'))));
 }
 
-function mockPage(font) {
-  // `doc` must be a real PDFDocument (via the embedded font's own `.doc`) so
-  // drawShapedRun's ActualText wrapper can build a real PDFDict through
-  // `page.doc.context.obj(...)` - a bare mock would throw on `.context`.
-  return { doc: font.doc, node: { newFontDictionary: vi.fn(() => 'F1') }, pushOperators: vi.fn() };
+function spiedPage(font) {
+  // A real page of the font's own document; its calls are watched, the real code still runs.
+  const page = font.doc.addPage();
+  vi.spyOn(page, 'pushOperators');
+  vi.spyOn(page.node, 'newFontDictionary');
+  return page;
 }
 
 describe('drawShapedRun', () => {
@@ -54,7 +55,7 @@ describe('drawShapedRun', () => {
     const scale = size / fk.unitsPerEm;
     const startX = 100;
 
-    const page = mockPage(font);
+    const page = spiedPage(font);
     drawShapedRun(page, { text, pdfFont: font, size, x: startX, y: 700, color: rgb(0, 0, 0) });
 
     const ops = page.pushOperators.mock.calls[0];
@@ -82,7 +83,7 @@ describe('drawShapedRun', () => {
     const { positions } = fk.layout(composedText);
     const hasRise = positions.some((p) => p.yOffset !== 0);
 
-    const page = mockPage(font);
+    const page = spiedPage(font);
     drawShapedRun(page, { text, pdfFont: font, size: 24, x: 0, y: 0, color: rgb(0, 0, 0) });
     const ops = page.pushOperators.mock.calls[0];
     const risesEmitted = ops.some((op) => op.name === 'Ts');
@@ -91,7 +92,7 @@ describe('drawShapedRun', () => {
 
   it('mints one /Font resource entry per page per font, not one per emitted run (small defect #1)', async () => {
     const font = await embedHeebo();
-    const page = mockPage(font);
+    const page = spiedPage(font);
 
     // Three calls, same page, same font - a 3-line element plus a comb cell
     // is exactly this shape (docs/hebrew-text-shaping-export.md measured 15
@@ -105,8 +106,8 @@ describe('drawShapedRun', () => {
 
   it('mints a fresh /Font entry per page, since the cache is scoped to the page, not the font alone', async () => {
     const font = await embedHeebo();
-    const pageA = mockPage(font);
-    const pageB = mockPage(font);
+    const pageA = spiedPage(font);
+    const pageB = spiedPage(font);
 
     drawShapedRun(pageA, { text: 'א', pdfFont: font, size: 24, x: 0, y: 0, color: rgb(0, 0, 0) });
     drawShapedRun(pageB, { text: 'א', pdfFont: font, size: 24, x: 0, y: 0, color: rgb(0, 0, 0) });
@@ -127,7 +128,7 @@ describe('drawShapedRun', () => {
     const composedText = composeHebrewClusters(text, (cp) => fk.hasGlyphForCodePoint(cp));
     const { glyphs: rawGlyphs } = fk.layout(composedText);
 
-    const page = mockPage(subsetFont);
+    const page = spiedPage(subsetFont);
     drawShapedRun(page, { text, pdfFont: subsetFont, size: 24, x: 0, y: 0, color: rgb(0, 0, 0) });
 
     const embedder = subsetFont.embedder;
@@ -165,7 +166,7 @@ describe('drawShapedRun', () => {
     const text = '1,250';
     const size = 24;
 
-    const page = mockPage(font);
+    const page = spiedPage(font);
     drawShapedRun(page, { text, pdfFont: font, size, x: 0, y: 0, color: rgb(0, 0, 0), direction: 'rtl' });
     const drawnIds = page.pushOperators.mock.calls[0]
       .filter((op) => op.name === 'Tj')
@@ -216,7 +217,7 @@ describe('mixed-direction lines: shaping and drawing per bidi run (H6)', () => {
     const line = 'רחוב 17';
     const runs = resolveBidiRuns(line, 'rtl');
 
-    const page = mockPage(font);
+    const page = spiedPage(font);
     let pen = 0;
     runs.forEach((run) => {
       drawShapedRun(page, { text: run.text, pdfFont: font, size: 24, x: pen, y: 0, color: rgb(0, 0, 0), direction: run.direction });
@@ -500,7 +501,7 @@ describe('a bidi run is shaped whole, so a kern pair that spans a space fires', 
     const font = await embedFont('Arimo-Regular.ttf');
     const fk = font.embedder.font;
     const size = 32;
-    const page = mockPage(font);
+    const page = spiedPage(font);
     await serializeText(
       // No `width`: a text element with one is a comb (isComb), which skips
       // bidi and shaping altogether.
@@ -538,7 +539,7 @@ describe('an RTL run mirrors paired punctuation, as the screen does (FONT-09)', 
 
   async function exportRtl(fileName, text) {
     const font = await embedFont(fileName);
-    const page = mockPage(font);
+    const page = spiedPage(font);
     await serializeText(
       { type: 'text', text, textDirection: 'rtl', fontSize: 24, fontFamily: 'Heebo', fontWeight: 'normal', fontStyle: 'normal', color: '#000000', left: 0, top: 0, page: 1 },
       { page, pdfWidth: 612, pdfHeight: 792, pdfX: 300, pdfY: 700, loadCustomFont: async () => font, baselineOffset: () => 0 },
@@ -571,7 +572,7 @@ describe('an RTL run mirrors paired punctuation, as the screen does (FONT-09)', 
   it('leaves an LTR run\'s brackets alone', async () => {
     const font = await embedHeebo();
     const fk = font.embedder.font;
-    const page = mockPage(font);
+    const page = spiedPage(font);
     drawShapedRun(page, { text: 'a(b)', pdfFont: font, size: 24, x: 0, y: 0, color: rgb(0, 0, 0), direction: 'ltr' });
     expect(drawnGlyphIds(page)).toEqual(glyphIdsOf(fk, 'a(b)'));
   });
@@ -590,7 +591,7 @@ describe('an RTL run mirrors paired punctuation, as the screen does (FONT-09)', 
     const font = await embedHeebo();
     const fk = font.embedder.font;
     const size = 24;
-    const page = mockPage(font);
+    const page = spiedPage(font);
     drawShapedRun(page, { text: 'א(ב)', pdfFont: font, size, x: 0, y: 0, color: rgb(0, 0, 0), direction: 'rtl' });
     const drawnAdvance = drawnGlyphIds(page).reduce((sum, id) => sum + fk.getGlyph(id).advanceWidth, 0) * size / fk.unitsPerEm;
     expect(shapedWidth(font, 'א(ב)', size, 'rtl')).toBeCloseTo(drawnAdvance, 9);

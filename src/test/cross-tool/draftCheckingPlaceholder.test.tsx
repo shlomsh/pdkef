@@ -6,23 +6,15 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import PdfSignTool from '../../tools/sign/PdfSignTool.tsx';
 import { until } from '../support/until.js';
 import { RESTORE_TIMEOUT_MS } from '#lib/drafts/useDraftLifecycle.ts';
-import { hasDraftHint, loadDraft, saveDraft } from '#lib/drafts/draftStore.ts';
+import { holdDraftStore } from '#lib/drafts/heldStore.test-helper.ts';
+import { hasDraftHint, saveDraft } from '#lib/drafts/draftStore.ts';
 
 // Coverage for the "checking draft" gate that replaces the flicker of an empty
 // dropzone briefly showing before a saved draft loads over it (see
 // useDraftPersistence.js's isRestoring / BasePdfTool.tsx's checkingDraft).
 // The draft store runs for real on fake-indexeddb: a test seeds a draft the way an earlier session left it,
-// and the hint (hasDraftHint) comes from the real index. The one forced line is loadDraft, which waits on a
-// gate the test opens and then runs the real read: a slow IndexedDB read is a state the real store cannot
-// be asked to produce on demand.
-
-function deferred() {
-  let resolve!: (value: unknown) => void;
-  const promise = new Promise<unknown>((res) => {
-    resolve = res;
-  });
-  return { promise, resolve };
-}
+// and the hint (hasDraftHint) comes from the real index. A slow IndexedDB read is a real write
+// transaction held on the store (holdDraftStore), released when the test opens the gate.
 
 // An earlier session's draft, written by the real store: the hint and the pointer a reload finds.
 async function seedDraft(fileName: string) {
@@ -34,22 +26,11 @@ async function seedDraft(fileName: string) {
     extra: {}
   });
   expect(saved).toBe(true);
-  vi.mocked(loadDraft).mockClear();
-}
-
-// Forced: the restore read waits on the gate, then the real read answers.
-function holdLoadDraft() {
-  const gate = deferred();
-  vi.mocked(loadDraft).mockImplementationOnce(async (tool) => {
-    await gate.promise;
-    const real = await vi.importActual<typeof import('#lib/drafts/draftStore.ts')>('#lib/drafts/draftStore.ts');
-    return real.loadDraft(tool);
-  });
-  return gate;
 }
 
 vi.mock('#lib/drafts/draftStore.ts', { spy: true });
 
+// Forced: the seeded file is the bytes '%PDF-1.4' (not a real document), so real pdf.js would reject it
 vi.mock('pdfjs-dist', () => ({
   GlobalWorkerOptions: { workerSrc: '' },
   getDocument: vi.fn(() => ({
@@ -101,7 +82,7 @@ describe('checking-draft placeholder (avoids the empty-dropzone flicker)', () =>
   it('holds off on the empty-state dropzone while a hinted draft is still being checked, then loads it', async () => {
     await seedDraft('draft-old.pdf');
     expect(hasDraftHint('sign')).toBe(true);
-    const gate = holdLoadDraft();
+    const gate = await holdDraftStore();
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => {
@@ -115,7 +96,7 @@ describe('checking-draft placeholder (avoids the empty-dropzone flicker)', () =>
     expect(container.querySelector('input[type="file"]')).toBeNull();
 
     await act(async () => {
-      gate.resolve(null);
+      await gate.release();
     });
     await until(() => announcedText().includes('Restored your last draft'));
 
@@ -141,7 +122,7 @@ describe('checking-draft placeholder (avoids the empty-dropzone flicker)', () =>
     try {
       await seedDraft('slow-draft.pdf');
       expect(hasDraftHint('sign')).toBe(true);
-      const gate = holdLoadDraft();
+      const gate = await holdDraftStore();
       container = document.createElement('div');
       document.body.appendChild(container);
       act(() => {
@@ -163,7 +144,7 @@ describe('checking-draft placeholder (avoids the empty-dropzone flicker)', () =>
       // it must still win, since giving up on the wait is not the same as
       // discarding the result once it does arrive.
       await act(async () => {
-        gate.resolve(null);
+        await gate.release();
       });
       await stepUntil(() => announcedText().includes('Restored your last draft'));
 
