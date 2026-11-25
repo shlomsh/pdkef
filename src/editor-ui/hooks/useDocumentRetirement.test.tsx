@@ -3,22 +3,15 @@ import { act } from 'preact/test-utils';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
-import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
-import { pointAtLegacyWorker } from '../../test/support/realPdfjs.ts';
+import '../../test/support/realPdfjs.ts';
 import { loadPdf, type PdfLoadController } from '#editor/workspace/loadPdf.ts';
 import { useDocumentRetirement } from './useDocumentRetirement.ts';
-import { getPdfjs } from '#lib/pdf/loadPdfjs.js';
-import { buildPdf, legacyPdfjs } from '../../test/support/redactCheckPdfs.test-helper.ts';
+import { buildPdf } from '../../test/support/redactCheckPdfs.test-helper.ts';
 
-// The loader, loadPdf and the hook run for real, on real pdf.js documents. The shipped loader points at a browser
-// Worker, which node does not have. Forced: the same pdf.js, its legacy (node) build.
-vi.mock('#lib/pdf/loadPdfjs.js', { spy: true });
+// The loader, loadPdf and the hook run for real, on real pdf.js documents.
 
-declare const process: { cwd(): string };
-pointAtLegacyWorker(pdfjs);
-
-/** Every loading task the loader opened, in order, each with its destroy watched (the real destroy still runs). */
-let tasks: ReturnType<ReturnType<typeof legacyPdfjs>['getDocument']>[];
+/** The loading task of every document handed over, in order, with its destroy watched (the real destroy still runs). */
+let tasks: PDFDocumentProxy['loadingTask'][];
 /** Every document a load handed over, in order, with getPage watched (the real ones still run). */
 let docs: PDFDocumentProxy[];
 let pdfBytes: ArrayBuffer;
@@ -31,21 +24,12 @@ beforeAll(async () => {
 beforeEach(() => {
   tasks = [];
   docs = [];
-  const lib = legacyPdfjs();
-  // Forced: the shipped pdf.js needs a browser Worker, so the node build.
-  vi.mocked(getPdfjs).mockResolvedValue({
-    ...lib,
-    getDocument: ((params: Parameters<typeof lib.getDocument>[0]) => {
-      const task = lib.getDocument(params);
-      vi.spyOn(task, 'destroy');
-      tasks.push(task);
-      return task;
-    }) as typeof lib.getDocument,
-  });
 });
 
 /** What a tool does with a document it is handed: keep it, with its calls watched. */
 function watch(doc: PDFDocumentProxy): PDFDocumentProxy {
+  vi.spyOn(doc.loadingTask, 'destroy');
+  tasks.push(doc.loadingTask);
   vi.spyOn(doc, 'getPage');
   docs.push(doc);
   return doc;

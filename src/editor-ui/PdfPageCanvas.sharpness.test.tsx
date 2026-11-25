@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
+import { drainPromises } from '../test/support/drainPromises.ts';
 import { pointAtLegacyWorker } from '../test/support/realPdfjs.ts';
 import PdfPageCanvas from './PdfPageCanvas.tsx';
 import { pageRenderScale, bucketWidth } from '#editor/adapters/pdf/pageRenderScale.js';
@@ -23,7 +24,7 @@ describe('PdfPageCanvas renders at the size the page is shown', () => {
     shownWidth = 790;
     observers = [];
     // Forced: jsdom has no screen density, so the test sets it.
-    window.devicePixelRatio = 2; // a real value, set on jsdom's own property
+    window.devicePixelRatio = 2;
     // Forced: jsdom never calls a ResizeObserver back, so the test calls it.
     vi.stubGlobal('ResizeObserver', class {
       cb: () => void;
@@ -53,7 +54,6 @@ describe('PdfPageCanvas renders at the size the page is shown', () => {
 
   // Resolves with the next real paint of the page.
   const nextPaint = () => new Promise<void>((resolve) => host!.addEventListener('page-painted', () => resolve(), { once: true }));
-  const flush = async () => { await act(async () => { await new Promise((r) => setTimeout(r, 0)); }); };
 
   const expected = (css: number) => pageRenderScale({
     unitWidth: UNIT.width, unitHeight: UNIT.height, cssWidth: bucketWidth(css), dpr: 2,
@@ -78,7 +78,7 @@ describe('PdfPageCanvas renders at the size the page is shown', () => {
 
     shownWidth = 800; // same 64px bucket as 790
     act(() => observers.forEach((o) => o.cb()));
-    await act(flush);
+    await act(drainPromises);
     expect(scales().length).toBe(before);
 
     shownWidth = 1200;
