@@ -351,3 +351,7 @@ count). The rule is off meanwhile.
   ones. A fresh review ran 90 mutations: no coverage lost, 20 never caught by either version (the delete previews' re-use guards,
   the box blur's margin and white fill, and the fallback clean-up after a redact among them). It found
   canvas mocks outside the rule's sight, now gone. Its real 400,000-glyph page timed out under load, so that site stays forced.
+- Scan (2026-11-25): 577 sites down to 574 in 175 files, 49 left in the tool (7 in its browser files). Nearly all of what is left needs
+  a camera, a worker, a photo decode or a trace, which jsdom lacks, so most of the wave is `// Forced:` lines. The restore check is held
+  by the real store and a failing run is the real one. A fresh review checked every reason and the rewritten tests: no coverage
+  lost, and the camera guard, never caught before, now is.
