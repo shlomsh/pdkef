@@ -1,6 +1,7 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import type { MockInstance } from 'vitest';
 import { isUpdateHeld } from '#lib/appUpdate/updateHolds.ts';
 import { compressImageToTarget } from '../lib/compressImage.js';
 import { waitUntil } from '../../../test/support/waitUntil.ts';
@@ -31,18 +32,24 @@ const flush = () => act(async () => { await drainPromises(); });
 describe('useImageBatch', () => {
   let root: HTMLElement;
   let api: { current: Api | null };
-  let urls: string[];
+  let createUrl: MockInstance<typeof URL.createObjectURL>;
+  let revokeUrl: MockInstance<typeof URL.revokeObjectURL>;
+  const urls = () => createUrl.mock.results.map((r) => r.value as string);
   beforeEach(() => {
     root = document.createElement('div');
     api = { current: null };
-    urls = [];
-    URL.createObjectURL = vi.fn(() => { const u = `blob:u${urls.length}`; urls.push(u); return u; });
-    URL.revokeObjectURL = vi.fn();
-    // Forced: the real compressor decodes and draws on a canvas, which jsdom lacks (browser-mode wave).
+    // Spy-through: Node's real object URLs, only watched.
+    createUrl = vi.spyOn(URL, 'createObjectURL');
+    revokeUrl = vi.spyOn(URL, 'revokeObjectURL');
+    // Forced: the real compressor decodes the photo with createImageBitmap or a blob: Image, which jsdom lacks.
     vi.mocked(compressImageToTarget).mockReset().mockImplementation(() => Promise.resolve(result()));
     act(() => render(<Harness apiRef={api} />, root));
   });
-  afterEach(() => act(() => render(null, root)));
+  afterEach(() => {
+    act(() => render(null, root));
+    createUrl.mockRestore();
+    revokeUrl.mockRestore();
+  });
 
   it('two photos make one call per file, in order, at the chosen target, every row met', async () => {
     const a = photo('a.jpg');
@@ -71,6 +78,7 @@ describe('useImageBatch', () => {
 
   it('lands nothing and starts nothing once the island is gone', async () => {
     const first = deferred<ReturnType<typeof result>>();
+    // Forced: the first photo's compress is held until the test lets it finish, and the real decode cannot run here.
     vi.mocked(compressImageToTarget).mockImplementationOnce(() => first.promise);
     act(() => api.current!.choose([photo('a.jpg'), photo('b.jpg')], 50));
     await flush();
@@ -86,12 +94,12 @@ describe('useImageBatch', () => {
     act(() => api.current!.choose([photo('a.jpg')], 50));
     await waitUntil(() => expect(api.current!.prepared.parts).not.toBeNull());
     const part = api.current!.prepared.parts![0];
-    expect(part.url).toBe('blob:u0');
+    expect(part.url).toBe(urls()[0]);
     await flush();
-    expect(URL.revokeObjectURL).not.toHaveBeenCalled();
+    expect(revokeUrl).not.toHaveBeenCalled();
     act(() => api.current!.setTarget(20, { immediate: true }));
     await waitUntil(() => expect(api.current!.prepared.parts).not.toBeNull());
-    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:u0');
-    expect(api.current!.prepared.parts![0].url).toBe('blob:u1');
+    expect(revokeUrl).toHaveBeenCalledWith(urls()[0]);
+    expect(api.current!.prepared.parts![0].url).toBe(urls()[1]);
   });
 });

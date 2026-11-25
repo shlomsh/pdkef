@@ -5,6 +5,7 @@ import PdfCompressTool from './PdfCompressTool.tsx';
 import type { PdfCompressToolProps } from './hooks/useCompressTool.ts';
 import { englishCompressMessages } from './messages';
 import { ANALYSIS_SHAPES, buildAnalysisPdf, type AnalysisShape } from '../../test/support/analysisPdfFixtures.ts';
+import { HeldFile } from '../../test/support/heldFile.ts';
 import { drainPromises } from '../../test/support/drainPromises.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { waitUntil } from '../../test/support/waitUntil.ts';
@@ -29,11 +30,11 @@ afterEach(() => {
   }
 });
 
-async function pickPdf(shape: AnalysisShape, props: PdfCompressToolProps = {}) {
+async function pickPdf(shape: AnalysisShape, props: PdfCompressToolProps = {}, picked?: File) {
   container = document.createElement('div');
   document.body.appendChild(container);
   act(() => render(<PdfCompressTool {...props} />, container as HTMLElement));
-  const file = new File([BYTES[shape]], 'doc.pdf', { type: 'application/pdf' });
+  const file = picked ?? new File([BYTES[shape]], 'doc.pdf', { type: 'application/pdf' });
   act(() => setInputFiles(container!.querySelector('input[type="file"]'), [file]));
   return file;
 }
@@ -72,12 +73,14 @@ describe('PdfCompressTool build', () => {
   });
 
   it('a press on Download starts the build at once, without waiting for the quiet time', async () => {
-    // Forced: the first build, which starts by itself, is held, so Download is on screen with nothing built.
-    const first = Promise.withResolvers<never>();
-    const started = Promise.withResolvers<void>();
-    vi.mocked(compressPdfImages).mockImplementationOnce(() => { started.resolve(); return first.promise; });
-    await pickPdf('textOnly', { quietPolicy: NEVER_QUIET });
-    await act(() => started.promise);
+    // The first build, which starts by itself, reads a held file, so Download is on screen with nothing built.
+    // The encryption check and the analysis read first: let those through, and hold the build's read.
+    const file = new HeldFile(BYTES.textOnly, 'doc.pdf');
+    await pickPdf('textOnly', { quietPolicy: NEVER_QUIET }, file);
+    await act(() => file.started);
+    file.release();
+    file.hold();
+    await act(() => file.started);
     const smallest = Array.from(container!.querySelectorAll<HTMLElement>('[role="radio"]')).find((el) => el.textContent!.includes('Smallest'));
     act(() => smallest!.click());
     await act(async () => { await drainPromises(); });
@@ -85,6 +88,7 @@ describe('PdfCompressTool build', () => {
     act(() => { download()!.dispatchEvent(new Event('pointerdown', { bubbles: true })); });
     await act(async () => { await drainPromises(); });
     expect(compressPdfImages).toHaveBeenCalledTimes(2);
+    file.release();
     await waitUntil(() => container!.querySelector('[data-stats-title]') !== null);
   });
 });

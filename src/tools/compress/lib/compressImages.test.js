@@ -1,4 +1,6 @@
+// @vitest-environment jsdom
 import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { PDFDocument, PDFName, PDFRef, PDFString } from '@cantoo/pdf-lib';
 import { analyzePdf } from './analyzePdf.js';
@@ -6,6 +8,7 @@ import { permissionsFromP } from './pdfPermissions.js';
 import {
   compressPdfImages,
   compressPdfImagesToTarget,
+  encodeImageOnCanvas,
   IMAGE_LEVELS,
   lerpRung,
   planImageRewrite,
@@ -17,7 +20,7 @@ const JPEG_1X1_BASE64 = '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQg
 const jpeg1x1 = () => Uint8Array.from(atob(JPEG_1X1_BASE64), (c) => c.charCodeAt(0));
 
 const fixture = (name) =>
-  new File([readFileSync(new URL(`../__fixtures__/${name}`, import.meta.url))], name, {
+  new File([readFileSync(resolve(process.cwd(), 'src/tools/compress/__fixtures__', name))], name, {
     type: 'application/pdf',
   });
 
@@ -36,8 +39,16 @@ const base = {
   hasColorKeyMask: false,
 };
 
+// Forced: the real encoder needs createImageBitmap (JPEG) and ImageData (Flate), which jsdom and Node lack, so it returns nothing.
 const fakeEncoder = vi.fn(async () => jpeg1x1());
 // Smaller than any fixture image, even the flat-colour 200x200 one (the rewrite never parses the body).
+// Records what the encoder was given and passes the call on to `encode`.
+const recording = (encode) => {
+  const calls = [];
+  const fn = async (arg) => { calls.push(arg); return encode(arg); };
+  fn.calls = calls;
+  return fn;
+};
 const tinyEncoder = async () => new Uint8Array(16);
 
 async function analyze(blob) {
@@ -100,11 +111,12 @@ async function tinyImagePdf() {
 describe('compressPdfImages', () => {
   it("reports 'unsupported' when every image is kept, without encoding", async () => {
     const file = await tinyImagePdf();
-    const encode = vi.fn(async () => null);
+    // Runs the real encoder, and records every call to it.
+    const encode = recording(encodeImageOnCanvas);
     const result = await compressPdfImages(file, { maxLongSidePx: 1000, quality: 0.7, encodeImage: encode });
     expect(result.reason).toBe('unsupported');
     expect(result.blob).toBe(file);
-    expect(encode).not.toHaveBeenCalled();
+    expect(encode.calls).toHaveLength(0);
   });
 
   it("keeps 'no-gain' for images that were tried", async () => {
@@ -262,7 +274,7 @@ describe('compressPdfImages', () => {
 
   it('hands back a text-only file untouched', async () => {
     const file = fixture('text-only.pdf');
-    const result = await compressPdfImages(file, { maxLongSidePx: 1000, quality: 0.7, encodeImage: fakeEncoder });
+    const result = await compressPdfImages(file, { maxLongSidePx: 1000, quality: 0.7 });
     expect(result.reason).toBe('no-images');
     expect(result.blob).toBe(file);
     expect(result.rewritten).toBe(0);
@@ -270,6 +282,7 @@ describe('compressPdfImages', () => {
 
   it('replaces nothing when the encoder returns more bytes', async () => {
     const file = fixture('mixed.pdf');
+    // Forced: the encoder must return more bytes than the image has; the real one returns nothing in jsdom and Node.
     const big = vi.fn(async ({ image }) => new Uint8Array(image.bytes + 10));
     const result = await compressPdfImages(file, { maxLongSidePx: 1000, quality: 0.7, encodeImage: big });
     expect(result.rewritten).toBe(0);
@@ -289,6 +302,7 @@ describe('compressPdfImages', () => {
   });
 
   it('passes the target from targetDimensions', async () => {
+    // Forced: it reads the target the encoder is given, and the real encoder returns nothing in jsdom and Node.
     const encode = vi.fn(async () => jpeg1x1());
     await compressPdfImages(fixture('mixed.pdf'), { maxLongSidePx: 1000, quality: 0.7, encodeImage: encode });
     const call = encode.mock.calls.map(([arg]) => arg).find((arg) => arg.image.width === 2000);
@@ -309,7 +323,8 @@ describe('IMAGE_LEVELS', () => {
 describe('compressPdfImagesToTarget', () => {
   // Output size follows the target width, so each rung is smaller than the last.
   // Any Uint8Array works: the rewrite never parses the JPEG body.
-  const sized = () => vi.fn(async ({ target }) => new Uint8Array(target.width * 5));
+  // Test input: the size search is a pure algorithm over its encoder, so a recording function is its input.
+  const sized = () => recording(async ({ target }) => new Uint8Array(target.width * 5));
   const afterBytesAt = async (rung) =>
     (await compressPdfImages(fixture('mixed.pdf'), { ...rung, encodeImage: sized() })).afterBytes;
 
@@ -320,7 +335,7 @@ describe('compressPdfImagesToTarget', () => {
     expect(result.reason).toBe('under-target');
     expect(result.metTarget).toBe(true);
     expect(result.blob).toBe(file);
-    expect(encode).not.toHaveBeenCalled();
+    expect(encode.calls).toHaveLength(0);
   });
 
   it('stops at once when there are no images', async () => {
@@ -330,7 +345,7 @@ describe('compressPdfImagesToTarget', () => {
     expect(result.reason).toBe('no-images');
     expect(result.metTarget).toBe(false);
     expect(result.blob).toBe(file);
-    expect(encode).not.toHaveBeenCalled();
+    expect(encode.calls).toHaveLength(0);
   });
 
   it("stops at once when every image is unsupported", async () => {
@@ -340,7 +355,7 @@ describe('compressPdfImagesToTarget', () => {
     expect(result.reason).toBe('unsupported');
     expect(result.metTarget).toBe(false);
     expect(result.blob).toBe(file);
-    expect(encode).not.toHaveBeenCalled();
+    expect(encode.calls).toHaveLength(0);
   });
 
   it('takes the first rung that meets the target', async () => {
@@ -355,7 +370,7 @@ describe('compressPdfImagesToTarget', () => {
     expect(result.metTarget).toBe(true);
     expect(result.reason).toBe('smaller');
     expect(result.afterBytes).toBe(third);
-    const widths = encode.mock.calls.map(([arg]) => arg.target.width).filter((w) => w !== 800 && w !== 200);
+    const widths = encode.calls.map((arg) => arg.target.width).filter((w) => w !== 800 && w !== 200);
     // The walk stops at the third rung; bisection calls follow it.
     expect(widths.slice(0, 3)).toEqual([2000, 1600, 1000]);
   });
@@ -391,8 +406,9 @@ describe('compressPdfImagesToTarget', () => {
 
 describe('compressPdfImagesToTarget bisection between rungs', () => {
   // Bytes grow with both the target width and the quality.
+  // Test input: the size search is a pure algorithm over its encoder.
   const sizedQ = () =>
-    vi.fn(async ({ target, quality }) => new Uint8Array(Math.round(target.width * 5 * (1 + quality))));
+    recording(async ({ target, quality }) => new Uint8Array(Math.round(target.width * 5 * (1 + quality))));
   const afterBytesAt = async (rung) =>
     (await compressPdfImages(fixture('mixed.pdf'), { ...rung, encodeImage: sizedQ() })).afterBytes;
   const between = async () => {
@@ -423,7 +439,7 @@ describe('compressPdfImagesToTarget bisection between rungs', () => {
     expect(result.afterBytes).toBe(best);
     const single = sizedQ();
     await compressPdfImages(file, { ...TARGET_IMAGE_LADDER[0], encodeImage: single });
-    expect(encode.mock.calls.length).toBe(single.mock.calls.length);
+    expect(encode.calls.length).toBe(single.calls.length);
   });
 
   it('reports non-decreasing progress ending at 1 on the bisect path', async () => {
@@ -461,7 +477,7 @@ describe('compressPdfImages on encrypted files', () => {
     documentAssembly: false,
   };
   const encryptedScan = async (userPassword) => {
-    const doc = await PDFDocument.load(readFileSync(new URL('../__fixtures__/scan.pdf', import.meta.url)));
+    const doc = await PDFDocument.load(readFileSync(resolve(process.cwd(), 'src/tools/compress/__fixtures__/scan.pdf')));
     doc.encrypt({ userPassword, ownerPassword: 'x', permissions: perms });
     return new File([await doc.save()], 'enc.pdf', { type: 'application/pdf' });
   };
@@ -482,11 +498,11 @@ describe('compressPdfImages on encrypted files', () => {
 
   it('hands back a file that needs a password untouched', async () => {
     const file = await encryptedScan('secret');
-    const encoder = vi.fn(async () => jpeg1x1());
+    const encoder = recording(encodeImageOnCanvas);
     const result = await compressPdfImages(file, opts(encoder));
     expect(result.reason).toBe('encrypted');
     expect(result.blob).toBe(file);
-    expect(encoder).not.toHaveBeenCalled();
+    expect(encoder.calls).toHaveLength(0);
   });
 
   it.each([
@@ -499,11 +515,11 @@ describe('compressPdfImages on encrypted files', () => {
     });
     edit(raw.context.lookup(raw.context.trailerInfo.Encrypt));
     const file = new File([await raw.save({ useObjectStreams: false })], 'odd.pdf', { type: 'application/pdf' });
-    const encoder = vi.fn(async () => jpeg1x1());
+    const encoder = recording(encodeImageOnCanvas);
     const result = await compressPdfImages(file, opts(encoder));
     expect(result.reason).toBe('encrypted');
     expect(result.blob).toBe(file);
-    expect(encoder).not.toHaveBeenCalled();
+    expect(encoder.calls).toHaveLength(0);
   });
 
   it('leaves an unencrypted file unencrypted', async () => {

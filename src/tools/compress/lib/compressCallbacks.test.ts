@@ -4,6 +4,9 @@ import { resolve } from 'node:path';
 import { h, render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { MockInstance } from 'vitest';
+import { useRef } from 'preact/hooks';
+import { useComparePreviews } from '../hooks/useComparePreviews.ts';
 import { englishCompressMessages as t } from '../messages';
 import { ANALYSIS_SHAPES, buildAnalysisPdf, type AnalysisShape } from '../../../test/support/analysisPdfFixtures.ts';
 import { HeldFile } from '../../../test/support/heldFile.ts';
@@ -17,7 +20,7 @@ vi.mock('./compressImage.js', { spy: true });
 vi.mock('./compress.js', { spy: true });
 vi.mock('./compressImages.js', { spy: true });
 
-// Forced: the real compressor decodes and draws on a canvas, which jsdom lacks (browser-mode wave).
+// Forced: the real compressor decodes the photo with createImageBitmap or a blob: Image, which jsdom lacks.
 vi.mocked(compressImageToTarget).mockImplementation((async (file: File) => ({
   blob: new Blob([new Uint8Array(10)], { type: 'image/jpeg' }),
   metTarget: true,
@@ -28,15 +31,32 @@ vi.mocked(compressImageToTarget).mockImplementation((async (file: File) => ({
   file,
 })) as never);
 
-function setup(fileName = 'photo.png') {
+// The real compare previews hook, so a landed result reaches the real previews.
+function realCompare() {
+  const host = document.createElement('div');
+  mounted.push(host);
+  const ref: { current: ReturnType<typeof useComparePreviews> | null } = { current: null };
+  const Probe = () => {
+    ref.current = useComparePreviews({ runTokenRef: useRef(0) });
+    return null;
+  };
+  act(() => render(h(Probe, null), host));
+  return ref;
+}
+
+function setup(fileName = 'photo.png', { gateOpen = true } = {}) {
   const file = new File([new Uint8Array(100)], fileName, { type: 'image/png' });
-  const machine = { read: vi.fn(() => ({ runnable: true, runToken: 7 })), send: vi.fn() };
-  const compare = { clear: vi.fn(), open: vi.fn(() => Promise.resolve()) };
+  const machine = realMachine();
+  act(() => {
+    machine.send({ type: 'fileAccepted' });
+    if (gateOpen) machine.send({ type: 'gateOpened' });
+  });
+  const compare = realCompare();
   const setAnnouncement = vi.fn();
   const callbacks = createCompressCallbacks({
     t,
-    machine: machine as never,
-    compare: compare as never,
+    machine,
+    compare: compare.current!,
     currentFileRef: { current: file },
     optionsRef: { current: { level: 'medium', targetKB: 5, flatten: false } },
     setAnnouncement: setAnnouncement as never,
@@ -56,21 +76,33 @@ describe('superseded', () => {
 });
 
 describe('createCompressCallbacks', () => {
+  let createUrl: MockInstance<typeof URL.createObjectURL>;
+  let revokeUrl: MockInstance<typeof URL.revokeObjectURL>;
+  beforeEach(() => {
+    // Spy-through: Node's real object URLs, only watched.
+    createUrl = vi.spyOn(URL, 'createObjectURL');
+    revokeUrl = vi.spyOn(URL, 'revokeObjectURL');
+  });
+  afterEach(() => {
+    createUrl.mockRestore();
+    revokeUrl.mockRestore();
+  });
+
   it('build starts the machine and returns an image result with its meta', async () => {
     const { callbacks, machine } = setup();
     const progress = vi.fn();
     const built = await callbacks.build(new AbortController().signal, progress);
-    expect(machine.send).toHaveBeenCalledWith({ type: 'buildStarted' });
+    expect(machine.read().runCount).toBe(1);
     expect(built.meta?.outputType).toBe('image/jpeg');
     expect(built.meta?.announcement).toBe(t.imageComplete);
     expect(built.meta?.dimensions).toEqual({ width: 4, height: 3, originalWidth: 8, originalHeight: 6 });
   });
 
   it('build is superseded while the gate is closed', async () => {
-    const { callbacks, machine } = setup();
-    machine.read.mockReturnValue({ runnable: false, runToken: 7 });
+    const { callbacks, machine } = setup('photo.png', { gateOpen: false });
+    expect(machine.read().runnable).toBe(false);
     await expect(callbacks.build(new AbortController().signal, vi.fn())).rejects.toThrow();
-    expect(machine.send).not.toHaveBeenCalled();
+    expect(machine.read().runCount).toBe(0);
   });
 
   it('fail announces the image failure for an image file', () => {
@@ -82,19 +114,27 @@ describe('createCompressCallbacks', () => {
   it('land tells the machine, announces, clears and opens the compare', async () => {
     const { callbacks, machine, compare, setAnnouncement, file } = setup();
     const built = await callbacks.build(new AbortController().signal, vi.fn());
-    machine.send.mockClear();
-    callbacks.land(built);
-    expect(machine.send).toHaveBeenCalledWith({ type: 'buildLanded' });
+    const blob = (built as { blob: Blob }).blob;
+    // An earlier result is on screen and a Download tap is waiting for this one.
+    await act(async () => compare.current!.open(file, new Blob(['old'], { type: 'image/jpeg' })));
+    const previous = compare.current!.previews!.after;
+    act(() => machine.send({ type: 'busyTapped' }));
+    expect(machine.read().tapped).toBe(true);
+    act(() => callbacks.land(built));
+    expect(machine.read().tapped).toBe(false);
     expect(setAnnouncement).toHaveBeenCalledWith(t.imageComplete);
-    expect(compare.clear).toHaveBeenCalled();
-    expect(compare.open).toHaveBeenCalledWith(file, (built as { blob: Blob }).blob);
+    expect(revokeUrl).toHaveBeenCalledWith(previous);
+    expect(createUrl).toHaveBeenLastCalledWith(blob);
+    expect(compare.current!.previews!.after).not.toBe(previous);
   });
 
   it('land skips the compare for a passthrough', () => {
     const { callbacks, compare, setAnnouncement } = setup();
-    callbacks.land({ blob: new Blob(), pageCount: 0, meta: { passthrough: true, announcement: 'x' } as never });
+    expect(createUrl).not.toHaveBeenCalled();
+    act(() => callbacks.land({ blob: new Blob(), pageCount: 0, meta: { passthrough: true, announcement: 'x' } as never }));
     expect(setAnnouncement).toHaveBeenCalledWith('x');
-    expect(compare.open).not.toHaveBeenCalled();
+    expect(createUrl).not.toHaveBeenCalled();
+    expect(compare.current!.previews).toBeNull();
   });
 });
 

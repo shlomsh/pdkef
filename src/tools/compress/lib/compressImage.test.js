@@ -1,33 +1,32 @@
 import { describe, expect, it, vi, beforeAll, afterAll } from 'vitest';
 import { compressImageToTarget } from './compressImage.js';
 
-// jsdom has no real image decoding or canvas encoding, so both are stubbed
-// the same way compress.test.js stubs pdfjs/canvas: swap the browser APIs
-// this module calls for deterministic fakes, then assert on the outcome.
+// jsdom has a real 2D canvas but no createImageBitmap and cannot load a
+// blob: URL into an Image, so the real decode cannot run here. The Image
+// load and the encoder stay swapped (marked Forced below) and the object URL
+// calls are real, only watched.
 //
 // jsdom does not implement `createImageBitmap` at all, so compressImage.js's
 // primary decode path throws and it falls back to the <img> element path on
-// its own - exactly the fallback the ticket asks for, exercised for free by
-// running these tests under jsdom. That fallback path is what gets stubbed
-// below (the Image src and onload, URL.createObjectURL).
+// its own, exercised for free by running these tests under jsdom.
 const ORIGINAL_WIDTH = 1000;
 const ORIGINAL_HEIGHT = 1000;
 
 describe('compressImageToTarget', () => {
   let originalToBlob;
   let originalGetContext;
-  let originalCreateObjectURL;
-  let originalRevokeObjectURL;
+  let createSpy;
+  let revokeSpy;
   let originalImageSrcDescriptor;
 
   beforeAll(() => {
     expect(typeof globalThis.createImageBitmap).not.toBe('function');
 
-    originalCreateObjectURL = URL.createObjectURL;
-    originalRevokeObjectURL = URL.revokeObjectURL;
-    URL.createObjectURL = vi.fn(() => 'blob:fake-url');
-    URL.revokeObjectURL = vi.fn();
+    // Spy-through: Node's real createObjectURL accepts jsdom Blobs.
+    createSpy = vi.spyOn(URL, 'createObjectURL');
+    revokeSpy = vi.spyOn(URL, 'revokeObjectURL');
 
+    // Forced: jsdom cannot load a blob: URL into an Image, so the decode is swapped.
     // Simulate a decoded ORIGINAL_WIDTH x ORIGINAL_HEIGHT image firing
     // onload as soon as `src` is set, since jsdom never actually loads the
     // fake blob: URL.
@@ -44,6 +43,7 @@ describe('compressImageToTarget', () => {
       },
     });
 
+    // Forced: the decoded image is a swapped object, so a real canvas cannot draw it and the size must be a known function.
     originalToBlob = HTMLCanvasElement.prototype.toBlob;
     originalGetContext = HTMLCanvasElement.prototype.getContext;
 
@@ -73,8 +73,8 @@ describe('compressImageToTarget', () => {
   });
 
   afterAll(() => {
-    URL.createObjectURL = originalCreateObjectURL;
-    URL.revokeObjectURL = originalRevokeObjectURL;
+    createSpy.mockRestore();
+    revokeSpy.mockRestore();
     if (originalImageSrcDescriptor) {
       Object.defineProperty(HTMLImageElement.prototype, 'src', originalImageSrcDescriptor);
     }

@@ -1,60 +1,16 @@
 import fs from 'fs';
 import path from 'path';
-import { describe, expect, it, vi, beforeAll, afterAll } from 'vitest';
+import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { pointAtLegacyWorker } from '../../../test/support/realPdfjs.ts';
 import { compressPdf, compressPdfToTarget, pickStartScaleIndex, MAX_RENDER_MEMORY_BYTES } from './compress.js';
 
-vi.mock('pdfjs-dist', async () => {
-  return await import('pdfjs-dist/legacy/build/pdf.mjs');
-});
-
 const JPEG_1X1_BASE64 = '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==';
 
-// jsdom has no canvas: pdf.js renders into a context that swallows every call.
-function stubGetContext() {
-  const baseContext = {
-    canvas: this,
-    fillStyle: '',
-    strokeStyle: '',
-  };
-  return new Proxy(baseContext, {
-    get(target, prop) {
-      if (prop in target) {
-        return target[prop];
-      }
-      if (prop === 'getTransform') {
-        return () => ({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 });
-      }
-      return vi.fn();
-    },
-  });
-}
-
 describe('compressPdf library integration with real fixtures', () => {
-  let originalToBlob;
-  let originalGetContext;
-
   beforeAll(() => {
-    // Resolve absolute path to the node_modules legacy worker file with file:// protocol
-
+    // The real pdf.js (the build the app ships) renders into jsdom's real canvas and the real encoder runs.
     pointAtLegacyWorker(pdfjs);
-
-    // Stub canvas methods since jsdom does not support canvas drawing/export
-    originalToBlob = HTMLCanvasElement.prototype.toBlob;
-    originalGetContext = HTMLCanvasElement.prototype.getContext;
-
-    HTMLCanvasElement.prototype.toBlob = function toBlob(callback, type) {
-      const bytes = Uint8Array.from(atob(JPEG_1X1_BASE64), (c) => c.charCodeAt(0));
-      callback(new Blob([bytes], { type: type || 'image/jpeg' }));
-    };
-
-    HTMLCanvasElement.prototype.getContext = stubGetContext;
-  });
-
-  afterAll(() => {
-    HTMLCanvasElement.prototype.toBlob = originalToBlob;
-    HTMLCanvasElement.prototype.getContext = originalGetContext;
   });
 
   function getFixtureFile(name) {
@@ -97,24 +53,15 @@ describe('compressPdf library integration with real fixtures', () => {
 
   it('hands back the original file when re-rendering would not make it smaller', async () => {
     const file = getFixtureFile('num-5.pdf');
-    const toBlob = HTMLCanvasElement.prototype.toBlob;
-    // Every page encodes to more bytes than the whole input - the shape of a
+    // The pages' real JPEGs together are bigger than the 2.5 KB input: the shape of a
     // small vector PDF, where a rasterised copy is always the bigger file.
-    HTMLCanvasElement.prototype.toBlob = function bigBlob(callback, type) {
-      const jpeg = Uint8Array.from(atob(JPEG_1X1_BASE64), (c) => c.charCodeAt(0));
-      callback(new Blob([jpeg, new Uint8Array(file.size * 2)], { type: type || 'image/jpeg' }));
-    };
-    try {
-      const levelResult = await compressPdf(file, { level: 'medium' });
-      expect(levelResult.blob).toBe(file);
-      expect(levelResult.rasterBytes).toBeGreaterThan(file.size);
-      const result = await compressPdfToTarget(file, { targetKB: 1 });
-      expect(result.blob).toBe(file);
-      expect(result.metTarget).toBe(false);
-      expect(result.rasterBytes).toBeGreaterThan(file.size);
-    } finally {
-      HTMLCanvasElement.prototype.toBlob = toBlob;
-    }
+    const levelResult = await compressPdf(file, { level: 'medium' });
+    expect(levelResult.blob).toBe(file);
+    expect(levelResult.rasterBytes).toBeGreaterThan(file.size);
+    const result = await compressPdfToTarget(file, { targetKB: 1 });
+    expect(result.blob).toBe(file);
+    expect(result.metTarget).toBe(false);
+    expect(result.rasterBytes).toBeGreaterThan(file.size);
   });
 
   it('compresses num-5.pdf to a target size', async () => {
@@ -166,7 +113,6 @@ describe('pickStartScaleIndex', () => {
 
 describe('compressPdfToTarget meets a target the lowest step can reach', () => {
   let originalToBlob;
-  let originalGetContext;
   let scan;
 
   // A JPEG pdf-lib accepts, with the canvas's real dimensions in its SOF
@@ -202,11 +148,10 @@ describe('compressPdfToTarget meets a target the lowest step can reach', () => {
 
   beforeAll(() => {
     originalToBlob = HTMLCanvasElement.prototype.toBlob;
-    originalGetContext = HTMLCanvasElement.prototype.getContext;
+    // Forced: the size search is checked against sizes the test knows; a real JPEG of a blank page is a few KB, so no target here would be reachable only at the lowest step.
     HTMLCanvasElement.prototype.toBlob = function toBlob(callback, _type, quality) {
       callback(fakeJpeg(this.width, this.height, fakeJpegSize(this.width, this.height, quality)));
     };
-    HTMLCanvasElement.prototype.getContext = stubGetContext;
   });
 
   beforeAll(async () => {
@@ -215,7 +160,6 @@ describe('compressPdfToTarget meets a target the lowest step can reach', () => {
 
   afterAll(() => {
     HTMLCanvasElement.prototype.toBlob = originalToBlob;
-    HTMLCanvasElement.prototype.getContext = originalGetContext;
   });
 
   // Ten blank A4 pages plus an attachment, so the input is bigger than every

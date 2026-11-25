@@ -4,9 +4,7 @@ import { imagesToPdf, UnreadableImageError } from '#lib/images/imagesToPdf.js';
 import { reportError } from '#lib/telemetry/errorReport.ts';
 
 // The counting test runs the real imagesToPdf: cut.png is bytes neither pdf-lib nor a browser decoder (absent here) can
-// read, so it is really skipped. Forced: the second test must abort after the last picture was read, a moment the real
-// imagesToPdf closes (it throws AbortError at the end), so its forced implementation stands in for imagesToPdf and
-// fabricates its result; there buildImagesPdf's own guard is what is under test.
+// read, so it is really skipped. The second test is the one forced call (marked where it is).
 vi.mock('#lib/images/imagesToPdf.js', { spy: true });
 vi.mock('#lib/telemetry/errorReport.ts', { spy: true });
 
@@ -27,6 +25,7 @@ describe('buildImagesPdf (DEBT-75)', () => {
 
   it('names nothing for a build that was replaced meanwhile', async () => {
     const controller = new AbortController();
+    // Forced: buildImagesPdf's own guard needs an abort after the last picture, but the real imagesToPdf throws at its end, so only an abort inside pdf.save() reaches it, which a test cannot time.
     vi.mocked(imagesToPdf).mockImplementation(async (_files, _progress, _signal, options) => {
       options?.onSkip?.('cut.png');
       controller.abort();

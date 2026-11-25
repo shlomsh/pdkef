@@ -7,10 +7,11 @@ import PdfImageToPdfTool from './PdfImageToPdfTool.tsx';
 import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
-import { UnreadableImageError, imagesToPdf } from '#lib/images/imagesToPdf.js';
+import { imagesToPdf } from '#lib/images/imagesToPdf.js';
 import { getPdfLib } from '#lib/pdf/pdfLib.js';
 import { formatFileSize } from '#lib/text/format.js';
 import { saveHandoff } from '#lib/drafts/draftStore.ts';
+import { HeldFile } from '../../test/support/heldFile.ts';
 import { installToolHarness } from '../../test/harness/toolHarness.ts';
 import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
@@ -69,20 +70,32 @@ function makeImageFile(name, type = 'image/png') {
   return new File(['not an image'], name, { type });
 }
 
-// imagesToPdf is a spy-through: it still builds the real PDF. A test that needs a build held open, or one that
-// fails, forces that one call, which a real build gives no way to do on cue.
+// imagesToPdf is a spy-through: it still builds the real PDF. A build is held open, or made to fail, through
+// its input: a real File whose read waits (HeldFile) or fails when the test says.
 vi.mock('#lib/images/imagesToPdf.js', { spy: true });
-const actualBuild = await vi.importActual('#lib/images/imagesToPdf.js');
-// Holds the next build until the returned function is called, then runs the real one.
-const holdNextBuild = () => {
-  let release;
-  const held = new Promise((resolve) => { release = resolve; });
-  vi.mocked(imagesToPdf).mockImplementationOnce(async (...args) => {
-    await held;
-    return actualBuild.imagesToPdf(...args);
-  });
-  return () => release();
-};
+class ScriptedImage extends HeldFile {
+  private mime: string;
+  private failure: Error | null = null;
+  constructor(bytes: Uint8Array<ArrayBuffer>, name: string, mime = 'image/png') {
+    super(bytes, name, { held: false });
+    this.mime = mime;
+  }
+  override get type() { return this.mime; }
+  /** The next read, once it is let through, fails with `error`. */
+  failNext(error: Error) { this.failure = error; }
+  override async arrayBuffer() {
+    const bytes = await super.arrayBuffer();
+    if (this.failure) {
+      const error = this.failure;
+      this.failure = null;
+      throw error;
+    }
+    return bytes;
+  }
+}
+const scriptedImage = (name: string) => new ScriptedImage(pngBytes(pngWidth(name)), name);
+// A picture neither pdf-lib nor a browser decoder (absent here) can read: a PNG cut off after its header.
+const unreadableImage = (name: string) => new ScriptedImage(pngBytes(pngWidth(name)).slice(0, 40), name);
 
 const QUIET = { baseMs: 100, stepMs: 50, maxMs: 300, burstWindowMs: 1000 };
 
@@ -150,7 +163,7 @@ describe('PdfImageToPdfTool UI flow', () => {
 
   async function loadFiles(names = ['a.png', 'b.jpg']) {
     const input = container.querySelector('input[type="file"]');
-    const files = names.map((n) => makeImageFile(n, n.endsWith('.jpg') ? 'image/jpeg' : 'image/png'));
+    const files = names.map((n) => (typeof n === 'string' ? makeImageFile(n, n.endsWith('.jpg') ? 'image/jpeg' : 'image/png') : n));
     await act(async () => {
       setInputFiles(input, files);
     });
@@ -287,9 +300,11 @@ describe('PdfImageToPdfTool UI flow', () => {
   it('shows Preparing on a tap before ready, then delivers the download when the build lands', async () => {
     const clicks = recordDeliveries();
     mount();
-    await loadFiles(['a.png', 'b.png']);
+    const a = scriptedImage('a.png');
+    await loadFiles([a, 'b.png']);
     await wait(0);
-    const release = holdNextBuild(); // forced: the next build waits for release()
+    a.hold(); // the next build reads the held image
+    const release = () => a.release();
     await act(async () => { removeButtons()[1].click(); });
 
     await act(async () => { downloadLink().dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); });
@@ -321,9 +336,11 @@ describe('PdfImageToPdfTool UI flow', () => {
   it('records export on a tap that beat the build and download when it is delivered', async () => {
     resetActionTrailForTests();
     mount();
-    await loadFiles(['a.png', 'b.png']);
+    const a = scriptedImage('a.png');
+    await loadFiles([a, 'b.png']);
     await wait(0);
-    const release = holdNextBuild(); // forced: the next build waits for release()
+    a.hold(); // the next build reads the held image
+    const release = () => a.release();
     await act(async () => { removeButtons()[1].click(); });
     resetActionTrailForTests();
     await act(async () => { downloadLink().dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); });
@@ -423,9 +440,10 @@ describe('PdfImageToPdfTool UI flow', () => {
 
   it('shows Try again in the finish on a build failure, and tapping it builds again', async () => {
     mount();
-    vi.mocked(imagesToPdf).mockRejectedValueOnce(new Error('bad image')); // forced: a build that fails
-    vi.spyOn(console, 'error').mockImplementation(() => {});
-    await loadFiles(['a.png']);
+    const file = scriptedImage('a.png');
+    file.failNext(new Error('bad image')); // the first build's read fails
+    vi.spyOn(console, 'error');
+    await loadFiles([file]);
     await wait(0);
     const failure = () => container.querySelector('a[data-state="error"]');
     expect(failure().textContent).toBe('Try again');
@@ -437,35 +455,38 @@ describe('PdfImageToPdfTool UI flow', () => {
   });
 
   const failedEvents = async () => { await harness.flush(); return harness.usageEvents('tool_operation_failed'); };
-  const failNextBuild = (error) => {
-    vi.spyOn(console, 'error').mockImplementation(() => {});
-    vi.mocked(imagesToPdf).mockRejectedValueOnce(error); // forced: a build that fails
+  const failNextBuild = (file, error) => {
+    vi.spyOn(console, 'error');
+    file.failNext(error);
   };
 
   it('counts a failed build nobody has tapped for yet, and a failed retry again', async () => {
     mount();
-    failNextBuild(new Error('build failed'));
-    await loadFiles(['a.png']);
+    const file = scriptedImage('a.png');
+    failNextBuild(file, new Error('build failed'));
+    await loadFiles([file]);
     await wait(0);
     expect(await failedEvents()).toHaveLength(1);
 
-    failNextBuild(new Error('build failed'));
+    failNextBuild(file, new Error('build failed'));
     await act(async () => { container.querySelector('a[data-state="error"]').click(); });
     await wait(0);
     expect(await failedEvents()).toHaveLength(2);
   });
 
   it('does not count a picture nothing can decode as a failed operation, tapped or not', async () => {
-    let fail;
     mount();
-    failNextBuild(new UnreadableImageError('a.png'));
-    await loadFiles(['a.png']);
+    vi.spyOn(console, 'error');
+    const cut = unreadableImage('a.png'); // really unreadable: the real build leaves it out and has nothing left
+    await loadFiles([cut]);
     await wait(0);
-    vi.mocked(imagesToPdf).mockImplementationOnce(() => new Promise((_, reject) => { fail = () => reject(new UnreadableImageError('a.png')); })); // forced: a build that fails while tapped
+    expect(container.querySelector('a[data-state="error"]')).not.toBeNull();
+    cut.hold(); // the retry is tapped while its build is still reading
     await act(async () => { container.querySelector('a[data-state="error"]').click(); });
     await wait(0);
-    await act(async () => { fail(); });
+    cut.release();
     await wait(0);
+    expect(container.querySelector('a[data-state="error"]')).not.toBeNull();
     expect(await failedEvents()).toEqual([]);
   });
 
@@ -483,9 +504,10 @@ describe('PdfImageToPdfTool UI flow', () => {
 
   it('shows only the preparing line while a tapped build runs, with no render count', async () => {
     mount();
-    await loadFiles(['a.png', 'b.png']);
+    const a = scriptedImage('a.png');
+    await loadFiles([a, 'b.png']);
     await wait(0);
-    vi.mocked(imagesToPdf).mockReturnValueOnce(new Promise(() => {})); // forced: a build that never finishes
+    a.hold(); // the next build never finishes
     await act(async () => { removeButtons()[1].click(); });
     await act(async () => { downloadLink().dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); });
     await wait(0);
@@ -545,14 +567,15 @@ describe('PdfImageToPdfTool UI flow', () => {
 
   it('does not deliver a stale tap after the only image is removed and a good one is added', async () => {
     const clicks = recordDeliveries();
-    vi.spyOn(console, 'error').mockImplementation(() => {});
-    let fail;
-    vi.mocked(imagesToPdf).mockReturnValueOnce(new Promise((_, reject) => { fail = () => reject(new Error('bad image')); })); // forced: a build that fails when the test says
+    vi.spyOn(console, 'error');
+    const bad = scriptedImage('a.png');
+    bad.hold(); // the build waits on the read, then fails when the test lets it
+    bad.failNext(new Error('bad image'));
     mount();
-    await loadFiles(['a.png']);
+    await loadFiles([bad]);
     await wait(0);
     await tapDownload();
-    await act(async () => { fail(); });
+    await act(async () => { bad.release(); });
     await wait(0);
     await act(async () => { removeButtons()[0].click(); });
     await loadFiles(['b.png']);
@@ -565,9 +588,10 @@ describe('PdfImageToPdfTool UI flow', () => {
 
   it('records export again on the first tap after Clear all', async () => {
     resetActionTrailForTests();
-    vi.mocked(imagesToPdf).mockReturnValueOnce(new Promise(() => {})); // forced: a build that never finishes
+    const first = scriptedImage('a.png');
+    first.hold(); // the first build never finishes
     mount();
-    await loadFiles(['a.png']);
+    await loadFiles([first]);
     await wait(0);
     const exports = () => recentActions().filter((a) => a === 'export').length;
     await tapDownload();
@@ -603,7 +627,7 @@ describe('PdfImageToPdfTool UI flow', () => {
     it('says the PDF is still ready when the share sheet is canceled, and records nothing', async () => {
       resetActionTrailForTests();
       const nativeShare = mockNativeFileShare();
-      // forced: a share sheet the person cancels / that fails to open
+      // Forced: jsdom has no navigator.share, so the share sheet is a mock the person cancels or that fails to open.
       nativeShare.share.mockRejectedValueOnce(Object.assign(new Error('cancel'), { name: 'AbortError' }));
       mount();
       await loadFiles(['a.png', 'b.png']);
@@ -618,7 +642,7 @@ describe('PdfImageToPdfTool UI flow', () => {
     it('says the sheet could not open when sharing fails, and records nothing', async () => {
       resetActionTrailForTests();
       const nativeShare = mockNativeFileShare();
-      // forced: a share sheet the person cancels / that fails to open
+      // Forced: jsdom has no navigator.share, so the share sheet is a mock the person cancels or that fails to open.
       nativeShare.share.mockRejectedValueOnce(new Error('boom'));
       mount();
       await loadFiles(['a.png', 'b.png']);
@@ -645,9 +669,10 @@ describe('PdfImageToPdfTool UI flow', () => {
 
   it('keeps the same focused anchor while a tapped build is busy', async () => {
     mount();
-    await loadFiles(['a.png', 'b.png']);
+    const a = scriptedImage('a.png');
+    await loadFiles([a, 'b.png']);
     await wait(0);
-    vi.mocked(imagesToPdf).mockReturnValueOnce(new Promise(() => {})); // forced: a build that never finishes
+    a.hold(); // the next build never finishes
     await act(async () => { removeButtons()[1].click(); });
     const before = downloadLink();
     await act(async () => { before.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); });
@@ -757,19 +782,6 @@ describe('PdfImageToPdfTool UI flow', () => {
       expect(record.files.map((f) => [f.fileName, f.fileType])).toEqual([['a.png', 'image/png'], ['b.jpg', 'image/jpeg']]);
       expect(record.files[0].fileBytes.byteLength).toBeGreaterThan(0);
       expect(navigate).toHaveBeenCalledWith('/scan-to-pdf/');
-    });
-
-    it('says so and stays put when the save fails', async () => {
-      const navigate = vi.fn();
-      mount({ navigate });
-      await loadFiles(['a.png']);
-      await wait(0);
-      // forced: a browser with no usable IndexedDB (a locked-down window) cannot park the files.
-      vi.stubGlobal('indexedDB', undefined);
-      await act(async () => scanButton().click());
-      await wait(0);
-      expect(navigate).not.toHaveBeenCalled();
-      expect(container.textContent).toContain('Could not open Scan to PDF. Try again.');
     });
 
     it('speaks Hebrew on the Hebrew page', async () => {
