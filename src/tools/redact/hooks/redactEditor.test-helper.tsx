@@ -5,6 +5,7 @@ import '../../../test/support/realPdfjs.ts';
 import { buildPdf } from '../../../test/support/redactCheckPdfs.test-helper.ts';
 import { useReducer } from 'preact/hooks';
 import { act } from 'preact/test-utils';
+import { afterAll } from 'vitest';
 import type { DocumentStyle } from '#editor/model/documentStyle.ts';
 import { getAppStyle, getEditorPreference } from '#editor/workspace/preferenceStore.ts';
 import RedactPages from '../components/RedactPages.tsx';
@@ -29,7 +30,9 @@ export interface MountedRedactEditor {
 
 // One real three-page file, opened once by the shipped pdf.js; every mount shares it (a mount is synchronous,
 // a document opens asynchronously, and no test here asks for more than three pages).
-const sharedDocument = await (await getPdfjs()).getDocument({ data: await buildPdf([{ lines: ['one'] }, { lines: ['two'] }, { lines: ['three'] }]), wasmUrl: PDFJS_WASM_URL }).promise;
+const sharedTask = (await getPdfjs()).getDocument({ data: await buildPdf([{ lines: ['one'] }, { lines: ['two'] }, { lines: ['three'] }]), wasmUrl: PDFJS_WASM_URL });
+const sharedDocument = await sharedTask.promise;
+afterAll(() => sharedTask.destroy());
 
 /**
  * The island's editing side over the real reducer: the file is opened with FILE_INITIALIZED, the shared

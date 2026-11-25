@@ -26,6 +26,7 @@ async function pdfOf(sizes = SIZES) {
 let pdfFile;
 let documentProto;
 let pageProto;
+let realRender;
 let getPage;
 let renderCall;
 let toDataUrl;
@@ -37,6 +38,7 @@ beforeAll(async () => {
   const doc = await task.promise;
   documentProto = Object.getPrototypeOf(doc);
   pageProto = Object.getPrototypeOf(await doc.getPage(1));
+  realRender = pageProto.render;
   await task.destroy();
 });
 
@@ -234,6 +236,23 @@ describe('thumbnails.js', () => {
       await expect(renderCall.mock.results[0].value.promise).rejects.toBeInstanceOf(pdfjs.RenderingCancelledException);
       await source.destroy();
     });
+
+    it('rejects with AbortError when the signal fires just after the render settles', async () => {
+      const { openThumbnailSource } = await import('./thumbnails.js');
+      const source = await openThumbnailSource(pdfFile);
+      const controller = new AbortController();
+      // Forced: pdf.js gives a test no moment between a finished render and its caller; the real render runs, the abort is first on its promise.
+      renderCall.mockImplementationOnce(function render(...args) {
+        const task = realRender.apply(this, args);
+        task.promise.then(() => controller.abort(), () => {});
+        return task;
+      });
+
+      await expect(source.render(0, { signal: controller.signal })).rejects.toMatchObject({ name: 'AbortError' });
+      // The render itself finished: nothing was left to cancel.
+      await expect(renderCall.mock.results[0].value.promise).resolves.toBeUndefined();
+      await source.destroy();
+    });
   });
 
   describe('renderThumbnailWithMeta', () => {
@@ -274,7 +293,7 @@ describe('thumbnails.js', () => {
     const closeSpy = vi.fn();
     let decodeSpy;
 
-    // The decoded photo: a real jsdom canvas, 400 x 200 and red, with the close() an ImageBitmap has.
+    // The decoded photo: a real jsdom canvas, 400 x 200, red with a blue right half, with the close() an ImageBitmap has.
     const decoded = () => {
       const bitmap = document.createElement('canvas');
       bitmap.width = 400;
@@ -282,6 +301,8 @@ describe('thumbnails.js', () => {
       const context = bitmap.getContext('2d');
       context.fillStyle = '#c81e1e';
       context.fillRect(0, 0, 400, 200);
+      context.fillStyle = '#1e1ec8';
+      context.fillRect(200, 0, 200, 200);
       bitmap.close = closeSpy;
       return bitmap;
     };
@@ -315,7 +336,7 @@ describe('thumbnails.js', () => {
       const [canvas] = canvasesEncoded();
       expect([canvas.width, canvas.height]).toEqual([100, 50]);
       expect(pixelAt(canvas, 0, 0)).toEqual([200, 30, 30, 255]);
-      expect(pixelAt(canvas, 99, 49)).toEqual([200, 30, 30, 255]);
+      expect(pixelAt(canvas, 99, 49)).toEqual([30, 30, 200, 255]);
       expect(closeSpy).toHaveBeenCalledTimes(1);
       expect(pdfjs.getDocument).not.toHaveBeenCalled();
     });
@@ -369,7 +390,7 @@ describe('thumbnails.js', () => {
       const result = await renderThumbnailWithMeta(photo(), { width: 100 });
       expect(decodeSpy).toHaveBeenLastCalledWith(expect.any(File), { imageOrientation: 'from-image' });
       expect(result.pageCount).toBe(1);
-      expect(pixelAt(canvasesEncoded()[0], 50, 25)).toEqual([200, 30, 30, 255]);
+      expect(pixelAt(canvasesEncoded()[0], 25, 25)).toEqual([200, 30, 30, 255]);
     });
 
     it('renderPdfThumbnails reports the photo as page 1 of 1', async () => {
