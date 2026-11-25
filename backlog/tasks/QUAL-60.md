@@ -1,10 +1,9 @@
 ---
 id: "QUAL-60"
 title: "Scan's camera browser test finishes well inside its wait on a slow runner"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "robustness"
-horizon: "now"
 depends_on: []
 ---
 
@@ -58,4 +57,5 @@ is slow; every camera photo the test makes then measured 640x480. The product is
 normal speed is real work. Mutation: without the `work.pages.length === 0` guard in `addCameraFiles`, the test still fails on its
 last assertion (`{ source: 'camera' }` is not undefined).
 
-Open: a Linux CI run of this branch, after Shlomi's OK to push.
+Linux CI run 45706129467 is green: the three tests took 2.5, 1.2 and 1.7 s, against 6.7 to 8.7, 4.3 to 7.2 and 3.6 to 4.3 s on
+the four passing runs checked before.
