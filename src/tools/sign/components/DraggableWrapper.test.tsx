@@ -292,6 +292,7 @@ describe('DraggableWrapper compact editing toolbar (MOBI-16)', () => {
   afterEach(() => {
     act(() => render(null, container));
     container.remove();
+    // Forced: puts the setup's matchMedia back.
     window.matchMedia = originalMatchMedia;
   });
 

@@ -239,7 +239,6 @@ describe('useDraftPersistence - save outcome reporting', () => {
   });
 
   it('never flushes an untouched restored document on hide or page exit', async () => {
-    const visibilityDescriptor = Object.getOwnPropertyDescriptor(document, 'visibilityState');
     // Forced: jsdom cannot hide a page.
     Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' });
     try {
@@ -252,7 +251,7 @@ describe('useDraftPersistence - save outcome reporting', () => {
       expect(saveDraft).not.toHaveBeenCalled();
       expect(apiRef.current.result.draftSaveState).toBe('idle');
     } finally {
-      if (visibilityDescriptor) Object.defineProperty(document, 'visibilityState', visibilityDescriptor);
+      delete document.visibilityState; // the page's own answer, on the prototype, shows again
     }
   });
 
@@ -343,6 +342,7 @@ describe('useDraftPersistence - unpersisted-storage warning', () => {
     act(() => render(null, container));
     container.remove();
     vi.useRealTimers();
+    // Forced: puts the setup's matchMedia back.
     window.matchMedia = originalMatchMedia;
     if (originalStandalone) Object.defineProperty(navigator, 'standalone', originalStandalone);
     else delete navigator.standalone;
