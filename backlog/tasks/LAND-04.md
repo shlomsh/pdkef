@@ -358,3 +358,7 @@ count). The rule is off meanwhile.
 - Sign (2026-11-25): 574 sites down to 540 in 170 files, 46 left in the tool. Opening, export, sharing, the draft store and the ink
   sampler run for real in the tests; what is left needs layout, a share sheet, a held moment or a failure the page cannot make.
   A fresh review ran 76 mutations: no coverage lost, 24 never caught by either version.
+- Editor and cross-tool (2026-11-25): 540 sites down to 501 in 160 files. The loader, file session, page grid, page canvas and draft
+  persistence run the shipped pdf.js on real PDFs, text export draws real fonts on a real page, and a destroyed document throws
+  pdf.js's own error. A fresh review ran 95 mutations: 1 lost to the moved no-storage copy, still caught by its sibling, and 31 never caught by either
+  version.
