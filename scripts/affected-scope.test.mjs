@@ -622,6 +622,7 @@ describe('matchesFontsGlob', () => {
     'public/fonts/NewFont-Regular.ttf',
     'src/editor/text/fonts.js',
     'src/editor/text/bidiRuns.js', // directory rule, not a named list
+    'src/tools/sign/lib/fontkitEngine.ts', // the engine every guard bundles (FONT-10)
     'src/styles/editorFonts.css',
     'scripts/fonts/build-cjk-subset.py',
     'scripts/generate-font-manifest.mjs',

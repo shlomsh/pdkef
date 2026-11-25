@@ -22,7 +22,7 @@ so it belongs with the font work it would be run against. Scope unchanged.
 ## Done 2026-11-25, inside FONT-10
 
 `shapingGuardHarness.js` now asserts the total advance beside the pixel diff on every case and calibration string:
-0.05px where the browser reports fractional advances, `glyphCount x 0.5px` where it rounds. Red on `@pdf-lib/fontkit`
+`glyphCount x 1/64px` where the browser reports fractional advances, `glyphCount x 0.5px` where it rounds. Red on `@pdf-lib/fontkit`
 at 300-400px: ক্ক off by 330px, হ্ন 84, ক্ত 80, দ্ধ 46, স্ক 42, ম্ব and স্ব 2 (Noto Sans Bengali), and Latin names in
 Caveat (15) and Sriracha (10) by 1 to 45px. Green on `fontkit` 3: 0.000px worst case in every guard. Every bundled font file
 (80) was also compared with HarfBuzz on 136,056 font and string pairs, see FONT-10.

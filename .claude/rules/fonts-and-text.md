@@ -6,6 +6,7 @@ paths:
   - "src/editor/adapters/pdf/**"
   - "src/editor/text/fontCoverageTable*"
   - "src/tools/sign/lib/signExportReadiness*"
+  - "src/tools/sign/lib/fontkitEngine*"
   - "src/tools/sign/components/FontPickerMenu*"
   - "src/tools/sign/components/SignatureDialog*"
   - "src/tools/sign/components/FontSupportNotice*"
@@ -53,7 +54,7 @@ Text pipeline map, verified from code: [docs/wysiwyg-text-architecture.md](../..
   triggers in a 62-push window were rightful). `scripts/affected-scope.mjs` now decides `fonts` with a
   small, explicit file-glob (`matchesFontsGlob`): `public/fonts/**` (font assets), `src/editor/text/**`
   (the whole directory - the catalogue and its shaping/runtime code share one Nx-project directory, so
-  this is deliberately a directory rule, not a named subset), `src/styles/editorFonts.css`,
+  this is deliberately a directory rule, not a named subset), `src/styles/editorFonts.css`, `src/tools/sign/lib/fontkitEngine.ts`,
   `scripts/fonts/**`, `scripts/generate-font-*`, `scripts/check-font-*`, the guard specs and fixtures
   under `e2e/sign/`, and `playwright.config.js` (defines the shard split) - plus every existing
   fail-open trigger (an unowned file, the CI oracle itself, no resolvable base) that already forced

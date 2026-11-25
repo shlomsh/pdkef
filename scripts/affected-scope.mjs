@@ -197,6 +197,7 @@ const FONTS_DIRECTORY_GLOBS = ['public/fonts/', 'src/editor/text/', 'src/lib/fon
 export function matchesFontsGlob(file) {
   if (file === 'playwright.config.js') return true; // defines the fonts-shard split itself
   if (file === 'src/styles/editorFonts.css') return true; // generated from the font manifest
+  if (file === 'src/tools/sign/lib/fontkitEngine.ts') return true; // the engine every guard bundles
   if (/^scripts\/generate-font-/.test(file)) return true;
   if (/^scripts\/check-font-/.test(file)) return true;
   return FONTS_DIRECTORY_GLOBS.some((prefix) => file.startsWith(prefix));

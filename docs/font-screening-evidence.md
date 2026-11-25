@@ -10,7 +10,7 @@ export to `fontkit` 3: the six Bengali clusters, the Caveat and Sriracha kerning
 `GPOSProcessor.getAnchor` crashes described here are gone, and the guards exclude nothing. The entries stay as the
 record of why each face was chosen.
 
-## Bengali: six named shaper disagreements (Noto Sans Bengali)
+## Bengali: six named shaper disagreements (Noto Sans Bengali), closed by FONT-10
 
 
 **Bengali ships with six named shaper disagreements, and that is a curation decision, not an

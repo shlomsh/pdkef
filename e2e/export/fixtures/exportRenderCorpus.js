@@ -280,9 +280,7 @@ export const EXPORT_RENDER_CORPUS = [
   // ప్రియ ("Priya", a real name and the everyday word for "dear") carries
   // the same shape of conjunct as the Bengali case above: ప్ర is ప (PA) + ్
   // (virama) + ర (RA), drawn as one attached diagonal stroke rather than
-  // three separate letters, and it is the exact cluster Noto Sans Telugu
-  // miscrafts badly enough to rule that face out (see teluguCorpus.js's
-  // module doc) - ఆంధ్రప్రదేశ్, the state's own name, contains it. Every
+  // three separate letters; ఆంధ్రప్రదేశ్, the state's own name, contains it. Every
   // code point confirmed present via fontkit's hasGlyphForCodePoint() against
   // the real bundled public/fonts/Suranna-Regular.ttf bytes.
   textCase('telugu-suranna', 'ప్రియ', { fontFamily: 'Suranna' }),
@@ -290,8 +288,7 @@ export const EXPORT_RENDER_CORPUS = [
   // Gurmukhi (FONT-08b): shipped, user-selectable script that had a shaping
   // guard (gurmukhi-shaping-guard.spec.js, gurmukhi-tiro-shaping-guard.spec.js)
   // but, like Bengali/CJK/Malayalam above, no case on the file a user actually
-  // receives until now. ਸਿੰਘ ("Singh", a real surname, also the FAQ's own
-  // nasalization example) carries the tippi mark (ੰ, U+0A70) ordinary Punjabi
+  // receives until now. ਸਿੰਘ ("Singh", a real surname) carries the tippi mark (ੰ, U+0A70) ordinary Punjabi
   // needs constantly and is not a bare-alphabet string. Set in Tiro Gurmukhi,
   // the newer of the catalogue's two Gurmukhi faces, so a regression specific
   // to its subset (as opposed to Mukta Mahee's) has a case to fail. Every

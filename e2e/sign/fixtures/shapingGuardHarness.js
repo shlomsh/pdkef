@@ -733,10 +733,10 @@ export function createShapingGuardTest({
         }
       }
 
-      // Whole-pixel advances can move a run by at most half a pixel per glyph;
-      // without them both engines read the same font units, so nothing may move.
+      // Whole-pixel advances can move a run by at most half a pixel per glyph.
+      // Without them only FreeType's 1/64px rounding is left.
       const advanceFailures = [...result.cases, ...result.calibrationCases]
-        .filter((c) => c.shapedAdvanceDiff > (result.quantizesAdvances ? c.glyphCount * 0.5 : 0.05));
+        .filter((c) => c.shapedAdvanceDiff > c.glyphCount * (result.quantizesAdvances ? 0.5 : 1 / 64));
       expect.soft(
         advanceFailures.map((c) => `${c.id} "${c.text}": off by ${c.shapedAdvanceDiff.toFixed(2)}px of ${c.nativeWidth.toFixed(2)}px`),
         `${scriptName}/${candidateName}: fontkit's total advance differs from the browser's`,

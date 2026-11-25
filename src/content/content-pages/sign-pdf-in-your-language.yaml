@@ -9,7 +9,7 @@ h1: 'Sign a PDF in Your Own Language, Not Just English'
 subhead: >-
   This tool ships fonts for 20 languages and scripts, each checked letter by letter against the real
   font files rather than assumed to work. This page says which fonts draw which languages, what the
-  tool does the moment a character cannot be drawn, and the divergences worth knowing before you rely
+  tool does the moment a character cannot be drawn, and the details worth knowing before you rely
   on it for something that matters.
 primaryCta:
   href: '/sign/'
@@ -101,8 +101,8 @@ sections:
   - sketch: 'waves'
     icon: 'AlertTriangle'
     iconPos: 'tl'
-    kicker: 'The known divergences, named'
-    heading: 'What does not match perfectly, said plainly rather than buried'
+    kicker: 'Good to know'
+    heading: 'A few details worth knowing by script'
     blocks:
       - kind: 'checklist'
         items:

@@ -78,7 +78,7 @@ export function normalizeTabsForBidi(text) {
  *
  * Shared by two callers that judge coverage against two different kinds of
  * font handle: `unrepresentableCharacters` in src/editor/registry/text.ts
- * (wraps a pdf-lib/fontkit font already loaded into memory) and `covers` in
+ * (wraps a fontkit font already loaded into memory) and `covers` in
  * src/editor/text/fonts.js (wraps a synchronous lookup into the generated
  * fontCoverageTable.js, with no font ever loaded). Both need the identical
  * chain - a fork here is exactly the kind of drift that let the editor and

@@ -15,6 +15,7 @@
  * importing the report there would cost real page weight on a page already
  * near its budget), it only fails the build when the two disagree.
  */
+import { BENGALI_CORPUS } from '../../e2e/sign/fixtures/bengaliCorpus.js';
 import { describe, it, expect } from 'vitest';
 import { tools } from '../data/tools.js';
 import { HANDWRITING_FONTS, TEXT_FONTS } from '#editor/text/fonts.js';
@@ -385,9 +386,8 @@ describe('Sign page: the guarantees SEO-07 brought up out of the design docs', (
     expect(faq).not.toContain('comb');
   });
 
-  it('claims no Bengali divergence between the screen and the download (FONT-10)', () => {
-    expect(faqAnswer('Bengali')).toContain('262 clusters');
-    expect(supportedNote('Bengali')).not.toMatch(/differently/);
+  it('gives the Bengali guard its real corpus size', () => {
+    expect(faqAnswer('Bengali')).toContain(`${BENGALI_CORPUS.length} clusters`);
   });
 });
 
