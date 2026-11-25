@@ -263,7 +263,9 @@ export default defineConfig({
     // edit changes only the CSS it touches.
     // minifyInternalExports: false keeps shared chunks' export names the same from one build to the next.
     environments: {
-      client: { build: { rolldownOptions: { output: { entryFileNames: entryFileName, chunkFileNames: chunkFileName, assetFileNames: assetFileName('client'), codeSplitting: clientCodeSplitting, minifyInternalExports: false } } } },
+      // Astro scans every component and page under src for dependencies on a cold `astro dev`; a test that reaches a native
+      // module (@napi-rs/canvas) fails the scan and no island hydrates. Guard: scripts/dev-scan-entries.test.mjs.
+      client: { optimizeDeps: { entries: ['!**/*.test.*', '!**/*.test-helper.*', '!**/src/test/**'] }, build: { rolldownOptions: { output: { entryFileNames: entryFileName, chunkFileNames: chunkFileName, assetFileNames: assetFileName('client'), codeSplitting: clientCodeSplitting, minifyInternalExports: false } } } },
       prerender: { build: { rolldownOptions: { output: { assetFileNames: assetFileName('prerender') } } } },
     },
     css: { modules: { generateScopedName: cssModuleClassName } },
