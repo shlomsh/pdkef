@@ -1,28 +1,35 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
+import { PDFDocument } from '@cantoo/pdf-lib';
+import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
+import { pointAtLegacyWorker } from '../../../test/support/realPdfjs.ts';
 
 vi.mock('#lib/telemetry/errorReport.ts', { spy: true });
 vi.mock('#lib/telemetry/productAnalytics.ts', { spy: true });
-// Spy-through: the real PrintSheets runs; the one forced line below stands in for pdf.js painting a page, which jsdom cannot do.
-vi.mock('#lib/pdf/renderPage.js', { spy: true });
+// The real PrintSheets runs and the real renderer paints a real PDF into jsdom's canvas.
 
 import type { EditorElement } from '#editor/model/editorModel.ts';
 import { reportError } from '#lib/telemetry/errorReport.ts';
 import { reportToolLifecycleEvent, resetUsageEventsForTests } from '#lib/telemetry/productAnalytics.ts';
-import { renderPageToCanvas } from '#lib/pdf/renderPage.js';
 import { drainPromises } from '../../../test/support/drainPromises.ts';
 import { waitUntil } from '../../../test/support/waitUntil.ts';
 import { PRINT_TIMEOUT_MS, usePrint } from './usePrint.ts';
 
 let container: HTMLElement | null = null;
 let api: ReturnType<typeof usePrint>;
-// One real-looking page: the sheets read its size, ask the renderer for its picture, and wait for that picture to load.
-const pdfDocument = {
-  numPages: 1,
-  getPage: async () => ({ rotate: 0, getViewport: () => ({ width: 600, height: 800 }) }),
-} as unknown as PDFDocumentProxy;
+// One real page: the sheets read its size, ask the renderer for its picture, and wait for that picture to load.
+pointAtLegacyWorker(pdfjs);
+let pdfDocument: PDFDocumentProxy;
+let task: ReturnType<typeof pdfjs.getDocument>;
+beforeAll(async () => {
+  const pdf = await PDFDocument.create();
+  pdf.addPage([600, 800]);
+  task = pdfjs.getDocument({ data: await pdf.save() });
+  pdfDocument = await task.promise as unknown as PDFDocumentProxy;
+});
+afterAll(() => task.destroy());
 const band = { left: 0, top: 0, width: 100, height: 100 };
 const noted = [
   { id: 'h', type: 'highlight', pageIndex: 0, color: '#fde047', left: 10, top: 20, width: 50, height: 5, bands: [band] },
@@ -35,11 +42,11 @@ function Probe() {
 }
 
 beforeEach(() => {
-  vi.useFakeTimers();
-  vi.mocked(renderPageToCanvas).mockImplementation(async () => ({ width: 800, height: 1000, getContext: () => null, toDataURL: () => 'data:image/png;base64,AAAA' }) as never); // forced, in every test: a painted page with no readable pixels (getContext is null), so the ink read finds nothing and no test here reads ink
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
   vi.mocked(reportError).mockClear();
   vi.mocked(reportToolLifecycleEvent).mockClear();
   resetUsageEventsForTests();
+  // Forced: jsdom has no window.print, so the print call is a recorder.
   window.print = vi.fn();
   container = document.createElement('div');
   document.body.appendChild(container);
@@ -170,9 +177,10 @@ describe('usePrint', () => {
       act(() => api.print('none'));
       expect(events()).toEqual(['tool_operation_started']);
       expect(vi.mocked(reportToolLifecycleEvent).mock.calls[0][1]).toBe('highlight-pdf');
-      vi.mocked(window.print).mockImplementation(() => { expect(events()).toEqual(['tool_operation_started', 'tool_result_ready']); });
       await finishLoading();
       expect(window.print).toHaveBeenCalledTimes(1);
+      // The result went out before the print call: it is the second lifecycle event, and its call order precedes print's.
+      expect(vi.mocked(reportToolLifecycleEvent).mock.invocationCallOrder[1]).toBeLessThan(vi.mocked(window.print).mock.invocationCallOrder[0]);
       expect(events()).toEqual(['tool_operation_started', 'tool_result_ready']);
     });
 

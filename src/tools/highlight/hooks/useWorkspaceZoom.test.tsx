@@ -1,15 +1,30 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
+import { PDFDocument } from '@cantoo/pdf-lib';
+import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
+import { pointAtLegacyWorker } from '../../../test/support/realPdfjs.ts';
 import type { PageTurns } from '#editor/geometry/pageTurn.ts';
 
+import { waitUntil } from '../../../test/support/waitUntil.ts';
 import { readInkBounds } from './readInkBounds.ts';
 import { useWorkspaceZoom } from './useWorkspaceZoom.ts';
 
 vi.mock('./readInkBounds.ts', { spy: true });
 
-const doc = { numPages: 1, getPage: async () => ({ getViewport: () => ({ width: 600, height: 800 }) }) } as unknown as PDFDocumentProxy;
+pointAtLegacyWorker(pdfjs);
+
+// A real blank 600 x 800 pt page: the real ink read finds no text on it.
+let doc: PDFDocumentProxy;
+let task: ReturnType<typeof pdfjs.getDocument>;
+beforeAll(async () => {
+  const pdf = await PDFDocument.create();
+  pdf.addPage([600, 800]);
+  task = pdfjs.getDocument({ data: await pdf.save() });
+  doc = await task.promise as unknown as PDFDocumentProxy;
+});
+afterAll(() => task.destroy());
 
 let pages: ReturnType<typeof useWorkspaceZoom>['pages'] = [];
 let latest: ReturnType<typeof useWorkspaceZoom> | null = null;
@@ -28,10 +43,11 @@ const container = document.createElement('div');
 afterEach(() => { act(() => render(null, container)); });
 
 async function mount(pageTurns: PageTurns, fullscreen = false, noted = false) {
-  // Forced: reading ink needs canvas pixels, which jsdom cannot render (browser-mode wave).
-  vi.mocked(readInkBounds).mockResolvedValue(null);
+  vi.mocked(readInkBounds).mockClear();
   await act(async () => { render(<Probe pageTurns={pageTurns} fullscreen={fullscreen} noted={noted} />, container); });
-  await act(async () => { await Promise.resolve(); });
+  await waitUntil(() => expect(pages.length).toBeGreaterThan(0));
+  // The real ink read of the real page, awaited through the spy's own result.
+  await act(async () => { await vi.mocked(readInkBounds).mock.results.at(-1)?.value; });
 }
 
 describe('useWorkspaceZoom with page turns', () => {

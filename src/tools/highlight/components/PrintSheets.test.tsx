@@ -3,12 +3,15 @@ import { drainPromises } from '../../../test/support/drainPromises.ts';
 import { act } from 'preact/test-utils';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { PDFDocument, degrees, rgb } from '@cantoo/pdf-lib';
+import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
+import { pointAtLegacyWorker } from '../../../test/support/realPdfjs.ts';
+import { waitUntil } from '../../../test/support/waitUntil.ts';
 import type { EditorElement } from '#editor/model/editorModel.ts';
 import type { PageTurns } from '#editor/geometry/pageTurn.ts';
 import PrintSheets from './PrintSheets.tsx';
 
-// Spy-through: the real ink reader, row finder and sketch code run. The one forced line (in `renderedPages`) stands in
-// for pdf.js painting a page, which jsdom cannot do; it hands back page pixels the real ink reader then reads.
+// Spy-through: the real ink reader, row finder, sketch code and renderer run on real PDFs painted into jsdom's canvas.
 vi.mock('../hooks/readInkBounds.ts', { spy: true });
 vi.mock('#editor/geometry/sketchStroke.ts', { spy: true });
 vi.mock('#lib/pdf/renderPage.js', { spy: true });
@@ -25,55 +28,43 @@ const elements: EditorElement[] = [
   { id: 'c3', type: 'comment', pageIndex: 1, left: 0, top: 0, width: 0, height: 0, comment: 'on a passage', anchor: { kind: 'passage', bands: [band] } },
 ] as EditorElement[];
 
-// Each page knows its number, so the painted pixels can differ per page.
-const pageOf = (n: number, extra: object = {}) => ({ n, rotate: 0, getViewport: () => ({ width: 600, height: 800 }), ...extra });
-const pdfDocument = { numPages: 2, getPage: async (n: number) => pageOf(n) } as unknown as PDFDocumentProxy;
+pointAtLegacyWorker(pdfjs);
 
-// The ink the next painted page carries, as fractions of its width; a page with no entry is blank paper.
-let inkOf: (pageNumber: number) => { left: number; right: number } | null = () => null;
-const WIDTH = 800;
-const HEIGHT = 1000;
-/** White 800 x 1000 pixels with five solid 20px-tall rows spanning the ink, the way a canvas gives them. */
-function paintedPage(ink: { left: number; right: number } | null) {
-  const data = new Uint8ClampedArray(WIDTH * HEIGHT * 4).fill(255);
-  if (ink) {
-    for (let row = 0; row < 5; row += 1) {
-      for (let y = 100 + row * 100; y < 120 + row * 100; y += 1) {
-        for (let x = Math.round(ink.left * WIDTH); x < Math.round(ink.right * WIDTH); x += 1) data.fill(0, (y * WIDTH + x) * 4, (y * WIDTH + x) * 4 + 3);
-      }
-    }
+interface PageSpec { rotate?: number; ink?: { left: number; right: number } | null }
+const opened: Array<ReturnType<typeof pdfjs.getDocument>> = [];
+
+/** A real file of 600 x 800 pt pages; a page with `ink` carries five solid text-like rows spanning those fractions of its width. */
+async function openDoc(pages: PageSpec[]): Promise<PDFDocumentProxy> {
+  const pdf = await PDFDocument.create();
+  for (const { rotate = 0, ink = null } of pages) {
+    const page = pdf.addPage([600, 800]);
+    if (ink) for (let row = 0; row < 5; row += 1) page.drawRectangle({ x: ink.left * 600, y: 800 - (75 + row * 75) - 15, width: (ink.right - ink.left) * 600, height: 15, color: rgb(0, 0, 0) });
+    page.setRotation(degrees(rotate));
   }
-  return { width: WIDTH, height: HEIGHT, getContext: () => ({ getImageData: () => ({ data, width: WIDTH, height: HEIGHT }) }), toDataURL: () => 'data:image/png;base64,AAAA' };
+  const task = pdfjs.getDocument({ data: await pdf.save() });
+  opened.push(task);
+  return await task.promise as unknown as PDFDocumentProxy;
 }
+
+// The ink the next opened default file carries, as fractions of its width; a page with no entry is blank paper.
+let inkOf: (pageNumber: number) => { left: number; right: number } | null = () => null;
 
 let container: HTMLElement | null = null;
-afterEach(() => {
+afterEach(async () => {
   if (container) { act(() => render(null, container!)); container.remove(); container = null; }
-  vi.mocked(renderPageToCanvas).mockReset();
+  vi.mocked(renderPageToCanvas).mockClear();
   vi.mocked(readPageInk).mockClear();
   inkOf = () => null;
+  await Promise.all(opened.splice(0).map((t) => t.destroy()));
 });
 
-// Resolves once `count` page pictures have been taken from the painted pages (the ink reads paint too, but take no picture).
-function renderedPages(count: number) {
-  const done = Promise.withResolvers<void>();
-  let pictures = 0;
-  vi.mocked(renderPageToCanvas).mockImplementation(async (page) => {
-    const canvas = paintedPage(inkOf((page as unknown as { n: number }).n));
-    const toDataURL = canvas.toDataURL;
-    canvas.toDataURL = () => { pictures += 1; if (pictures >= count) done.resolve(); return toDataURL(); };
-    return canvas as never;
-  });
-  return done.promise;
-}
-
-async function mount(notes: boolean | 'end', pageTurns?: PageTurns, doc: PDFDocumentProxy = pdfDocument, els: EditorElement[] = elements) {
-  const rendered = renderedPages(2);
+async function mount(notes: boolean | 'end', pageTurns?: PageTurns, given?: PDFDocumentProxy, els: EditorElement[] = elements) {
+  const doc = given ?? await openDoc([{ ink: inkOf(1) }, { ink: inkOf(2) }]);
   const onReady = vi.fn();
   container = document.createElement('div');
   document.body.appendChild(container);
   await act(async () => { render(<PrintSheets pdfDocument={doc} elements={els} notes={notes === 'end' ? 'end' : notes ? 'beside' : 'none'} pageTurns={pageTurns} onReady={onReady} />, container!); });
-  await rendered;
+  await waitUntil(() => expect(root()?.querySelectorAll('img')).toHaveLength(2));
   // two pictures, plus one paint per ink read (a note on that page)
   expect(renderPageToCanvas).toHaveBeenCalledTimes(2 + vi.mocked(readPageInk).mock.calls.length);
   await act(async () => { await drainPromises(); });
@@ -87,7 +78,7 @@ describe('PrintSheets', () => {
   it('READ-11: a sketched mark prints as one svg path in page points, inside the opacity layer', async () => {
     vi.mocked(sketchBands).mockClear();
     const sketched = { ...elements[0], stroke: 'sketch', opacity: 0.6 } as EditorElement;
-    await mount(false, undefined, pdfDocument, [sketched]);
+    await mount(false, undefined, undefined, [sketched]);
     const svg = sheets()[0].querySelector('svg[data-highlight-sketch]')!;
     expect(svg.getAttribute('viewBox')).toBe('0 0 600 800');
     expect(svg.querySelector('path')!.getAttribute('fill')).toBe('#fde047');
@@ -101,7 +92,7 @@ describe('PrintSheets', () => {
     const { loadHatch } = await import('../lib/outline/hatchLoader.ts');
     await loadHatch();
     const pencil = { ...elements[0], style: 'pencil', opacity: 0.6 } as EditorElement;
-    await mount(false, undefined, pdfDocument, [pencil]);
+    await mount(false, undefined, undefined, [pencil]);
     const svg = sheets()[0].querySelector('svg[data-highlight-hatch]')!;
     expect(svg.getAttribute('viewBox')).toBe('0 0 600 800');
     const path = svg.querySelector('path')!;
@@ -140,16 +131,15 @@ describe('PrintSheets', () => {
   });
 
   it('reads the ink of the pages that carry a note only', async () => {
-    const doc = { numPages: 3, getPage: async (n: number) => pageOf(n) } as unknown as PDFDocumentProxy;
+    const doc = await openDoc([{}, {}, {}]);
     const els = [
       { id: 'h', type: 'highlight', pageIndex: 1, color: '#fde047', left: 10, top: 20, width: 50, height: 5, bands: [band] },
       { id: 'c', type: 'comment', pageIndex: 1, left: 0, top: 0, width: 0, height: 0, comment: 'only', anchor: { kind: 'element', elementId: 'h' } },
     ] as EditorElement[];
-    const rendered = renderedPages(3);
     container = document.createElement('div');
     document.body.appendChild(container);
     await act(async () => { render(<PrintSheets pdfDocument={doc} elements={els} notes="beside" onReady={vi.fn()} />, container!); });
-    await rendered;
+    await waitUntil(() => expect(root()?.querySelectorAll('img')).toHaveLength(3));
     expect(renderPageToCanvas).toHaveBeenCalledTimes(4); // 3 pictures + the one ink read
     expect(vi.mocked(readPageInk)).toHaveBeenCalledTimes(1);
     expect(vi.mocked(readPageInk).mock.calls[0][1]).toBe(1);
@@ -176,7 +166,7 @@ describe('PrintSheets', () => {
 
   it('prints an underline as wide as its strokeWidth, 3 when it has none, lifted 1pt, in page-scaled CSS px', async () => {
     const under = (id: string, extra: object) => ({ id, type: 'highlight', pageIndex: 0, color: '#fde047', left: 10, top: 20, width: 50, height: 5, bands: [band], style: 'underline', ...extra }) as EditorElement;
-    await mount(false, undefined, pdfDocument, [under('w', { strokeWidth: 2 }), under('d', {})]);
+    await mount(false, undefined, undefined, [under('w', { strokeWidth: 2 }), under('d', {})]);
     const bands = [...sheets()[0].querySelectorAll('[data-print-band]')] as HTMLElement[];
     expect(bands.map((b) => b.style.getPropertyValue('--line'))).toEqual(['2px', '3px']);
     expect(bands.map((b) => b.style.getPropertyValue('--lift'))).toEqual(['1px', '1px']);
@@ -202,21 +192,11 @@ describe('PrintSheets', () => {
   });
 
   it('renders a turned page landscape, asking pdf.js for the page rotation plus the turn', async () => {
-    const rotations: number[] = [];
-    const doc = {
-      numPages: 2,
-      getPage: async (n: number) => ({
-        n,
-        rotate: 90,
-        getViewport: ({ rotation }: { rotation: number }) => {
-          rotations.push(rotation);
-          return rotation % 180 === 0 ? { width: 600, height: 800 } : { width: 800, height: 600 };
-        },
-      }),
-    } as unknown as PDFDocumentProxy;
+    const doc = await openDoc([{ rotate: 90 }, { rotate: 90 }]);
     await mount(false, { 0: 1 }, doc);
     expect(sheets()[0].style.width).toBe('600pt');
     expect(sheets()[1].style.width).toBe('800pt');
+    const rotations = vi.mocked(renderPageToCanvas).mock.calls.map((c) => c[1].rotation);
     expect(rotations).toContain(180);
     expect(rotations).toContain(90);
   });
@@ -256,7 +236,7 @@ describe('PrintSheets notes at the end', () => {
       { id: 'c4', type: 'comment', pageIndex: 0, left: 0, top: 0, width: 0, height: 0, comment: 'earlier on page one', anchor: { kind: 'element', elementId: 'h3' } },
       { id: 'h4', type: 'highlight', pageIndex: 1, color: '#86efac', left: 10, top: 60, width: 50, height: 5, bands: [band] },
     ] as EditorElement[];
-    await mount('end', undefined, pdfDocument, els);
+    await mount('end', undefined, undefined, els);
     const entries = [...sheets()[2].querySelectorAll('[data-print-end-entry]')] as HTMLElement[];
     expect(entries.map((n) => n.textContent)).toEqual(['Page 1earlier on page one', 'Page 1first', 'Page 2שלום']);
     expect(entries[2].querySelector('[dir="auto"]')?.textContent).toBe('שלום');
@@ -266,15 +246,12 @@ describe('PrintSheets notes at the end', () => {
   });
 
   it('adds no notes sheet when the document has no comment', async () => {
-    await mount('end', undefined, pdfDocument, elements.filter((el) => el.type === 'highlight'));
+    await mount('end', undefined, undefined, elements.filter((el) => el.type === 'highlight'));
     expect(sheets()).toHaveLength(2);
   });
 
   it('draws the notes sheet upright when the last page was turned sideways', async () => {
-    await mount('end', { 1: 1 }, {
-      numPages: 2,
-      getPage: async (n: number) => ({ n, rotate: 0, getViewport: ({ rotation }: { rotation: number }) => (rotation % 180 === 0 ? { width: 600, height: 800 } : { width: 800, height: 600 }) }),
-    } as unknown as PDFDocumentProxy);
+    await mount('end', { 1: 1 }, await openDoc([{}, {}]));
     expect(sheets()[1].style.width).toBe('800pt');
     expect(sheets()[2].style.width).toBe('600pt');
     expect(sheets()[2].style.height).toBe('800pt');

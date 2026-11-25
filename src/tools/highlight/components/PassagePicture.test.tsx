@@ -13,22 +13,25 @@ const elements: EditorElement[] = [
   { id: 'c1', type: 'comment', pageIndex: 0, left: 10, top: 20, width: 5, height: 5, comment: 'hi', anchor: { kind: 'element', elementId: 'h1' } } as EditorElement,
 ];
 
-const ctx = { drawImage: vi.fn(), fillRect: vi.fn(), save: vi.fn(), restore: vi.fn(), scale: vi.fn(), globalAlpha: 1, globalCompositeOperation: '', fillStyle: '' };
+// Spy-through on jsdom's real 2d context: the crop and bands really paint, the spies only show the calls.
+const proto = Object.getPrototypeOf(document.createElement('canvas').getContext('2d')!) as CanvasRenderingContext2D;
+const ctx = { drawImage: vi.spyOn(proto, 'drawImage'), fillRect: vi.spyOn(proto, 'fillRect') };
 let host: HTMLElement;
 let page: HTMLElement;
 
 beforeEach(() => {
-  Object.values(ctx).forEach((f) => { if (typeof f === 'function') (f as ReturnType<typeof vi.fn>).mockClear(); });
-  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(ctx as unknown as CanvasRenderingContext2D);
+  ctx.drawImage.mockClear();
+  ctx.fillRect.mockClear();
   host = document.createElement('div');
   document.body.appendChild(host);
 });
-afterEach(() => { act(() => render(null, host)); host.remove(); page?.remove(); vi.restoreAllMocks(); });
+afterEach(() => { act(() => render(null, host)); host.remove(); page?.remove(); });
 
 function fakePage() {
   page = document.createElement('div');
   const canvas = document.createElement('canvas');
   canvas.width = 800; canvas.height = 1200;
+  // Forced: jsdom has no layout, so the rects the crop is cut from are given.
   canvas.getBoundingClientRect = () => rect(0, 100, 400, 600);
   const overlay = document.createElement('div');
   overlay.setAttribute('data-page-overlay', '');

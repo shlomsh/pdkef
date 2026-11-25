@@ -6,14 +6,19 @@ import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CommentElement, EditorElement, HighlightElement } from '#editor/model/editorModel.ts';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
+import { PDFDocument, rgb } from '@cantoo/pdf-lib';
+import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
+import { pointAtLegacyWorker } from '../../../test/support/realPdfjs.ts';
 import { DEFAULT_MARKER } from '../lib/marker/markerState.ts';
 
 // Spy-through: the real swipe gesture runs on the real events and the spy shows what the page handed it. readScanUnit
-// reads a displayed canvas's pixels, which jsdom cannot paint, so a test that needs a word forces it on the spy.
+// reads the pixels of a displayed canvas that real pdf.js painted from a real PDF.
 vi.mock('#editor-ui/highlight/highlightSwipeGesture.ts', { spy: true });
 vi.mock('../lib/marker/scanUnits.ts', { spy: true });
 import { startHighlightSwipe } from '#editor-ui/highlight/highlightSwipeGesture.ts';
 import { readScanUnit } from '../lib/marker/scanUnits.ts';
+
+pointAtLegacyWorker(pdfjs);
 
 // A page the real geometry hook reads: 600 x 800 points, no text.
 const SIZED_PAGE = { getViewport: () => ({ width: 600, height: 800 }), view: [0, 0, 600, 800], rotate: 0, getTextContent: async () => ({ items: [] }) };
@@ -685,12 +690,48 @@ describe('HighlightPage sweep (R13)', () => {
 
 describe('HighlightPage click marks on a scan (R10)', () => {
   let overlay: HTMLElement;
-  beforeEach(() => {
-    overlay = mount([]);
-    overlay.getBoundingClientRect = () => ({ left: 0, top: 0, right: 600, bottom: 800, width: 600, height: 800, x: 0, y: 0, toJSON: () => ({}) });
-  });
+  let task: ReturnType<typeof pdfjs.getDocument> | null = null;
 
-  function clickAt(detail: number, target: Element = overlay) {
+  // A real 600 x 800 pt scan-like page: no text, only ink blocks. Words are 40 x 14 pt blocks, 10 apart, on two rows
+  // around the click at (60 pt, 200 pt); `blank` leaves the paper empty but for one block far below the click, which shows the paint landed.
+  async function openScan(blank = false) {
+    const pdf = await PDFDocument.create();
+    const page = pdf.addPage([600, 800]);
+    const rows = blank ? [] : [193, 233];
+    for (const y of rows) for (const x of [30, 80, 130]) page.drawRectangle({ x, y: 800 - y - 14, width: 40, height: 14, color: rgb(0, 0, 0) });
+    page.drawRectangle({ x: 500, y: 20, width: 40, height: 14, color: rgb(0, 0, 0) });
+    task = pdfjs.getDocument({ data: await pdf.save() });
+    return await task.promise as unknown as PDFDocumentProxy;
+  }
+
+  function mountScan(doc: PDFDocumentProxy, elements: EditorElement[] = []) {
+    act(() => render(
+      <HighlightPage
+        pdfDocument={doc} pageIndex={0} widthPx={600} elements={elements} marker={DEFAULT_MARKER}
+        dispatch={dispatch} logAction={logAction} rearm={rearm} setAnnouncement={() => {}} cardRef={() => {}} onRotate={() => {}} onClear={() => {}}
+      />,
+      container,
+    ));
+    const page = container.querySelector<HTMLElement>('[data-page-overlay]')!;
+    // Forced: jsdom has no layout, so the overlay's rect is given.
+    page.getBoundingClientRect = () => ({ left: 0, top: 0, right: 600, bottom: 800, width: 600, height: 800, x: 0, y: 0, toJSON: () => ({}) });
+    return page;
+  }
+
+  // The page's real pdf.js paint has landed in the displayed canvas: the corner block, 1.5 px per pt, reads back dark.
+  const painted = async () => {
+    await waitUntil(() => {
+      const canvas = container.querySelector<HTMLCanvasElement>('canvas')!;
+      expect(canvas.width).toBeGreaterThan(0);
+      expect(Array.from(canvas.getContext('2d')!.getImageData(780, 1160, 1, 1).data)).toEqual([0, 0, 0, 255]);
+    });
+    // the page's geometry came from the same getPage, so it has landed by now
+    await act(async () => { await drainPromises(); });
+  };
+
+  afterEach(async () => { await task?.destroy(); task = null; });
+
+  function clickAt(detail: number, target: Element) {
     const down = new MouseEvent('pointerdown', { bubbles: true, cancelable: true, button: 0, clientX: 60, clientY: 200 });
     Object.defineProperty(down, 'pointerType', { value: 'mouse' });
     act(() => { target.dispatchEvent(down); });
@@ -699,41 +740,42 @@ describe('HighlightPage click marks on a scan (R10)', () => {
   }
   const added = () => dispatch.mock.calls.map(([a]) => a).filter((a) => a.type === 'ADD_ELEMENT' && a.payload.bands.length > 0).map((a) => a.payload as HighlightElement);
 
-  it('a double-click marks the word the canvas reader finds, read from the displayed canvas', () => {
-    vi.mocked(readScanUnit).mockReturnValue({ left: 8, top: 24, width: 12, height: 2 }); // forced: the word the canvas reader finds
-    clickAt(2);
+  it('a double-click marks the word the canvas reader finds, read from the displayed canvas', async () => {
+    overlay = mountScan(await openScan());
+    await painted();
+    clickAt(2, overlay);
     expect(vi.mocked(readScanUnit)).toHaveBeenCalledTimes(1);
     const [canvas, point, unit, pageHeight] = vi.mocked(readScanUnit).mock.calls[0];
     expect(canvas).toBe(container.querySelector('canvas'));
     expect(point.x).toBeCloseTo(10, 5);
     expect(point.y).toBeCloseTo(25, 5);
     expect(unit).toBe('word');
-    expect(pageHeight).toBe(792);
-    expect(added()[0]).toMatchObject({ type: 'highlight', left: 8, top: 24, width: 12, height: 2, color: DEFAULT_MARKER.color });
+    expect(pageHeight).toBe(800);
+    // The word is the 40 pt block at 30 pt on a 600 x 800 pt page (5% and 6.67%); its box is padded like a swipe band, by whole pixels.
+    expect(added()[0]).toMatchObject({ type: 'highlight', left: expect.closeTo(5, 4), top: expect.closeTo(23.8083, 4), width: expect.closeTo(6.6667, 4), height: expect.closeTo(2.3833, 4), color: DEFAULT_MARKER.color });
     expect(logAction).toHaveBeenCalledWith('add', 'ADD_SHAPE', 0, expect.any(String), [expect.objectContaining({ index: 0 })]);
   });
 
-  it('a third click takes the line, because a scan has no sentences', () => {
-    vi.mocked(readScanUnit).mockReturnValueOnce({ left: 8, top: 24, width: 12, height: 2 }); // forced: the double-click's word
-    vi.mocked(readScanUnit).mockReturnValueOnce({ left: 5, top: 24, width: 80, height: 2 }); // forced: the third click's line
-    clickAt(2);
+  it('a third click takes the line, because a scan has no sentences', async () => {
+    const doc = await openScan();
+    overlay = mountScan(doc);
+    await painted();
+    clickAt(2, overlay);
     const word = added()[0];
-    act(() => render(
-      <HighlightPage
-        pdfDocument={null} pageIndex={0} widthPx={600} elements={[word]} marker={DEFAULT_MARKER}
-        dispatch={dispatch} logAction={logAction} rearm={rearm} setAnnouncement={() => {}} cardRef={() => {}} onRotate={() => {}} onClear={() => {}}
-      />,
-      container,
-    ));
+    mountScan(doc, [word]);
     dispatch.mockClear();
     clickAt(3, container.querySelector(`[data-element-id="${word.id}"]`)!);
     expect(vi.mocked(readScanUnit).mock.calls[1][2]).toBe('line');
     expect(dispatch.mock.calls.map(([a]) => a.type)).toEqual(['UNDO', 'ADD_ELEMENT']);
   });
 
-  it('marks nothing when the click is not on a word', () => {
-    vi.mocked(readScanUnit).mockReturnValue(null); // forced: no word under the click
-    clickAt(2);
+  it('marks nothing when the click is not on a word', async () => {
+    overlay = mountScan(await openScan(true));
+    await painted();
+    clickAt(2, overlay);
+    // The control: the real reader was asked, and found no word on the blank paper.
+    expect(vi.mocked(readScanUnit)).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(readScanUnit).mock.results[0].value).toBeNull();
     expect(added()).toHaveLength(0);
   });
 
