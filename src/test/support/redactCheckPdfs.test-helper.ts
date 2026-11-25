@@ -1,9 +1,7 @@
 /**
  * Real files for the Redact check's `runCheck.test.ts`: small PDFs built with pdf-lib and opened in the legacy pdf.js build,
- * so the whole check runs on real bytes. The only fakes are the edges node lacks: pdf.js's worker URL and
- * the page's canvas (`installCanvas`).
+ * so the whole check runs on real bytes, painted into jsdom's real canvas. Only pdf.js's worker URL is set for node.
  */
-import { createCanvas } from '@napi-rs/canvas';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { pointAtLegacyWorker } from './realPdfjs.ts';
 import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
@@ -58,15 +56,4 @@ pointAtLegacyWorker(pdfjs);
 export async function openOriginal(bytes: Uint8Array, wasmUrl: string): Promise<{ doc: PDFDocumentProxy; close: () => Promise<void> }> {
   const task = pdfjs.getDocument({ data: bytes.slice(), wasmUrl });
   return { doc: await task.promise, close: () => task.destroy() };
-}
-
-/** `document.createElement('canvas')` for the check's page render, on @napi-rs/canvas (what pdf.js itself paints with in node). */
-export function installCanvas(): () => void {
-  const had = 'document' in globalThis;
-  const before = (globalThis as { document?: unknown }).document;
-  (globalThis as { document?: unknown }).document = { createElement: () => createCanvas(1, 1) };
-  return () => {
-    if (had) (globalThis as { document?: unknown }).document = before;
-    else delete (globalThis as { document?: unknown }).document;
-  };
 }

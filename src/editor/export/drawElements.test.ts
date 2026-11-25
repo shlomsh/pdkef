@@ -1,8 +1,9 @@
-import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
+// @vitest-environment jsdom
+import { describe, expect, it, vi, afterEach } from 'vitest';
 import { PDFDocument, PDFName, PDFNumber, degrees } from '@cantoo/pdf-lib';
 import * as fontkit from 'fontkit';
 import { drawElements } from './drawElements.ts';
-import { mockFontFetch } from '../adapters/pdf/fontFetch.test-helper.js';
+import { serveFonts } from '../adapters/pdf/fontServer.test-helper.ts';
 import { embeddedFontFile } from '../text/fonts.js';
 import { applyAffineTransform, createPageGeometry, pageGeometryFromPdfJsPage } from '../geometry/coords.ts';
 import { getElementDefinition } from '../registry/index.ts';
@@ -19,15 +20,10 @@ function loaderFor(pdfDoc: PDFDocument) {
   };
 }
 
+serveFonts();
+
 describe('drawElements', () => {
-  let restoreFetch: () => void;
-
-  beforeEach(() => {
-    restoreFetch = mockFontFetch();
-  });
-
   afterEach(() => {
-    restoreFetch();
     vi.restoreAllMocks();
   });
 

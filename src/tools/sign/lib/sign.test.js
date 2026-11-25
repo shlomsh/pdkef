@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -10,7 +11,9 @@ import {
   signPdf,
   UnrepresentableTextError
 } from './sign.js';
-import { mockFontFetch } from '#editor/adapters/pdf/fontFetch.test-helper.js';
+import { http, HttpResponse } from 'msw';
+import { serveFonts } from '#editor/adapters/pdf/fontServer.test-helper.ts';
+import { server } from '../../../test/support/network.ts';
 import { hasFillableAcroForm } from '#editor/adapters/pdf/pdfObjects.js';
 import { getEffectiveTextDirection } from '#editor/text/textDirection.js';
 import { hexToRgbFractions } from '#editor/text/imageTint.js';
@@ -55,15 +58,10 @@ async function getTextItems(blob) {
   return textContent.items;
 }
 
+const fonts = serveFonts();
+
 describe('sign.js signPdf', () => {
-  let restoreFetch;
-
-  beforeEach(() => {
-    restoreFetch = mockFontFetch();
-  });
-
   afterEach(() => {
-    restoreFetch();
     vi.restoreAllMocks();
   });
 
@@ -256,7 +254,7 @@ describe('sign.js signPdf', () => {
 
     // The manifest knows the face is absent, so export goes straight to the
     // Regular file of the SAME family without a guaranteed-404 probe.
-    const requestedFiles = global.fetch.mock.calls.map(([url]) => String(url));
+    const requestedFiles = fonts.requested();
     expect(requestedFiles.some((u) => u.includes('GreatVibes-Bold.ttf'))).toBe(false);
     expect(requestedFiles.some((u) => u.includes('GreatVibes-Regular.ttf'))).toBe(true);
   });
@@ -283,13 +281,7 @@ describe('sign.js signPdf', () => {
   });
 
   it('refuses an unavailable selected family instead of silently exporting Latin text in Arimo', async () => {
-    const normalFontFetch = global.fetch;
-    // Forced: same-origin font fetches have no origin in Node, so no MSW handler can answer a 503
-    global.fetch = vi.fn(async (url) => (
-      String(url).includes('Pacifico-Regular.ttf')
-        ? { ok: false, status: 503, arrayBuffer: async () => new ArrayBuffer(0) }
-        : normalFontFetch(url)
-    ));
+    server.use(http.get('/fonts/Pacifico-Regular.ttf', () => new HttpResponse(null, { status: 503 })));
     const file = getFixtureFile();
     const element = {
       id: 'el-offline-font', type: 'text', pageIndex: 0, left: 10, top: 10,
@@ -301,7 +293,7 @@ describe('sign.js signPdf', () => {
       family: 'Pacifico',
     });
     expect(FontUnavailableError.prototype).toBeInstanceOf(Error);
-    expect(global.fetch.mock.calls.some(([url]) => String(url).includes('Arimo-Regular.ttf'))).toBe(false);
+    expect(fonts.requested().some((name) => name.includes('Arimo-Regular.ttf'))).toBe(false);
   });
 
   describe('refuses rather than silently drop characters no bundled font can draw (H5)', () => {
@@ -572,13 +564,6 @@ describe('sign.js pure functions', () => {
    *   change can't silently make it worse without a failing test noticing.
    */
   describe('W6 /ActualText extraction guard (docs/wysiwyg-text-architecture.md §7)', () => {
-    // This describe block sits under 'sign.js pure functions', not
-    // 'sign.js signPdf', so it needs its own font-fetch mocking rather than
-    // relying on that other describe's beforeEach/afterEach.
-    let restoreFetch;
-    beforeEach(() => { restoreFetch = mockFontFetch(); });
-    afterEach(() => { restoreFetch(); });
-
     // Bidi formatting characters pdftotext's own `-layout` mode inserts
     // around a directional run for terminal display - not content, and never
     // present in typed text. Stripping them is what makes the comparison

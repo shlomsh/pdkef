@@ -1,9 +1,10 @@
+// @vitest-environment jsdom
 import { getDocument } from 'pdfjs-dist';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { GLYPH_BUDGET } from '../find/itemGlyphs.ts';
 import { termFinder } from '../find/finders.ts';
 import { PDFJS_WASM_URL } from '#lib/pdf/pdfjsWasm.js';
-import { boxAroundLine, buildPdf, installCanvas, openOriginal } from '../../../../test/support/redactCheckPdfs.test-helper.ts';
+import { boxAroundLine, buildPdf, openOriginal } from '../../../../test/support/redactCheckPdfs.test-helper.ts';
 import type { PageSpec } from '../../../../test/support/redactCheckPdfs.test-helper.ts';
 import type { CheckBox, CheckTerm } from './types.ts';
 
@@ -11,10 +12,6 @@ import type { CheckBox, CheckTerm } from './types.ts';
 vi.mock('pdfjs-dist', { spy: true });
 
 import { runSavedFileCheck } from './runCheck.ts';
-
-let restoreCanvas: () => void;
-beforeAll(() => { restoreCanvas = installCanvas(); });
-afterAll(() => restoreCanvas());
 
 const blackout = (pageIndex: number, row: number, width?: number): CheckBox => ({ pageIndex, type: 'blackout', ...boxAroundLine(row, width) });
 

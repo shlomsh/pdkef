@@ -5,7 +5,7 @@ import { sameFile } from './fileEquality.ts';
 // legitimately use, so we provide minimal stubs here rather than weakening the
 // production code to accommodate the test environment.
 
-// ResizeObserver: used by DraggableOverlayElement to keep overlay scaling in sync
+// Forced: jsdom has no ResizeObserver, used by DraggableOverlayElement to keep overlay scaling in sync
 // with the page's rendered size. jsdom has no layout engine, so a no-op stub is
 // sufficient — the components' one-shot synchronous measure still runs; only the
 // ongoing "notify on resize" behavior (which jsdom can't produce anyway) is stubbed.
@@ -17,7 +17,7 @@ if (typeof globalThis.ResizeObserver === 'undefined') {
   };
 }
 
-// IntersectionObserver: used by useCurrentPage.js to track the fullscreen
+// Forced: jsdom has no IntersectionObserver, used by useCurrentPage.js to track the fullscreen
 // page indicator. Same reasoning as ResizeObserver above - a no-op keeps
 // components that use it mountable; tests that care about the callback
 // behavior install their own controllable mock instead.
@@ -29,7 +29,7 @@ if (typeof globalThis.IntersectionObserver === 'undefined') {
   };
 }
 
-// matchMedia: jsdom does not implement it at all. ArmHint.tsx gates its hover
+// Forced: jsdom does not implement matchMedia at all. ArmHint.tsx gates its hover
 // tooltip on `(hover: hover) and (pointer: fine)` to keep it unreachable on
 // touch, computed once via window.matchMedia - default every query to
 // "matches", i.e. the desktop path, so tests exercise the normal behavior

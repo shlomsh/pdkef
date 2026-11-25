@@ -14,6 +14,7 @@ import { waitUntil } from '../../test/support/waitUntil.ts';
 import { recentActions } from '#lib/telemetry/actionTrail.ts';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import '../../test/support/realPdfjs.ts';
+import { serveFonts } from '#editor/adapters/pdf/fontServer.test-helper.ts';
 import { hideEncryption } from '../../test/support/hideEncryption.ts';
 
 // Spies signPdf and exposes calledTimes(n): a promise that resolves from inside the spy once it has
@@ -86,29 +87,10 @@ function makePdfFile(name: string) {
   return new File([twoPageLetter], name, { type: 'application/pdf' });
 }
 
-// signPdf fetches bundled fonts from same-origin `/fonts/<name>.ttf` at runtime
-// (every text-element font, including the default Arimo, is an embedded TTF —
-// see sign.js). jsdom has no server, so serve the real files straight off disk,
-// same approach as sign.test.js's mockFontFetch.
-function mockFontFetch(): () => void {
-  const originalFetch = globalThis.fetch;
-  // Forced: same-origin font fetches have no origin in Node, so no MSW handler can answer them; the real files are served off disk
-  globalThis.fetch = vi.fn(async (url: RequestInfo | URL) => {
-    const match = /\/fonts\/(.+)$/.exec(String(url));
-    if (!match) return originalFetch ? originalFetch(url) : Promise.reject(new Error('unexpected fetch'));
-    const filePath = `${__dirname}/../../../public/fonts/${match[1]}`;
-    if (!fs.existsSync(filePath)) {
-      return new Response(null, { status: 404 });
-    }
-    const buffer = fs.readFileSync(filePath);
-    return new Response(buffer, { status: 200 });
-  });
-  return () => { globalThis.fetch = originalFetch; };
-}
+serveFonts();
 
 describe('PdfSignTool UI flow', () => {
   let container = document.createElement('div');
-  let restoreFetch: () => void = () => {};
   let harness: ToolHarness;
   // The maintenance events the island sent (they travel by the same beacon as usage events), as sent.
   const maintenanceEvents = async (name?: string) => {
@@ -121,7 +103,6 @@ describe('PdfSignTool UI flow', () => {
   beforeEach(() => {
     harness = installToolHarness();
     resetMaintenanceEventsForTests();
-    restoreFetch = mockFontFetch();
     // This file exercises the old editor by default (SNG-19: fill mode is
     // the default, so the old editor needs ?next=0 to stay reachable).
     window.history.pushState({}, '', '?next=0');
@@ -133,7 +114,6 @@ describe('PdfSignTool UI flow', () => {
       container.remove();
     }
     document.body.innerHTML = '';
-    restoreFetch();
     vi.restoreAllMocks();
     harness.restore();
     window.history.pushState({}, '', '/');

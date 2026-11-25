@@ -135,6 +135,7 @@ export function useRedactSuite<H extends SuiteHarness>({ Tool, checking, gesture
     s.harness = await installToolHarness();
     s.gestureCommitSpies = [];
     if (exportEntry) vi.mocked(exportEntry.spy).mockReset();
+    // Forced: the real controller runs; the page cannot show how many times a gesture committed, so its commit is counted.
     vi.mocked(gestureEntry.spy).mockImplementation((options: any) => {
       const commit: any = vi.fn(options.commit);
       s.gestureCommitSpies.push(commit);
