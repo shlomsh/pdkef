@@ -1,5 +1,4 @@
 import { Blob as NodeBlob } from 'node:buffer';
-import { URL as NodeURL } from 'node:url';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, beforeEach, afterEach, type MockInstance } from 'vitest';
@@ -19,7 +18,7 @@ function Harness({ apiRef, input }: { apiRef: Api; input: Input }) {
 }
 
 describe('usePreparedOutput', () => {
-  // Node's own blob URLs: jsdom has no URL.createObjectURL, and Node's takes a node:buffer Blob.
+  // Node's own blob URLs, which take a node:buffer Blob.
   let create: MockInstance<typeof URL.createObjectURL>;
   let revoke: MockInstance<typeof URL.revokeObjectURL>;
   let root: HTMLDivElement;
@@ -30,8 +29,6 @@ describe('usePreparedOutput', () => {
   };
   beforeEach(() => {
     vi.useFakeTimers();
-    URL.createObjectURL = NodeURL.createObjectURL as unknown as typeof URL.createObjectURL;
-    URL.revokeObjectURL = NodeURL.revokeObjectURL;
     create = vi.spyOn(URL, 'createObjectURL');
     revoke = vi.spyOn(URL, 'revokeObjectURL');
     root = document.createElement('div');
@@ -42,8 +39,6 @@ describe('usePreparedOutput', () => {
     vi.useRealTimers();
     create.mockRestore();
     revoke.mockRestore();
-    delete (URL as Partial<typeof URL>).createObjectURL;
-    delete (URL as Partial<typeof URL>).revokeObjectURL;
   });
 
   const mount = (input: Omit<Input, 'quietPolicy'>) => act(() => render(<Harness apiRef={api} input={{ quietPolicy: FAST, ...input }} />, root));

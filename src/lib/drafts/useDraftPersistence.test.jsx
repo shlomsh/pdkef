@@ -19,7 +19,7 @@ import { flushBeforeUpdateReload, isUpdateHeld } from '../appUpdate/updateHolds.
 // lets a test see which calls happened; a failed write is a real one (an element structured clone refuses), a held
 // write is a real held transaction, and the browser's persistence answer is forced.
 vi.mock('./draftStore.ts', { spy: true });
-// Forced: the page preview is drawn on a canvas, which jsdom does not have. Each test says what it drew.
+// Until LAND-04's canvas wave a test says what preview was drawn; otherwise the real one runs.
 vi.mock('../pdf/thumbnails.js', { spy: true });
 
 import { renderDraftPreview } from '../pdf/thumbnails.js';
@@ -111,7 +111,7 @@ describe('useDraftPersistence - save outcome reporting', () => {
   });
 
   it('keeps a preview that finishes before the debounced save writes its older snapshot', async () => {
-    // Forced: no canvas in jsdom to draw the preview.
+    // Forced: until LAND-04's canvas wave (jsdom draws real pixels since 31)
     vi.mocked(renderDraftPreview).mockResolvedValueOnce('data:image/jpeg;base64,preview');
     const props = baseProps();
     await act(async () => {
@@ -206,23 +206,24 @@ describe('useDraftPersistence - save outcome reporting', () => {
   });
 
   it('does not let an older successful write mark a newer failed revision saved', async () => {
-    let finishFirst;
-    // Forced: the older write must land after the newer one failed, which a real store cannot be ordered to do.
-    vi.mocked(saveDraft).mockImplementationOnce(() => new Promise((resolve) => { finishFirst = resolve; })); // forced: the first write stays in flight
-    vi.mocked(saveDraft).mockResolvedValueOnce(false); // forced: the newer write fails
+    // The older write waits behind a held transaction; the newer one is refused before it reaches the store, because
+    // its bytes are not an ArrayBuffer.
+    const hold = await holdDraftStore();
     const props = baseProps();
     mount(props);
     renderFirstEdit(apiRef, props, container);
     const firstRevision = apiRef.current.result.draftSaveRevision;
     await passDebounce();
 
-    edit(props, 'newer-edit');
+    edit({ ...props, fileBytes: new Uint8Array(4) }, 'newer-edit');
     expect(apiRef.current.result.draftSaveRevision).toBeGreaterThan(firstRevision);
     await passDebounce();
-    await stateIs(apiRef, 'error');
+    await saveSettled();
+    expect(apiRef.current.result.draftSaveState).toBe('error');
 
     await act(async () => {
-      finishFirst(true);
+      await hold.release();
+      expect(await vi.mocked(saveDraft).mock.results[0].value).toBe(true);
       await drainPromises();
     });
     expect(apiRef.current.result.draftSaveState).toBe('error');
@@ -313,10 +314,9 @@ describe('useDraftPersistence - unpersisted-storage warning', () => {
   let apiRef;
   let originalMatchMedia;
   let originalStandalone;
-  let heldWrite;
 
   function stubStandalone(isStandalone) {
-    // Forced: jsdom has no matchMedia, and an installed app is told apart by its answer.
+    // Forced: jsdom cannot be told it runs as an installed app.
     window.matchMedia = vi.fn(() => ({ matches: isStandalone }));
     Object.defineProperty(navigator, 'standalone', { configurable: true, value: undefined });
   }
@@ -330,12 +330,10 @@ describe('useDraftPersistence - unpersisted-storage warning', () => {
     originalStandalone = Object.getOwnPropertyDescriptor(navigator, 'standalone');
   });
 
-  afterEach(async () => {
+  afterEach(() => {
     act(() => render(null, container));
     container.remove();
     vi.useRealTimers();
-    await heldWrite?.release();
-    heldWrite = undefined;
     window.matchMedia = originalMatchMedia;
     if (originalStandalone) Object.defineProperty(navigator, 'standalone', originalStandalone);
     else delete navigator.standalone;
@@ -353,8 +351,8 @@ describe('useDraftPersistence - unpersisted-storage warning', () => {
   it('never appears before a save has succeeded', async () => {
     stubStandalone(true);
     vi.mocked(isStoragePersisted).mockResolvedValue(false); // forced: the browser says storage is not persisted
-    // A real write held open for the whole test, so the save never finishes; released in afterEach.
-    heldWrite = await holdDraftStore();
+    // A real write held open for the whole test, so the save never finishes.
+    await holdDraftStore();
     const props = baseProps();
     mount(props);
     renderFirstEdit(apiRef, props, container);
@@ -501,14 +499,14 @@ describe('useDraftPersistence - same file opened in two tools (real store)', () 
     });
     const apiRef = { current: null };
 
-    // Forced: no canvas in jsdom to draw the preview.
+    // Forced: until LAND-04's canvas wave (jsdom draws real pixels since 31)
     vi.mocked(renderDraftPreview).mockResolvedValueOnce('data:image/jpeg;base64,alpha');
     await act(async () => {
       render(<RealHarness apiRef={apiRef} props={props('qa-alpha.pdf', alphaBytes)} />, container);
     });
     await waitUntil(previewOf('qa-alpha.pdf'));
 
-    // Forced: no canvas in jsdom to draw the preview.
+    // Forced: until LAND-04's canvas wave (jsdom draws real pixels since 31)
     vi.mocked(renderDraftPreview).mockResolvedValueOnce('data:image/jpeg;base64,bravo');
     await act(async () => {
       render(<RealHarness apiRef={apiRef} props={props('qa-bravo.pdf', bravoBytes)} />, container);
