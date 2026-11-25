@@ -1,16 +1,14 @@
+import { getDocument } from 'pdfjs-dist';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { GLYPH_BUDGET } from '../find/itemGlyphs.ts';
 import { termFinder } from '../find/finders.ts';
 import { PDFJS_WASM_URL } from '#lib/pdf/pdfjsWasm.js';
-import { boxAroundLine, buildPdf, installCanvas, openOriginal, openedTasks } from '../../../../test/support/redactCheckPdfs.test-helper.ts';
+import { boxAroundLine, buildPdf, installCanvas, openOriginal } from '../../../../test/support/redactCheckPdfs.test-helper.ts';
 import type { PageSpec } from '../../../../test/support/redactCheckPdfs.test-helper.ts';
 import type { CheckBox, CheckTerm } from './types.ts';
 
-// The one edge: getPdfjs() is the vite worker import, which node cannot run; the legacy build stands in.
-vi.mock('#editor/adapters/pdf/pdfjsLoader.js', async () => {
-  const { legacyPdfjs: stand } = await import('../../../../test/support/redactCheckPdfs.test-helper.ts');
-  return { getPdfjs: async () => stand() };
-});
+// Spy-through: the shipped pdf.js runs for real; the spy shows which loading tasks the check opened.
+vi.mock('pdfjs-dist', { spy: true });
 
 import { runSavedFileCheck } from './runCheck.ts';
 
@@ -162,10 +160,11 @@ describe('runSavedFileCheck', () => {
   });
 
   it('destroys the loading task even when checking the saved file fails', async () => {
-    openedTasks.length = 0;
+    vi.mocked(getDocument).mockClear();
     // A box on a page the saved file does not have.
     await expect(run([SECRET, SECRET], [SECRET], { boxes: [blackout(1, 0)] })).rejects.toThrow();
-    expect(openedTasks).toHaveLength(1);
-    expect(openedTasks[0].destroyed).toBe(true);
+    const opened = vi.mocked(getDocument).mock.results.map((result) => result.value as ReturnType<typeof getDocument>);
+    expect(opened).toHaveLength(1);
+    expect(opened[0].destroyed).toBe(true);
   });
 });

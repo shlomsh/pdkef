@@ -7,14 +7,6 @@ import { PDFDocument } from '@cantoo/pdf-lib';
 import { redactPdf } from './redact.js';
 import { MAX_CANVAS_AREA, RASTER_SCALE } from '#editor/adapters/pdf/rasterPage.js';
 
-// redact.js reaches pdfjs through sign.js's getPdfjs(), which does a dynamic
-// `import('pdfjs-dist')` - this mock intercepts that specifier for any caller,
-// same trick compress.test.js uses so the real (non-worker-dependent) legacy
-// build runs instead of the browser-only default export.
-vi.mock('pdfjs-dist', async () => {
-  return await import('pdfjs-dist/legacy/build/pdf.mjs');
-});
-
 beforeAll(() => {
   pointAtLegacyWorker(pdfjs);
 });

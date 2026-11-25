@@ -38,6 +38,7 @@ function makeHarness(initialElements: Box[] = [], selectedIds: string[] = []) {
     selection: { activeBoxId: selectedIds[0] ?? null, selectedBoxId: selectedIds[1] ?? selectedIds[0] ?? null },
   };
   const registerUndo = vi.fn();
+  // Forced: production passes a thin wrapper of describeRedactUpdate, which is private to useRedactEditing.ts and cannot be imported.
   const describeUpdate = vi.fn((kind: ElementUpdateKind) => `describeUpdate:${kind}`);
 
   const deps: RedactCommandDeps<Box> = {

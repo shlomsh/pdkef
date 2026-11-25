@@ -89,6 +89,7 @@ describe('useDeletableObjects', () => {
   it('falls back to an empty list when the file cannot be parsed at all', async () => {
     // The hook logs the failure just before it settles its state: that is the signal the scan ended.
     const logged = Promise.withResolvers();
+    // Forced: the log is the only signal that the scan ended, and a spy cannot be awaited without polling it.
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { logged.resolve(); });
     const file = { name: 'not-a-pdf.pdf' };
     const bytes = new Uint8Array([1, 2, 3]);

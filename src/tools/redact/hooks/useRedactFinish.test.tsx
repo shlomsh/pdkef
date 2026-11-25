@@ -9,6 +9,7 @@ import { DRIVE_TOKEN_KEY } from '#lib/handoff/driveSaveLink.ts';
 import { recordAction } from '#lib/telemetry/actionTrail.ts';
 import { sendToSink } from '#lib/telemetry/analyticsSink.ts';
 import { setReportingEnabledForTests } from '#lib/telemetry/errorReport.ts';
+import { installBeaconRecorder, type BeaconRecorder } from '../../../test/support/beaconRecorder.ts';
 import { resetUsageEventsForTests } from '#lib/telemetry/productAnalytics.ts';
 
 vi.mock('#lib/telemetry/analyticsSink.ts', { spy: true });
@@ -118,14 +119,12 @@ describe('useRedactFinish', () => {
   });
 
   describe('Save to Drive', () => {
+    let beacons: BeaconRecorder | undefined;
     beforeEach(() => {
       localStorage.setItem(DRIVE_TOKEN_KEY, JSON.stringify({ token: 'test-token' }));
-      // forced: Save to Drive is offered on a desktop pointer only, and jsdom has no matchMedia
-      window.matchMedia = ((query: string) => ({ matches: query.includes('hover: hover'), addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} })) as unknown as typeof window.matchMedia;
     });
     afterEach(() => {
-      delete (window as { matchMedia?: unknown }).matchMedia;
-      Reflect.deleteProperty(navigator, 'sendBeacon');
+      beacons?.restore();
       setReportingEnabledForTests(false);
     });
 
@@ -139,8 +138,7 @@ describe('useRedactFinish', () => {
     });
 
     it('reports its offer as Redact\'s', () => {
-      // forced: jsdom has no beacon, and an event is only counted as sent once the beacon takes it
-      Object.defineProperty(navigator, 'sendBeacon', { value: () => true, configurable: true, writable: true });
+      beacons = installBeaconRecorder();
       setReportingEnabledForTests(true);
       resetUsageEventsForTests();
       vi.mocked(sendToSink).mockClear();
@@ -150,7 +148,7 @@ describe('useRedactFinish', () => {
     });
 
     it('builds the file it saves from the island export, and starts over when the document changes', async () => {
-      // forced: the Drive tab opens in a new window, which jsdom cannot
+      // Forced: the Drive tab opens in a new window, which jsdom cannot
       const opened = vi.spyOn(window, 'open').mockReturnValue({ closed: false } as Window);
       const show = mount(stateWith([box('a', 0)]));
       await act(async () => { latest.drive.save(); });

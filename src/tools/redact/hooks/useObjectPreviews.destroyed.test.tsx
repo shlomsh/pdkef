@@ -4,6 +4,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import type { DeletablePdfObject } from '../components/DeletableObjectOverlay.tsx';
 import { fakePdfDocument } from '../../../test/support/fakePdfJs.ts';
+import { PDFJS_WASM_URL } from '#lib/pdf/pdfjsWasm.js';
+import { getPdfjs } from '#editor/adapters/pdf/pdfjsLoader.js';
+import { listDeletableObjects } from '../lib/deleteObjects.js';
+import { buildPdf, openOriginal } from '../../../test/support/redactCheckPdfs.test-helper.ts';
 import { drainPromises } from '../../../test/support/drainPromises.ts';
 
 // The project carries no Node ambient types; Vitest provides this at runtime.
@@ -12,9 +16,6 @@ declare const process: { on(event: string, handler: (reason: unknown) => void): 
 import { reportError } from '#lib/telemetry/errorReport.ts';
 
 vi.mock('#lib/telemetry/errorReport.ts', { spy: true });
-vi.mock('#editor/adapters/pdf/pdfjsLoader.js', () => ({
-  getPdfjs: async () => ({ AnnotationMode: { DISABLE: 0 }, OPS: {} }),
-}));
 
 import useObjectPreviews from './useObjectPreviews.ts';
 
@@ -23,6 +24,13 @@ const flush = () => drainPromises();
 
 // pdf.js reads `this._intentStates` on a page whose document was destroyed.
 const anObject = (): DeletablePdfObject => ({ id: 'a', kind: 'text', pageIndex: 0, rect: { left: 0, top: 0, width: 1, height: 1 }, start: 0, end: 1 });
+
+/** A real file, opened in pdf.js, and the text objects Delete itself finds in it. */
+async function openFile() {
+  const bytes = await buildPdf([{ lines: ['Hello world'] }]);
+  const opened = await openOriginal(bytes, PDFJS_WASM_URL);
+  return { ...opened, objects: (await listDeletableObjects(bytes)) as DeletablePdfObject[] };
+}
 
 const destroyedError = () => new TypeError("Cannot read properties of undefined (reading '_intentStates')");
 
@@ -55,7 +63,9 @@ describe('useObjectPreviews when the document is replaced and destroyed mid-read
       }),
       commonObjs: { get: () => null },
     };
+    // Forced: a real destroyed document never fails its read this way: pdf.js drops the terminated task and the read just hangs.
     const oldDoc = fakePdfDocument({ getPage: vi.fn(async () => page) });
+    // Forced: the new document's read stays pending, as it does while pdf.js loads.
     const newDoc = fakePdfDocument({ getPage: vi.fn(() => new Promise(() => {})) });
     const objects = [anObject()];
     const seen: unknown[] = [];
@@ -83,20 +93,25 @@ describe('useObjectPreviews when the document is replaced and destroyed mid-read
   });
 
   it('reports nothing when getPage itself throws after the document was replaced', async () => {
-    let rejectPage!: () => void;
-    const oldDoc = fakePdfDocument({ getPage: () => new Promise((_, reject) => { rejectPage = () => reject(destroyedError()); }) });
-    const newDoc = fakePdfDocument({ getPage: () => new Promise(() => {}) });
-    const objects = [anObject()];
+    const oldFile = await openFile();
+    const newFile = await openFile();
+    await getPdfjs();
+    const objects = oldFile.objects;
+    const getPage = vi.spyOn(oldFile.doc, 'getPage');
     const Probe = ({ doc }: { doc: PDFDocumentProxy }) => { useObjectPreviews(doc, objects); return null; };
 
-    act(() => render(<Probe doc={oldDoc} />, host!));
-    await act(flush);
-    act(() => render(<Probe doc={newDoc} />, host!));
-    rejectPage();
-    await act(flush);
+    act(() => render(<Probe doc={oldFile.doc} />, host!));
+    act(() => render(<Probe doc={newFile.doc} />, host!));
+    await oldFile.close();
+    await act(drainPromises);
+    await drainPromises();
 
+    // The old read did reach the destroyed document, and pdf.js refused it.
+    expect(getPage).toHaveBeenCalledTimes(1);
+    await expect(getPage.mock.results[0].value).rejects.toBeInstanceOf(Error);
     expect(reportError).not.toHaveBeenCalled();
     expect(unhandled).toEqual([]);
+    await newFile.close();
   });
 });
 

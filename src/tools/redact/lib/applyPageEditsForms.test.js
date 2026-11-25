@@ -13,10 +13,6 @@ import { listDeletableObjects } from './deleteObjects.js';
 import { withPreviews } from './objectPreviews.test-helper.js';
 import { buildFormXObjectPdf } from '#editor/adapters/pdf/formXObjectFixture.test-helper.js';
 
-vi.mock('pdfjs-dist', async () => {
-  return await import('pdfjs-dist/legacy/build/pdf.mjs');
-});
-
 // The cover path rasterizes a page; jsdom has no canvas, so stub it as redact.test.js does.
 const JPEG_1X1_BASE64 =
   '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==';

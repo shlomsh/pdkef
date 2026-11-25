@@ -1,4 +1,6 @@
+// @vitest-environment jsdom
 import { describe, expect, it, vi, beforeAll, beforeEach } from 'vitest';
+import '../../../test/support/realPdfjs.ts';
 import { PDFDocument, StandardFonts } from '@cantoo/pdf-lib';
 import { applyPageEdits } from './applyPageEdits.js';
 import { redactPdf } from './redact.js';
@@ -8,16 +10,10 @@ import { deleteObjectsFromPdf, listDeletableObjects } from './deleteObjects.js';
 // (redactPdf in redact.test.js, deleteObjectsFromPdf in deleteObjects.test.js).
 // What's specific to it, and worth testing here, is call order, which elements
 // go to which function, what output feeds the second call, and progress
-// scaling. The deletion pass runs for real on a real PDF; both modules are
-// spy-through, so the test sees the calls. Only redactPdf's result is forced:
-// it rasterizes through pdf.js's worker and a canvas, which node does not have.
+// scaling. Both passes run for real on a real PDF; both modules are
+// spy-through, so the test sees the calls.
 vi.mock('./redact.js', { spy: true });
 vi.mock('./deleteObjects.js', { spy: true });
-
-const FINAL = { name: 'final.pdf' };
-// redactPdf's real shape: just the blob. This is what passes through
-// untouched when both phases run.
-const FINAL_RESULT = { blob: FINAL };
 
 let SOURCE;
 let TWO_PAGES;
@@ -43,11 +39,11 @@ beforeAll(async () => {
     const text = texts.find((t) => t.pageIndex === pageIndex);
     return { id: `d${pageIndex}`, pageIndex, type: 'delete', start: text.start, end: text.end };
   });
-  box = { id: 'b1', pageIndex: 0, type: 'blackout' };
+  box = { id: 'b1', pageIndex: 0, type: 'blackout', left: 10, top: 10, width: 30, height: 20, color: '#000000' };
 });
 
 beforeEach(() => {
-  vi.mocked(redactPdf).mockReset().mockResolvedValue(FINAL_RESULT);
+  vi.mocked(redactPdf).mockClear();
   vi.mocked(deleteObjectsFromPdf).mockClear();
 });
 
@@ -77,7 +73,7 @@ describe('applyPageEdits', () => {
     const result = await applyPageEdits(SOURCE, [box]);
     expect(deleteObjectsFromPdf).not.toHaveBeenCalled();
     expect(redactPdf).toHaveBeenCalledWith(SOURCE, [box], undefined, {});
-    expect(result).toBe(FINAL_RESULT);
+    expect(result).toBe(await vi.mocked(redactPdf).mock.results[0].value);
   });
 
   it('runs only deleteObjectsFromPdf when there are no boxes, wrapping its output in the shared shape', async () => {
@@ -100,7 +96,7 @@ describe('applyPageEdits', () => {
     expect(fed.slice(1, 2)).toEqual([[box]]);
     expect(fed[2]).toEqual(expect.any(Function));
     expect(fed[3]).toEqual({});
-    expect(result).toBe(FINAL_RESULT);
+    expect(result).toBe(await vi.mocked(redactPdf).mock.results[0].value);
   });
 
   it('runs deletions before redaction, not the other way round', async () => {
@@ -117,16 +113,10 @@ describe('applyPageEdits', () => {
   });
 
   it('scales the deletion phase to 0-0.4 and the redaction phase to 0.4-1 when both run', async () => {
-    vi.mocked(redactPdf).mockImplementation(async (_file, _els, onProgress) => {
-      onProgress(0.5);
-      onProgress(1);
-      return FINAL_RESULT;
-    });
-
     const calls = [];
     await applyPageEdits(SOURCE, [deletion, box], (p) => calls.push(p));
-    // The real deletion pass reports 1 for its one page: 1 * 0.4.
-    expect(calls).toEqual([0.4, 0.7, 1]);
+    // The real deletion pass reports 1 for its one page: 1 * 0.4, then the one redacted page: 0.4 + 0.6 * 1.
+    expect(calls).toEqual([0.4, 1]);
 
     // Two pages: the real deletion pass reports 0.5 then 1, so the scaled range is reached.
     const twoPageCalls = [];

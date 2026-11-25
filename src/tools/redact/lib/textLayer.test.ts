@@ -161,6 +161,7 @@ describe('text drawn twice for a bold look (RED-62)', () => {
     // of exhausting memory recording millions of calls.
     const real = Math.hypot;
     let calls = 0;
+    // Forced: a spy keeps every call's arguments, and a quadratic run makes hundreds of millions.
     Math.hypot = (...values: number[]) => {
       calls += 1;
       return real(...values);

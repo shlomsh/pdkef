@@ -6,7 +6,6 @@ import { makeStroke } from '#editor/model/strokeGeometry.ts';
 import { listDeletableObjects } from '../lib/deleteObjects.js';
 import { DEFAULT_BLUR_STRENGTH } from '#editor/model/blurStrength.ts';
 import { getAppStyle, getRecentWhiteoutColors, rememberAppStyle, rememberRecentWhiteoutColor } from '#editor/workspace/preferenceStore.ts';
-import { snapshotRect } from '../components/DeleteLift.tsx';
 import { sampleRingColor } from '#editor-ui/whiteout/pageSampling.ts';
 import { recentActions, resetActionTrailForTests } from '#lib/telemetry/actionTrail.ts';
 import type { PercentBox } from '#editor-ui/whiteout/pageColor.ts';
@@ -514,11 +513,14 @@ describe('useRedactEditor over the real reducer', () => {
     it('clears the delete lifts and the find bar: closed, no term, no preset', async () => {
       const bytes = new Uint8Array(readFileSync(join(import.meta.dirname, '../../../lib/__fixtures__/num-1.pdf'))).buffer;
       const [object] = await listDeletableObjects(bytes);
-      // forced: jsdom draws nothing on a canvas, so a snapshot of the page comes back empty
-      vi.mocked(snapshotRect).mockReturnValueOnce('data:image/png;base64,AAAA');
-      // forced: the test environment prefers reduced motion, which skips the lift entirely
+      m = mountRedactEditor({ numPages: 1, fileBytes: bytes, render: true });
+      // The page column draws no canvas without a pdf.js document: a real one, drawn into by jsdom, stands where pdf.js would paint.
+      const canvas = document.createElement('canvas');
+      canvas.width = 20;
+      canvas.height = 20;
+      m.root.querySelector('[data-page-wrapper]')!.appendChild(canvas);
+      // Forced: the test environment prefers reduced motion, which skips the lift entirely
       const motion = vi.spyOn(window, 'matchMedia').mockReturnValueOnce({ matches: false } as MediaQueryList);
-      m = mountRedactEditor({ numPages: 1, fileBytes: bytes });
       act(() => m.editor().editing.deleteTool.markObject(object));
       act(() => {
         m.editor().findKit.find.setOpen(true);

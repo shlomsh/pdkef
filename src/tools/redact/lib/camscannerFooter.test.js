@@ -24,13 +24,6 @@ import { pointAtLegacyWorker } from '../../../test/support/realPdfjs.ts';
 import { extractPageObjects } from '#editor/adapters/pdf/pdfObjects.js';
 import { applyPageEdits } from './applyPageEdits.js';
 
-// Same trick redact.test.js and compress.test.js use: intercept the bare
-// specifier redact.js's pdfjsLoader.js reaches for, so the real (non-worker)
-// legacy build runs instead of the browser-only default export.
-vi.mock('pdfjs-dist', async () => {
-  return await import('pdfjs-dist/legacy/build/pdf.mjs');
-});
-
 beforeAll(() => {
   pointAtLegacyWorker(pdfjs);
 });

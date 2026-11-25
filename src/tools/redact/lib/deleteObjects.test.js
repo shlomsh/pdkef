@@ -518,6 +518,7 @@ describe('listDeletableObjects', () => {
     const realExtract = pdfObjects.extractPageObjects;
     const extractSpy = vi
       .spyOn(pdfObjects, 'extractPageObjects')
+      // Forced: pdf-lib and the extractor tolerate every damaged page tried (bad stream, bad array, bad text, bad resources), so none reaches this catch.
       .mockImplementation((page, pageIndex) => {
         if (pageIndex === 1) throw new Error('unsupported operator');
         return realExtract(page, pageIndex);

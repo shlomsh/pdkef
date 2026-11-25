@@ -61,6 +61,7 @@ describe('RedactWorkspaceToolbar wiring', () => {
     stopHearing();
     act(() => render(null, root));
     root.remove();
+    // Forced: the other tests run with no matchMedia at all (the hover hints off), which setup.js's would turn on.
     delete (window as { matchMedia?: unknown }).matchMedia;
   });
 
@@ -73,7 +74,7 @@ describe('RedactWorkspaceToolbar wiring', () => {
     coarse?: boolean;
   } = {}) {
     if (coarse) {
-      // forced: touch is a media query, which jsdom does not evaluate
+      // Forced: touch is a media query that matches only 'coarse' (hover and fine must not match), and setup.js's matchMedia matches every query.
       window.matchMedia = ((query: string) => ({ matches: query.includes('coarse'), addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} })) as unknown as typeof window.matchMedia;
     }
     function Harness() {

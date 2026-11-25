@@ -13,11 +13,6 @@ import { reportError } from '#lib/telemetry/errorReport.ts';
 vi.mock('#lib/telemetry/errorReport.ts', { spy: true });
 // Spy-through: the real check runs on real files. A few tests force a rejection or a slow check on it.
 vi.mock('../lib/check/runCheck.ts', { spy: true });
-// The one edge: getPdfjs() is the vite worker import, which node cannot run; the legacy build stands in.
-vi.mock('#editor/adapters/pdf/pdfjsLoader.js', async () => {
-  const { legacyPdfjs: stand } = await import('../../../test/support/redactCheckPdfs.test-helper.ts');
-  return { getPdfjs: async () => stand() };
-});
 
 import useSavedFileCheck from './useSavedFileCheck.ts';
 import type { SavedFileCheckState } from './useSavedFileCheck.ts';
@@ -76,7 +71,7 @@ describe('useSavedFileCheck read errors', () => {
   beforeEach(() => {
     vi.mocked(reportError).mockClear();
     vi.mocked(runSavedFileCheck).mockClear();
-    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'error');
   });
   afterEach(() => vi.restoreAllMocks());
 
@@ -128,11 +123,12 @@ describe('useSavedFileCheck results', () => {
   const blobWithThumbnail = () => exportOf(savedWithThumbnail);
   // Everything after the hook's first await is settled promises, so one event-loop turn runs it out.
   const settle = () => act(async () => { await drainPromises(); });
-  // Forced timing: the next check waits for `release`, then runs for real. `started` says it began.
+  // The next check waits for `release`, then runs for real. `started` says it began.
   const slowNextCheck = async () => {
     const actual = await vi.importActual<typeof import('../lib/check/runCheck.ts')>('../lib/check/runCheck.ts');
     const started = Promise.withResolvers<void>();
     const release = Promise.withResolvers<void>();
+    // Forced: timing in the middle of a check, no real file is slow.
     vi.mocked(runSavedFileCheck).mockImplementationOnce(async (args) => {
       started.resolve();
       await release.promise;
@@ -163,7 +159,7 @@ describe('useSavedFileCheck results', () => {
   beforeEach(() => {
     vi.mocked(reportError).mockClear();
     vi.mocked(runSavedFileCheck).mockClear();
-    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'error');
   });
   afterEach(() => vi.restoreAllMocks());
 

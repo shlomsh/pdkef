@@ -122,6 +122,7 @@ describe('buildPageText', () => {
       );
       const original = String.prototype.trim;
       let calls = 0;
+      // Forced: a spy keeps every call's arguments, and the throw at 100000 calls is what stops a quadratic run.
       String.prototype.trim = function (this: string) {
         calls += 1;
         if (calls > 100000) throw new Error('trim called more than 100000 times');

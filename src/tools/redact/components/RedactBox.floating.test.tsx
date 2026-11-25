@@ -3,21 +3,11 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi } from 'vitest';
 
-const flipSpy = vi.hoisted(() => vi.fn());
-
 vi.mock('#editor-ui/hooks/visualViewportClamp.ts', { spy: true });
 
-vi.mock('@floating-ui/react', async (importOriginal) => {
-  const actual = await importOriginal<any>();
-  return {
-    ...actual,
-    flip: (opts: unknown) => {
-      flipSpy(opts);
-      return actual.flip(opts);
-    },
-  };
-});
+vi.mock('@floating-ui/react', { spy: true });
 
+import { flip } from '@floating-ui/react';
 import visualViewportClamp from '#editor-ui/hooks/visualViewportClamp.ts';
 import RedactBox, { BOX_TOOLBAR_GAP } from './RedactBox.tsx';
 
@@ -25,6 +15,7 @@ const EL: RedactBoxElement = { id: 'a', type: 'blackout', left: 10, top: 10, wid
 
 describe('RedactBox floating middleware options (RED-53)', () => {
   it('reserves the gap vertically only, and tells the viewport clamp about it', () => {
+    // Forced: a fine pointer, where the coarse query does not match; setup.js's matchMedia matches every query.
     window.matchMedia = ((q: string) => ({
       matches: q.includes('fine'), media: q, addEventListener: () => {}, removeEventListener: () => {},
     })) as any;
@@ -38,7 +29,7 @@ describe('RedactBox floating middleware options (RED-53)', () => {
       container,
     ));
     expect(visualViewportClamp).toHaveBeenCalledWith(expect.objectContaining({ mainAxisGap: BOX_TOOLBAR_GAP }));
-    const flipOpts = flipSpy.mock.calls[0][0];
+    const flipOpts = vi.mocked(flip).mock.calls[0][0] as { padding: object };
     expect(flipOpts.padding).toEqual({ top: BOX_TOOLBAR_GAP, bottom: BOX_TOOLBAR_GAP });
     expect(flipOpts.padding).not.toHaveProperty('left');
     expect(flipOpts.padding).not.toHaveProperty('right');
