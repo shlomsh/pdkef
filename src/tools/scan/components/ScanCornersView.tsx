@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useRef } from 'preact/hooks';
 import { Check, Maximize, Minimize2, Redo2, RotateCw, Spline, Trash2, Undo2, WandSparkles } from 'lucide-preact';
 import { workspaceStyles } from '#shell/pageWorkspace/PageWorkspace.tsx';
 import { englishScanMessages as t } from '../messages.ts';
@@ -6,7 +6,7 @@ import { useHistoryShortcuts } from '#lib/history/useHistoryShortcuts.js';
 import { type Quad } from '#lib/pageEnhance/quad.ts';
 import type { Point } from '#lib/pageEnhance/quad.ts';
 import type { Pins, Sides } from '../lib/edges/follow.ts';
-import { FULL_QUAD, pinsKey, quadKey, turnedPoint, turnedQuad, unturnedPoint, unturnedQuad } from '../lib/quad.ts';
+import { FULL_QUAD, quadKey, turnedPoint, turnedQuad, unturnedPoint, unturnedQuad } from '../lib/quad.ts';
 import type { ScanPage } from '../state/scanWork.ts';
 import styles from '../PdfScanTool.module.css';
 import CornerEditor from './CornerEditor.tsx';
@@ -23,11 +23,11 @@ interface ScanCornersViewProps {
   finding: number | null;
   /** The photo could not be read (the scan state's failedIds), not merely still waiting for its preview. */
   unreadable: boolean;
+  /** The page's real border for its quad and pins (the photo's own frame); null until it is traced. */
+  sides: Sides | null;
   onCommit: (id: number, quad: Quad, pins?: Pins | null, fine?: boolean) => void;
   onFind: (page: ScanPage) => void;
   onRotate: () => void;
-  /** The page's real border for the quad given (the photo's own frame); null when it cannot be traced. */
-  onTrace?: (id: number, quad: Quad, pins?: Pins | null) => Promise<Sides | null>;
   /** Use these corners: back to the page. */
   onApprove: () => void;
   onRemove: (id: number) => void;
@@ -59,31 +59,13 @@ function withPin(pins: Pins | null, s: number, k: number, at: Point | null): Pin
 
 /** The corners view under the editor head: the photo's panel (its hint and history over the photo and its corners),
  * then one bar of choices. */
-export default function ScanCornersView({ selected, photo, shownAspect, hint, finding, unreadable, onCommit, onFind, onRotate, onTrace, onApprove, onRemove }: ScanCornersViewProps) {
-  // The trace waits with the page and the quad it was computed for; one for any other is not shown.
-  const [traced, setTraced] = useState<{ id: number; key: string; sides: Sides } | null>(null);
+export default function ScanCornersView({ selected, photo, shownAspect, hint, finding, unreadable, sides, onCommit, onFind, onRotate, onApprove, onRemove }: ScanCornersViewProps) {
   const history = useCornerHistory(selected.id, { quad: selected.quad, pins: selected.pins, fine: selected.fine }, (shape) => onCommit(selected.id, shape.quad, shape.pins, shape.fine));
   useHistoryShortcuts(history.undo, history.redo);
   const areaRef = useRef<HTMLDivElement | null>(null);
   // Zooming is by wheel, pinch and keys (the hook); the one control is the way back, shown only while zoomed.
   const zoom = useCornerZoom(areaRef, `${selected.id}|${selected.turns}`);
-  const key = `${quadKey(selected.quad)}#${pinsKey(selected.pins)}`;
-  useEffect(() => {
-    // The border is traced only while the person has Fine-tune edges on.
-    if (!onTrace || !selected.fine) return;
-    let live = true;
-    const quad = selected.quad;
-    const pins = selected.pins;
-    // reason: onTrace never rejects; a trace that fails is reported where it ran and resolves null.
-    void onTrace(selected.id, quad, pins).then((sides) => {
-      if (live && sides) setTraced({ id: selected.id, key: `${quadKey(quad)}#${pinsKey(pins)}`, sides });
-    });
-    return () => { live = false; };
-    // onTrace is deliberately not a dependency: a new function identity is not a new page or quad.
-  }, [selected.id, key, selected.fine]);
-  const trace = selected.fine && traced && traced.id === selected.id && traced.key === key
-    ? outline(selected.quad, traced.sides, selected.turns)
-    : null;
+  const trace = sides ? outline(selected.quad, sides, selected.turns) : null;
   const whole = quadKey(selected.quad) === quadKey(FULL_QUAD);
   const quiet = workspaceStyles['quiet-button'];
   return (

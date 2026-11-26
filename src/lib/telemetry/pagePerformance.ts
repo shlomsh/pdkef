@@ -4,7 +4,7 @@
  * collector over Resource Timing and the `largest-contentful-paint` observer. A measure the browser
  * does not support is left out, never guessed. No URL, name, size or raw time leaves this module.
  */
-import { COUNT_BUCKETS, TIME_BUCKETS, type CountBucket, type TimeBucket } from './usageEventSchema';
+import { COUNT_BUCKETS, NAVIGATION_TYPES, TIME_BUCKETS, type CountBucket, type NavigationType, type TimeBucket } from './usageEventSchema';
 
 /**
  * `0`, `1`, `2-5`, `6-15`, `16-30`, `31-50`, `51+`; undefined for anything that is not a whole count.
@@ -23,6 +23,28 @@ export function timeBucket(ms: number | undefined): TimeBucket | undefined {
   const upper = [1000, 2500, 4000];
   const at = upper.findIndex((max) => ms <= max);
   return TIME_BUCKETS[at === -1 ? upper.length : at];
+}
+
+/**
+ * How this page load started, off the browser's navigation timing entries (DEBT-57), and only on the
+ * first event of a kind; undefined when it is not the first, or the entry names none on the list.
+ */
+export function navigationType(entries: readonly PerformanceEntry[], first: boolean): NavigationType | undefined {
+  if (!first) return undefined;
+  
+  const type = (entries[0] as PerformanceNavigationTiming | undefined)?.type;
+  return (NAVIGATION_TYPES as readonly string[]).includes(type as string) ? (type as NavigationType) : undefined;
+}
+
+const BUILD_COMMIT = /^[0-9a-f]{7}$/;
+
+/**
+ * The 7-character commit the page was built from (MEM-19), off the `build` entry of the navigation entry's
+ * `Server-Timing` list (set by middleware.ts), or undefined when it is missing or malformed.
+ */
+export function parseBuildCommit(entries: readonly PerformanceEntry[]): string | undefined {
+  const description = (entries[0] as PerformanceNavigationTiming | undefined)?.serverTiming?.find((entry) => entry.name === 'build')?.description;
+  return typeof description === 'string' && BUILD_COMMIT.test(description) ? description : undefined;
 }
 
 /**
@@ -82,7 +104,7 @@ function startLcpObserver(): void {
     let arrived!: () => void;
     firstEntry = new Promise((resolve) => (arrived = resolve));
     const o = new PerformanceObserver((list) => {
-      for (const entry of list.getEntries()) lcp = entry.startTime;
+      lcp = latestStartTime(list.getEntries(), lcp);
       arrived();
     });
     o.observe({ type: 'largest-contentful-paint', buffered: true });
@@ -97,30 +119,58 @@ async function readLcp(): Promise<number | undefined> {
   startLcpObserver();
   if (!observer) return undefined;
   await Promise.race([firstEntry, new Promise((resolve) => setTimeout(resolve, LCP_WAIT_MS))]);
-  for (const entry of observer.takeRecords()) lcp = entry.startTime;
+  lcp = latestStartTime(observer.takeRecords(), lcp);
   return lcp;
 }
 
+type PageMeasures = { net?: CountBucket; local?: CountBucket; lcp?: TimeBucket };
+
+/**
+ * The latest paint entry's start time, or `previous` when the list holds none.
+ * @testSeam
+ */
+export function latestStartTime(entries: readonly { startTime: number }[], previous?: number): number | undefined {
+  return entries.length === 0 ? previous : entries[entries.length - 1].startTime;
+}
+
+/**
+ * The measures as buckets, from the navigation and resource entries and the latest LCP time; each key is
+ * absent when its source is unsupported (undefined entries, undefined time).
+ * @testSeam
+ */
+export function pageMeasures(entries: readonly PerformanceResourceTiming[] | undefined, lcpMs: number | undefined): PageMeasures {
+  const out: PageMeasures = {};
+  const counts = entries && classifyRequests(entries);
+  if (counts) {
+    out.net = countBucket(counts.net);
+    out.local = countBucket(counts.local);
+  }
+  const bucket = timeBucket(lcpMs);
+  if (bucket) out.lcp = bucket;
+  return out;
+}
+
+/** The properties of a page view: its measures, and `ready` (a time bucket) for a tool page that gave the time it mounted. */
+export function pageViewMeasures(measures: PageMeasures, tool: string, mountedAt?: number): PageMeasures & { ready?: TimeBucket } {
+  const ready = tool === 'home' ? undefined : timeBucket(mountedAt);
+  return { ...measures, ...(ready ? { ready } : {}) };
+}
+
 /** The measures of this page's own load, as buckets; each key is absent when its source is unsupported. */
-export async function collectPageMeasures(): Promise<{ net?: CountBucket; local?: CountBucket; lcp?: TimeBucket }> {
-  const out: { net?: CountBucket; local?: CountBucket; lcp?: TimeBucket } = {};
+export async function collectPageMeasures(): Promise<PageMeasures> {
+  let entries: PerformanceResourceTiming[] | undefined;
   try {
-    const entries = [...performance.getEntriesByType('navigation'), ...performance.getEntriesByType('resource')] as PerformanceResourceTiming[];
-    const counts = classifyRequests(entries);
-    if (counts) {
-      out.net = countBucket(counts.net);
-      out.local = countBucket(counts.local);
-    }
+    entries = [...performance.getEntriesByType('navigation'), ...performance.getEntriesByType('resource')] as PerformanceResourceTiming[];
   } catch {
     // expected: no Resource Timing leaves net and local out
   }
+  let lcpMs: number | undefined;
   try {
-    const bucket = timeBucket(await readLcp());
-    if (bucket) out.lcp = bucket;
+    lcpMs = await readLcp();
   } catch {
     // expected: an observer that fails mid-read leaves lcp out of the view
   }
-  return out;
+  return pageMeasures(entries, lcpMs);
 }
 
 /** @testSeam */

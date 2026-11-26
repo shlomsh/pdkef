@@ -3,6 +3,7 @@ import { reportError } from '#lib/telemetry/errorReport.ts';
 import { INITIAL_CAPTURE_STATE, markTaken } from '../lib/capture/captureMachine.ts';
 import type { CaptureState, FrameObservation } from '../lib/capture/types.ts';
 import { WHOLE_FRAME } from '../lib/camera/viewfinderModel.ts';
+import { INITIAL_SHOT_POLICY, nextShotPolicy } from '../lib/camera/shotPolicy.ts';
 import { attemptShot, restoreUntaken } from './useCamera.ts';
 
 vi.mock('#lib/telemetry/errorReport.ts', { spy: true });
@@ -17,7 +18,7 @@ const setup = (state: CaptureState) => ({
   pending: { current: null as string | null },
   shotHashes: new WeakMap<File, string>(),
   onTaken: vi.fn(),
-  onRefused: vi.fn(),
+  onFailed: vi.fn((cameraLive: boolean) => nextShotPolicy(INITIAL_SHOT_POLICY, { type: 'photoFailed', cameraLive }).effects),
   running: () => true,
 });
 const refused = () => new DOMException('platform error', 'UnknownError');
@@ -56,7 +57,8 @@ describe('a photo the browser refuses', () => {
   it('is told and reported while the camera runs, and the page stays on offer', async () => {
     const s = setup(markTaken(INITIAL_CAPTURE_STATE, HASH));
     await attemptShot({ ...s, quad: null, byShutter: false, capture: () => Promise.reject(refused()) });
-    expect(s.onRefused).toHaveBeenCalledOnce();
+    expect(s.onFailed).toHaveBeenCalledOnce();
+    expect(s.onFailed).toHaveBeenCalledWith(true);
     expect(reportedSteps()).toEqual(['scan_camera_photo']);
     expect(s.stateRef.current.takenHashes).toEqual([]);
   });
@@ -64,7 +66,7 @@ describe('a photo the browser refuses', () => {
   it('is told and reported again when it is refused again', async () => {
     const s = setup(INITIAL_CAPTURE_STATE);
     for (let i = 0; i < 2; i += 1) await attemptShot({ ...s, byShutter: true, capture: () => Promise.reject(refused()) });
-    expect(s.onRefused).toHaveBeenCalledTimes(2);
+    expect(s.onFailed).toHaveBeenCalledTimes(2);
     expect(reportedSteps()).toEqual(['scan_camera_photo', 'scan_camera_photo']);
     expect(s.onTaken).not.toHaveBeenCalled();
   });
@@ -74,14 +76,15 @@ describe('a photo the browser refuses', () => {
     await attemptShot({ ...s, byShutter: true, capture: () => Promise.reject(refused()) });
     await attemptShot({ ...s, byShutter: true, capture: async () => ({ file: new File(['x'], 'a.jpg'), snapshot: null }) });
     expect(s.onTaken).toHaveBeenCalledOnce();
-    expect(s.onRefused).toHaveBeenCalledOnce();
+    expect(s.onFailed).toHaveBeenCalledOnce();
+    expect(s.onFailed).toHaveBeenCalledWith(true);
     expect(s.stateRef.current.takenHashes).toEqual([HASH]);
   });
 
   it('cut off by the camera stopping is reported as its own step, with nothing to tell', async () => {
     const s = setup(INITIAL_CAPTURE_STATE);
     await attemptShot({ ...s, running: () => false, byShutter: true, capture: () => Promise.reject(refused()) });
-    expect(s.onRefused).not.toHaveBeenCalled();
+    expect(s.onFailed).not.toHaveBeenCalledWith(true);
     expect(reportedSteps()).toEqual(['scan_camera_photo_cut']);
     expect(s.stateRef.current.takenHashes).toEqual([]);
   });

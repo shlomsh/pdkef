@@ -10,10 +10,10 @@
  */
 
 import { readSinkConfig, sendToSink } from './analyticsSink.ts';
-import { readBuildCommit, sendBeacon } from './errorReport.ts';
+import { sendBeacon } from './errorReport.ts';
 import { resetFileArrivalForTests, takeArrival, takeArrivalTime, type Arrival } from '../handoff/fileArrival.ts';
-import { collectPageMeasures, pageSettled, timeBucket } from './pagePerformance.ts';
-import { NAVIGATION_TYPES, parseUsageEvent, type AnalyticsTool, type NavigationType, type UsageEvent, type UsageEventName, type Since, type ViewOnlyPage, type Visit } from './usageEventSchema';
+import { collectPageMeasures, navigationType, pageSettled, pageViewMeasures, parseBuildCommit, timeBucket } from './pagePerformance.ts';
+import { parseUsageEvent, type AnalyticsTool, type UsageEvent, type UsageEventName, type Since, type ViewOnlyPage, type Visit } from './usageEventSchema';
 import { prepareToolHistory } from './toolHistory.ts';
 import { readAndStampVisits } from './visitRecency.ts';
 import { watchWorkerDownloads } from './workerDownloads.ts';
@@ -84,14 +84,13 @@ function arrivalProps(event: UsageEventName, arrival: Arrival | undefined): Part
   return SOURCE_EVENTS.includes(event) ? { source: arrival.source } : {};
 }
 
-/** How this page load started, off the browser's navigation timing (DEBT-57); undefined when it names none on the list. */
-function readNavigationType(): NavigationType | undefined {
+/** The browser's navigation timing entries, read once per event; none for a browser without navigation timing. */
+function navigationEntries(): PerformanceEntryList {
   try {
-    const type = (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined)?.type;
-    return (NAVIGATION_TYPES as readonly string[]).includes(type as string) ? (type as NavigationType) : undefined;
+    return performance.getEntriesByType('navigation');
   } catch {
-    // expected: a browser without navigation timing sends the event without nav
-    return undefined;
+    // expected: a browser without navigation timing sends the event without nav or build
+    return [];
   }
 }
 
@@ -139,8 +138,7 @@ async function reportPageView(tool: AnalyticsTool | ViewOnlyPage, mountedAt?: nu
   try {
     // A page hidden before it loaded still counts: the view goes out at once, with no measures.
     const measures = (await pageSettled()) === 'loaded' ? await collectPageMeasures() : {};
-    const ready = tool === 'home' ? undefined : timeBucket(mountedAt);
-    report('tool_page_viewed', tool, { ...measures, ...(ready ? { ready } : {}) }, false, at);
+    report('tool_page_viewed', tool, pageViewMeasures(measures, tool, mountedAt), false, at);
   } catch {
     // expected: a measure that cannot be taken never stops the view from counting
   }
@@ -158,10 +156,11 @@ type Measures = Partial<Pick<UsageEvent['properties'], 'net' | 'local' | 'lcp' |
 
 function report(event: UsageEventName, tool: AnalyticsTool | ViewOnlyPage, measures: Measures = {}, untimed = false, at?: Date): void {
   try {
-    const build = readBuildCommit();
+    const navEntries = navigationEntries();
+    const build = parseBuildCommit(navEntries);
     const pair = `${event}|${tool}`;
     const first = !seen.has(pair);
-    const nav = first ? readNavigationType() : undefined;
+    const nav = navigationType(navEntries, first);
     const arrival = event === 'tool_file_accepted' ? takeArrival() : current;
     const ms = untimed ? undefined : timingBucket(event, event === 'tool_file_accepted' ? { source: arrival?.source, at: takeArrivalTime() } : undefined);
     const visits = event === 'tool_page_viewed' ? pageVisit() : undefined;

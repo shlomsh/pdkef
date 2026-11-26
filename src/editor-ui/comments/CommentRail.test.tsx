@@ -51,21 +51,17 @@ describe('CommentRail', () => {
     expect(host!.querySelector('[data-highlight-note-input]')).not.toBeNull();
   });
 
-  it('stacks cards below each other when their passages are close, and grows the rail', () => {
-    // Forced: jsdom has no layout, so heights are the test's own.
+  it('without a railHeight, cards are placed from the rail\'s measured height and the next follows', () => {
+    // Forced: jsdom has no layout, so a card's measured height is given
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ height: 1000 } as DOMRect);
-    // Forced: jsdom has no layout.
-    vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(80);
-    mount([hl('a', 10, 'one'), hl('b', 11, 'two')]);
+    mount([hl('a', 10, 'one'), hl('b', 10.5, 'two')]);
     const [a, b] = cards();
     expect(a.style.top).toBe('94px');
-    expect(b.style.top).toBe('182px');
-    expect((host!.querySelector('[data-comment-rail]') as HTMLElement).style.minHeight).toBe('262px');
+    expect(b.style.top).toBe('102px');
+    expect((host!.querySelector('[data-comment-rail]') as HTMLElement).style.minHeight).toBe('102px');
   });
 
   it('with a railHeight, a new height places the cards in the same render, no observer round trip', () => {
-    // Forced: jsdom has no layout.
-    vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(80);
     const els = [hl('a', 50, 'one')];
     mount(els, null, { railHeight: 1000 });
     expect(cards()[0].style.top).toBe('494px');

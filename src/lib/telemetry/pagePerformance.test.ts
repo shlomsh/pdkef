@@ -4,6 +4,8 @@ import {
   classifyRequests,
   collectPageMeasures,
   countBucket,
+  latestStartTime,
+  pageMeasures,
   pageSettled,
   resetPagePerformanceForTests,
   timeBucket,
@@ -134,36 +136,28 @@ describe('pageSettled', () => {
   });
 });
 
-describe('collectPageMeasures', () => {
-  const resource = (transferSize: number, decodedBodySize: number) => ({ transferSize, decodedBodySize });
-  // Forced: no real navigation or resource entries exist outside a browser page load.
-  const stubPerformance = (entries: unknown[]) =>
-    vi.stubGlobal('performance', { getEntriesByType: (t: string) => (t === 'navigation' || t === 'resource' ? entries.filter((e) => (e as { t: string }).t === t) : []) });
+describe('pageMeasures', () => {
+  const resource = (transferSize: number, decodedBodySize: number) => ({ transferSize, decodedBodySize }) as PerformanceResourceTiming;
 
-  it('counts navigation and resource entries together, and takes the latest LCP', async () => {
-    stubPerformance([{ t: 'navigation', ...resource(0, 4000) }, { t: 'resource', ...resource(0, 90000) }, { t: 'resource', ...resource(1200, 1200) }]);
-    class FakeObserver {
-      static supportedEntryTypes = ['largest-contentful-paint'];
-      constructor(private cb: (l: { getEntries: () => { startTime: number }[] }) => void) {}
-      observe(opts: unknown) { expect(opts).toEqual({ type: 'largest-contentful-paint', buffered: true }); queueMicrotask(() => this.cb({ getEntries: () => [{ startTime: 800 }, { startTime: 2100 }] })); }
-      takeRecords() { return []; }
-    }
-    // Forced: no real largest-contentful-paint entries exist outside a browser page load.
-    vi.stubGlobal('PerformanceObserver', FakeObserver);
-    expect(await collectPageMeasures()).toEqual({ net: '1', local: '2-5', lcp: 'le2.5s' });
+  it('counts navigation and resource entries together, and takes the latest LCP', () => {
+    const entries = [resource(0, 4000), resource(0, 90000), resource(1200, 1200)];
+    expect(pageMeasures(entries, latestStartTime([{ startTime: 800 }, { startTime: 2100 }]))).toEqual({ net: '1', local: '2-5', lcp: 'le2.5s' });
+  });
+
+  it('keeps the earlier LCP when a later read lists no entry', () => {
+    expect(latestStartTime([], 3000)).toBe(3000);
+    expect(latestStartTime([{ startTime: 10 }], 3000)).toBe(10);
   });
 
   it('leaves out what the browser does not support, never guessing', async () => {
-    // Forced: a browser without Resource Timing; Node has it
-    vi.stubGlobal('performance', {});
-    // Forced: a browser without PerformanceObserver; Node has it
-    vi.stubGlobal('PerformanceObserver', undefined);
+    expect(pageMeasures(undefined, undefined)).toEqual({});
+    // A test page lists no entries and no paint, as a browser without them would.
     expect(await collectPageMeasures()).toEqual({});
   });
 
   it('leaves lcp out, without waiting, when the browser does not list the largest-contentful-paint entry type', async () => {
-    stubPerformance([{ t: 'navigation', ...resource(500, 500) }]);
+    expect(pageMeasures([resource(500, 500)], undefined)).toEqual({ net: '1', local: '0' });
     expect(PerformanceObserver.supportedEntryTypes).not.toContain('largest-contentful-paint');
-    expect(await collectPageMeasures()).toEqual({ net: '1', local: '0' });
+    expect(await collectPageMeasures()).toEqual({});
   });
 });

@@ -25,6 +25,7 @@ import {
 export * from './errorReportSchema.ts';
 import { recentActions } from './actionTrail.ts';
 import { sendToSink } from './analyticsSink.ts';
+import { parseBuildCommit } from './pagePerformance.ts';
 
 /** @testSeam */
 export const IGNORED_ERROR_NAMES: ReadonlySet<string> = new Set<string>(IGNORED_NAMES);
@@ -167,8 +168,6 @@ function readTranslated(): boolean {
   return safely(() => /\btranslated-(ltr|rtl)\b/.test(document.documentElement.className), false);
 }
 
-const BUILD_COMMIT = /^[0-9a-f]{7}$/;
-
 /**
  * The 7-character commit the page was built from (MEM-19), off the `build` entry of the navigation's
  * `Server-Timing` header (set by middleware.ts), or undefined when it is missing or malformed. The header
@@ -176,9 +175,7 @@ const BUILD_COMMIT = /^[0-9a-f]{7}$/;
  */
 export function readBuildCommit(perf?: Pick<Performance, 'getEntriesByType'>): string | undefined {
   return safely(() => {
-    const [navigation] = (perf ?? performance).getEntriesByType('navigation') as PerformanceNavigationTiming[];
-    const description = navigation?.serverTiming?.find((entry) => entry.name === 'build')?.description;
-    return typeof description === 'string' && BUILD_COMMIT.test(description) ? description : undefined;
+    return parseBuildCommit((perf ?? performance).getEntriesByType('navigation'));
   }, undefined);
 }
 

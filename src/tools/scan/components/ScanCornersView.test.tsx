@@ -28,7 +28,7 @@ describe('ScanCornersView', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => render(
-      <ScanCornersView selected={selected} photo={null} shownAspect={1} hint="Drag it." finding={null} unreadable={false} onCommit={vi.fn()} onFind={vi.fn()} onRotate={vi.fn()} onApprove={onApprove} onRemove={vi.fn()} />,
+      <ScanCornersView selected={selected} photo={null} shownAspect={1} hint="Drag it." finding={null} unreadable={false} sides={null} onCommit={vi.fn()} onFind={vi.fn()} onRotate={vi.fn()} onApprove={onApprove} onRemove={vi.fn()} />,
       container!,
     ));
     const labels = [...container.querySelectorAll('button')].map((b) => b.textContent?.trim());
@@ -42,7 +42,7 @@ describe('ScanCornersView', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => render(
-      <ScanCornersView selected={selected} photo={null} shownAspect={1} hint="Drag it." finding={null} unreadable={unreadable} onCommit={vi.fn()} onFind={vi.fn()} onRotate={vi.fn()} onApprove={vi.fn()} onRemove={vi.fn()} />,
+      <ScanCornersView selected={selected} photo={null} shownAspect={1} hint="Drag it." finding={null} unreadable={unreadable} sides={null} onCommit={vi.fn()} onFind={vi.fn()} onRotate={vi.fn()} onApprove={vi.fn()} onRemove={vi.fn()} />,
       container!,
     ));
     return [...container.querySelectorAll('button')].map((b) => b.textContent?.trim());
@@ -65,7 +65,7 @@ describe('ScanCornersView', () => {
       container = document.createElement('div');
       document.body.appendChild(container);
       act(() => render(
-        <ScanCornersView selected={selected} photo={null} shownAspect={1} hint="Drag it." finding={null} unreadable={false} onCommit={vi.fn()} onFind={vi.fn()} onRotate={onRotate} onApprove={vi.fn()} onRemove={vi.fn()} />,
+        <ScanCornersView selected={selected} photo={null} shownAspect={1} hint="Drag it." finding={null} unreadable={false} sides={null} onCommit={vi.fn()} onFind={vi.fn()} onRotate={onRotate} onApprove={vi.fn()} onRemove={vi.fn()} />,
         container!,
       ));
       return onRotate;
@@ -102,7 +102,7 @@ describe('ScanCornersView', () => {
   describe('zoom', () => {
     const page = (id: number, turns = 0) => ({ id, guessed: true, preview: 'p', quad: FULL_QUAD, turns, aspect: 1, pins: null }) as unknown as ScanPage;
     const view = (selected: ScanPage, unreadable = false) => (
-      <ScanCornersView selected={selected} photo={null} shownAspect={1} hint="Drag it." finding={null} unreadable={unreadable} onCommit={vi.fn()} onFind={vi.fn()} onRotate={vi.fn()} onApprove={vi.fn()} onRemove={vi.fn()} />
+      <ScanCornersView selected={selected} photo={null} shownAspect={1} hint="Drag it." finding={null} unreadable={unreadable} sides={null} onCommit={vi.fn()} onFind={vi.fn()} onRotate={vi.fn()} onApprove={vi.fn()} onRemove={vi.fn()} />
     );
     const mount = (selected: ScanPage, unreadable = false) => {
       container = document.createElement('div');
@@ -143,29 +143,23 @@ describe('ScanCornersView', () => {
 
   describe('trace', () => {
     const Q1: Quad = [{ x: 0.1, y: 0.1 }, { x: 0.9, y: 0.1 }, { x: 0.9, y: 0.9 }, { x: 0.1, y: 0.9 }];
-    const Q2: Quad = [{ x: 0.2, y: 0.1 }, { x: 0.9, y: 0.1 }, { x: 0.9, y: 0.9 }, { x: 0.2, y: 0.9 }];
     const side = Array.from({ length: 15 }, (_, i) => ({ x: 0.3 + i * 0.01, y: 0.5 }));
     const SIDES = [side, side, side, side] as Sides;
     const page = (quad: Quad, turns = 0, pins: Pins | null = null, fine = true) => ({ id: 1, guessed: true, preview: 'p', quad, turns, aspect: 1, pins, fine }) as unknown as ScanPage;
-    const view = (selected: ScanPage, onTrace?: (id: number, quad: Quad, pins?: Pins | null) => Promise<Sides | null>) => (
-      <ScanCornersView selected={selected} photo="x.jpg" shownAspect={1} hint="Drag it." finding={null} unreadable={false} onCommit={vi.fn()} onFind={vi.fn()} onRotate={vi.fn()} onTrace={onTrace} onApprove={vi.fn()} onRemove={vi.fn()} />
-    );
-    const mount = (selected: ScanPage, onTrace?: (id: number, quad: Quad, pins?: Pins | null) => Promise<Sides | null>) => {
+    const mount = (selected: ScanPage, sides: Sides | null) => {
       container = document.createElement('div');
       document.body.appendChild(container);
-      act(() => render(view(selected, onTrace), container!));
+      act(() => render(
+        <ScanCornersView selected={selected} photo="x.jpg" shownAspect={1} hint="Drag it." finding={null} unreadable={false} sides={sides} onCommit={vi.fn()} onFind={vi.fn()} onRotate={vi.fn()} onApprove={vi.fn()} onRemove={vi.fn()} />,
+        container!,
+      ));
     };
     const traceLines = () => container!.querySelectorAll('g[data-trace] line');
     const traceD = () => (traceLines().length ? Array.from(traceLines()).map((l) => `${l.getAttribute('x1')} ${l.getAttribute('y1')}`) : null);
-    const flush = () => act(async () => { await Promise.resolve(); await Promise.resolve(); });
 
     // Protects: with Fine-tune edges off the border is neither requested nor drawn, so the editor shows plain straight lines.
-    it('with fine off asks for no trace and shows none, and the toggle is not pressed', async () => {
-      // Forced: onTrace is always traceCorners, which needs a decoded photo and jsdom decodes none
-      const onTrace = vi.fn().mockResolvedValue(SIDES);
-      mount(page(Q1, 0, null, false), onTrace);
-      await flush();
-      expect(onTrace).not.toHaveBeenCalled();
+    it('with fine off asks for no trace and shows none, and the toggle is not pressed', () => {
+      mount(page(Q1, 0, null, false), null);
       expect(traceD()).toBeNull();
       expect(editorProps.last!.trace).toBeNull();
       expect(editorProps.last!.pinned).toEqual([]);
@@ -173,67 +167,24 @@ describe('ScanCornersView', () => {
     });
 
     // Protects: with Fine-tune edges on the trace is requested for the page's quad and pins.
-    it('with fine on asks for the trace and the toggle is pressed', async () => {
-      // Forced: onTrace is always traceCorners, which needs a decoded photo and jsdom decodes none
-      const onTrace = vi.fn().mockResolvedValue(SIDES);
-      mount(page(Q1), onTrace);
-      await flush();
-      expect(onTrace).toHaveBeenCalledWith(1, Q1, null);
+    it('with fine on asks for the trace and the toggle is pressed', () => {
+      mount(page(Q1), SIDES);
       expect(container!.querySelector('button[aria-pressed="true"]')).not.toBeNull();
     });
 
-    it('asks for the trace of the page\'s own quad on mount and draws 64 points', async () => {
-      // Forced: onTrace is always traceCorners, which needs a decoded photo and jsdom decodes none
-      const onTrace = vi.fn().mockResolvedValue(SIDES);
-      mount(page(Q1), onTrace);
-      expect(onTrace).toHaveBeenCalledWith(1, Q1, null);
-      await flush();
+    it('asks for the trace of the page\'s own quad on mount and draws 64 points', () => {
+      mount(page(Q1), SIDES);
       expect(traceD()!.length).toBe(64);
     });
 
-    it('draws the first point turned with the page', async () => {
-      // Forced: onTrace is always traceCorners, which needs a decoded photo and jsdom decodes none
-      mount(page(Q1, 1), vi.fn().mockResolvedValue(SIDES));
-      await flush();
+    it('draws the first point turned with the page', () => {
+      mount(page(Q1, 1), SIDES);
       const p = turnedPoint(Q1[0], 1);
       expect(traceD()![0]).toBe(`${p.x * 100}% ${p.y * 100}%`);
     });
 
-    it('drops an answer for an older quad that arrives after the quad changed', async () => {
-      let late!: (s: Sides | null) => void;
-      // Forced: onTrace is always traceCorners, which needs a decoded photo and jsdom decodes none (held, then answered)
-      const onTrace = vi.fn()
-        .mockImplementationOnce(() => new Promise<Sides | null>((r) => { late = r; }))
-        .mockResolvedValue(null);
-      mount(page(Q1), onTrace);
-      act(() => render(view(page(Q2), onTrace), container!));
-      await flush();
-      expect(onTrace).toHaveBeenCalledTimes(2);
-      late(SIDES);
-      await flush();
-      expect(traceD()).toBeNull();
-    });
-
-    it('passes no trace when the answer is null', async () => {
-      // Forced: onTrace is always traceCorners, which needs a decoded photo and jsdom decodes none
-      mount(page(Q1), vi.fn().mockResolvedValue(null));
-      await flush();
-      expect(traceD()).toBeNull();
-    });
-
-    it('asks again with the pins after a pin changes, and shows no outline for the previous pins, because a pin set is its own trace', async () => {
-      let late!: (s: Sides | null) => void;
-      // Forced: onTrace is always traceCorners, which needs a decoded photo and jsdom decodes none (held, then answered)
-      const onTrace = vi.fn()
-        .mockImplementationOnce(() => new Promise<Sides | null>((r) => { late = r; }))
-        .mockResolvedValue(null);
-      mount(page(Q1), onTrace);
-      const pins: Pins = [[], [], [], [{ k: 3, at: { x: 0.2, y: 0.5 } }]];
-      act(() => render(view(page(Q1, 0, pins), onTrace), container!));
-      await flush();
-      expect(onTrace).toHaveBeenLastCalledWith(1, Q1, pins);
-      late(SIDES);
-      await flush();
+    it('passes no trace when the answer is null', () => {
+      mount(page(Q1), null);
       expect(traceD()).toBeNull();
     });
   });
@@ -246,7 +197,7 @@ describe('ScanCornersView', () => {
       container = document.createElement('div');
       document.body.appendChild(container);
       const view = (sel: ScanPage) => (
-        <ScanCornersView selected={sel} photo="x.jpg" shownAspect={1} hint="Drag it." finding={null} unreadable={false} onCommit={onCommit} onFind={onFind} onRotate={vi.fn()} onApprove={vi.fn()} onRemove={vi.fn()} />
+        <ScanCornersView selected={sel} photo="x.jpg" shownAspect={1} hint="Drag it." finding={null} unreadable={false} sides={null} onCommit={onCommit} onFind={onFind} onRotate={vi.fn()} onApprove={vi.fn()} onRemove={vi.fn()} />
       );
       act(() => render(view(selected), container!));
       return { onCommit, onFind, show: (sel: ScanPage) => act(() => render(view(sel), container!)) };

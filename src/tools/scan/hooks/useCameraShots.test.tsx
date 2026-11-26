@@ -1,4 +1,5 @@
-// SCAN-78: what the running camera does around a photo that fails, or is still being taken when it closes.
+// SCAN-78: useCamera's wiring around a photo that fails or is still being taken when it closes. The policy itself
+// is shotPolicy.test.ts, the three-second wait is cameraStream.test.ts.
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -126,17 +127,6 @@ describe('the camera closing while a photo is taken', () => {
     expect(running.stop).toHaveBeenCalledTimes(1);
   });
 
-  it('waits no longer than three seconds', async () => {
-    // Forced: takePhoto cannot be refused or held on cue by a real camera here
-    camera.takePhoto.mockReturnValue(new Promise(() => {}));
-    act(() => handle.shoot());
-    close();
-    await act(async () => { await vi.advanceTimersByTimeAsync(2900); });
-    expect(running.stop).not.toHaveBeenCalled();
-    await act(async () => { await vi.advanceTimersByTimeAsync(200); });
-    expect(running.stop).toHaveBeenCalledTimes(1);
-  });
-
   it('waits when the page is hidden too', async () => {
     const photo = Promise.withResolvers<Blob>();
     // Forced: takePhoto cannot be refused or held on cue by a real camera here
@@ -148,11 +138,6 @@ describe('the camera closing while a photo is taken', () => {
     photo.resolve(new Blob(['x']));
     await settle();
     expect(onTaken).toHaveBeenCalledTimes(1);
-    expect(running.stop).toHaveBeenCalledTimes(1);
-  });
-
-  it('stops at once with no photo under way', () => {
-    close();
     expect(running.stop).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { cameraPacer, openCamera, stopCamera } from './cameraStream.ts';
+import { cameraPacer, openCamera, stopCamera, stopCameraAfter } from './cameraStream.ts';
 
 describe('openCamera', () => {
   it('throws a TypeError when navigator.mediaDevices is missing', () => {
@@ -30,5 +30,43 @@ describe('stopCamera', () => {
     stopCamera({ getTracks: () => [a, b] } as unknown as MediaStream);
     expect(a.stop).toHaveBeenCalledTimes(1);
     expect(b.stop).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('the camera closing while a photo is taken', () => {
+  const stream = () => {
+    const stopped = { count: 0 };
+    return { stopped, stream: { getTracks: () => [{ stop: () => { stopped.count += 1; } }] } as unknown as MediaStream };
+  };
+
+  it('waits for the photo, and the page lands', async () => {
+    const { stopped, stream: camera } = stream();
+    const photo = Promise.withResolvers<void>();
+    stopCameraAfter(camera, photo.promise);
+    expect(stopped.count).toBe(0);
+    photo.resolve();
+    await photo.promise;
+    await Promise.resolve();
+    expect(stopped.count).toBe(1);
+  });
+
+  it('waits no longer than three seconds', async () => {
+    const { stopped, stream: camera } = stream();
+    vi.useFakeTimers();
+    try {
+      stopCameraAfter(camera, new Promise(() => {}));
+      await vi.advanceTimersByTimeAsync(2900);
+      expect(stopped.count).toBe(0);
+      await vi.advanceTimersByTimeAsync(200);
+      expect(stopped.count).toBe(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('stops at once with no photo under way', () => {
+    const { stopped, stream: camera } = stream();
+    stopCameraAfter(camera, null);
+    expect(stopped.count).toBe(1);
   });
 });

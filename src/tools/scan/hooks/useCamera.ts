@@ -5,6 +5,7 @@ import { reportError } from '#lib/telemetry/errorReport.ts';
 import type { Quad } from '#lib/pageEnhance/quad.ts';
 import { INITIAL_CAPTURE_STATE, keepTaken, markTaken, searchAgain, stepCapture } from '../lib/capture/captureMachine.ts';
 import { DEFAULT_CAPTURE_PARAMS, type CaptureState, type FrameObservation } from '../lib/capture/types.ts';
+import { autoMayShoot, INITIAL_SHOT_POLICY, nextShotPolicy, type ShotEffect, type ShotEvent } from '../lib/camera/shotPolicy.ts';
 import { cameraStatusFor } from '../lib/camera/cameraErrors.ts';
 import { attachStream, cameraPacer, openCamera, stopCamera, stopCameraAfter, takePhoto } from '../lib/camera/cameraStream.ts';
 import { frameGrabber, snapshot } from '../lib/camera/frameGrab.ts';
@@ -55,12 +56,11 @@ interface ShotInput {
   paused: boolean;
   auto: boolean;
   setShooting: (on: boolean) => void;
-  onStart: () => void;
-  onRefused: () => void;
+  dispatch: (event: ShotEvent) => ShotEffect[];
 }
 
 /** The shot, one at a time. It notes which page each photo is of, so a photo leaving the scan frees its page. */
-function useShot({ videoEl, track, stateRef, lastObs, lastView, pacer, onTakenRef, scanFiles, paused, auto, setShooting, onStart, onRefused }: ShotInput) {
+function useShot({ videoEl, track, stateRef, lastObs, lastView, pacer, onTakenRef, scanFiles, paused, auto, setShooting, dispatch }: ShotInput) {
   const underWay = useRef<Promise<void> | null>(null);
   const shotHashes = useRef(new WeakMap<File, string>());
   const kept = scanFiles.flatMap((file) => shotHashes.current.get(file) ?? []);
@@ -85,9 +85,9 @@ function useShot({ videoEl, track, stateRef, lastObs, lastView, pacer, onTakenRe
       return;
     }
     setShooting(true);
-    onStart();
+    dispatch({ type: 'shotStarted' });
     pacer.current?.stop();
-    const shot = attemptShot({ stateRef, keptRef, pending, lastObs, lastView, shotHashes: shotHashes.current, onTaken: onTakenRef.current, onRefused, running: () => running.readyState === 'live', capture: () => captureShot(running, video), quad, byShutter });
+    const shot = attemptShot({ stateRef, keptRef, pending, lastObs, lastView, shotHashes: shotHashes.current, onTaken: onTakenRef.current, onFailed: (cameraLive) => dispatch({ type: 'photoFailed', cameraLive }), running: () => running.readyState === 'live', capture: () => captureShot(running, video), quad, byShutter });
     underWay.current = shot;
     try {
       await shot;
@@ -116,8 +116,8 @@ interface AttemptInput {
   lastView: MutableRef<Rect>;
   shotHashes: WeakMap<File, string>;
   onTaken: (page: TakenPage) => void;
-  /** The running camera refused the photo. Not called when the camera stopped under it. */
-  onRefused: () => void;
+  /** The photo failed; `cameraLive` is false when the camera stopped under it. Answers what to report. */
+  onFailed: (cameraLive: boolean) => ShotEffect[];
   running: () => boolean;
   capture: () => Promise<Omit<TakenPage, 'quad'>>;
   quad?: Quad | null;
@@ -126,7 +126,7 @@ interface AttemptInput {
 
 /** One shot: mark the page, take the photo, hand it on. A shot that fails leaves its page on offer, not taken.
  * @testSeam */
-export async function attemptShot({ stateRef, keptRef, pending, lastObs, lastView, shotHashes, onTaken, onRefused, running, capture, quad, byShutter }: AttemptInput) {
+export async function attemptShot({ stateRef, keptRef, pending, lastObs, lastView, shotHashes, onTaken, onFailed, running, capture, quad, byShutter }: AttemptInput) {
   try {
     // a quad handed in is across the whole frame already; the machine's own is across what was on screen
     const { smoothed } = stateRef.current;
@@ -140,9 +140,7 @@ export async function attemptShot({ stateRef, keptRef, pending, lastObs, lastVie
   } catch (err) {
     pending.current = null;
     restoreUntaken(stateRef, keptRef, pending);
-    const refused = running();
-    reportError('pdf_tool_run', err, refused ? 'scan_camera_photo' : 'scan_camera_photo_cut');
-    if (refused) onRefused();
+    for (const effect of onFailed(running())) reportError('pdf_tool_run', err, effect.step);
   }
 }
 
@@ -152,17 +150,23 @@ export function useCamera(input: UseCameraInput): CameraHandle & { shooting: boo
   const [status, setStatus] = useState<CameraStatus>('starting');
   const [live, setLive] = useState(IDLE_VIEW);
   const [videoSize, setVideoSize] = useState({ width: 0, height: 0 });
-  const [auto, setAutoState] = useState(true);
+  const [auto, setAutoState] = useState(INITIAL_SHOT_POLICY.auto);
   const [shooting, setShooting] = useState(false);
-  const [photoRefused, setPhotoRefused] = useState(false);
-  /** A refused photo holds auto until a photo lands or Auto is turned on again: one refusal is never a run of them. */
-  const held = useRef(false);
+  const [photoRefused, setPhotoRefused] = useState(INITIAL_SHOT_POLICY.photoRefused);
+  /** The policy: whether auto may shoot, and what a photo's outcome does to it. */
+  const policy = useRef(INITIAL_SHOT_POLICY);
+  const dispatch = useCallback((event: ShotEvent) => {
+    const { state, effects } = nextShotPolicy(policy.current, event);
+    policy.current = state;
+    setAutoState(state.auto);
+    setPhotoRefused(state.photoRefused);
+    return effects;
+  }, []);
 
   const onTakenRef = useRef(input.onTaken);
-  onTakenRef.current = (page) => { held.current = false; input.onTaken(page); };
+  onTakenRef.current = (page) => { dispatch({ type: 'photoLanded' }); input.onTaken(page); };
   const pausedRef = useRef(input.paused ?? false);
   pausedRef.current = input.paused ?? false;
-  const autoRef = useRef(true);
   const videoEl = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const stateRef = useRef<CaptureState>(INITIAL_CAPTURE_STATE);
@@ -181,8 +185,7 @@ export function useCamera(input: UseCameraInput): CameraHandle & { shooting: boo
     attach();
   }, [attach]);
 
-  const onRefused = () => { held.current = true; setPhotoRefused(true); };
-  const { shoot, underWay } = useShot({ videoEl, track, stateRef, lastObs, lastView, pacer, onTakenRef, scanFiles: input.scanFiles, paused: input.paused ?? false, auto, setShooting, onStart: () => setPhotoRefused(false), onRefused });
+  const { shoot, underWay } = useShot({ videoEl, track, stateRef, lastObs, lastView, pacer, onTakenRef, scanFiles: input.scanFiles, paused: input.paused ?? false, auto, setShooting, dispatch });
   const shootRef = useRef(shoot);
   shootRef.current = shoot;
 
@@ -197,7 +200,7 @@ export function useCamera(input: UseCameraInput): CameraHandle & { shooting: boo
     worker.onmessage = (e: MessageEvent<FrameObservation>) => {
       inFlight = false;
       const obs = e.data;
-      const shoots = autoRef.current && !pausedRef.current && !held.current;
+      const shoots = autoMayShoot(policy.current, pausedRef.current);
       const step = stepCapture(stateRef.current, obs, DEFAULT_CAPTURE_PARAMS, shoots);
       stateRef.current = step.state;
       lastObs.current = obs;
@@ -278,12 +281,8 @@ export function useCamera(input: UseCameraInput): CameraHandle & { shooting: boo
   }, [attach, track]);
 
   const setAuto = useCallback((on: boolean) => {
-    autoRef.current = on;
-    setAutoState(on);
-    if (!on) return;
-    held.current = false;
-    setPhotoRefused(false);
-  }, []);
+    dispatch({ type: 'autoSet', on });
+  }, [dispatch]);
   const shutter = useCallback(() => { void shootRef.current(undefined, true); /* reason: shoot reports its own failure */ }, []);
 
   return { status, live, videoSize, videoRef, auto, setAuto, shoot: shutter, track, shooting, photoRefused };

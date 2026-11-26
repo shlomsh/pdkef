@@ -8,6 +8,7 @@ import { markArrival } from '../handoff/fileArrival.ts';
 import { finishLoading, startLoading } from './loadingPage.test-helper.ts';
 import { sendToSink } from './analyticsSink.ts';
 import * as pagePerformance from './pagePerformance.ts';
+const { navigationType, pageViewMeasures, parseBuildCommit } = pagePerformance;
 import { setReportingEnabledForTests } from './errorReport.ts';
 import { watchWorkerDownloads } from './workerDownloads.ts';
 import {
@@ -113,22 +114,23 @@ describe('reportToolLifecycleEvent', () => {
   });
 
   it('says how the page load started on the first event of a kind only (DEBT-57)', async () => {
-    // forced: a page load that was a reload or a new navigation type cannot be made mid-test
-    vi.spyOn(performance, 'getEntriesByType').mockReturnValue([{ type: 'reload' }] as unknown as PerformanceEntryList);
+    const reload = [{ type: 'reload' }] as unknown as PerformanceEntryList;
+    expect(navigationType(reload, true)).toBe('reload');
+    expect(navigationType(reload, false)).toBeUndefined();
+    // A test page has no navigation entry, so the shell sends the first event and the next without nav.
     reportToolLifecycleEvent('tool_file_accepted', 'redact');
     reportToolLifecycleEvent('tool_file_accepted', 'redact');
     const bodies = await texts();
     expect(bodies).toEqual([
-      '{"name":"tool_file_accepted","properties":{"tool":"redact","first":true,"nav":"reload"}}',
+      '{"name":"tool_file_accepted","properties":{"tool":"redact","first":true}}',
       '{"name":"tool_file_accepted","properties":{"tool":"redact"}}',
     ]);
   });
 
   it('leaves nav out when the browser names no navigation, or one off the list', async () => {
-    // forced: a page load that was a reload or a new navigation type cannot be made mid-test
-    const spy = vi.spyOn(performance, 'getEntriesByType').mockReturnValue([]);
+    expect(navigationType([], true)).toBeUndefined();
+    expect(navigationType([{ type: 'something_new' }] as unknown as PerformanceEntryList, true)).toBeUndefined();
     reportToolLifecycleEvent('tool_file_accepted', 'redact');
-    spy.mockReturnValue([{ type: 'something_new' }] as unknown as PerformanceEntryList);
     reportToolLifecycleEvent('tool_file_accepted', 'merge');
     const bodies = await texts();
     expect(bodies.every((b) => !b.includes('nav'))).toBe(true);
@@ -171,16 +173,14 @@ describe('reportToolLifecycleEvent', () => {
 
   it('adds the build commit when the page carries one, and only then', async () => {
     const page = (content: string | null) =>
-      // forced: a Server-Timing header with the build commit, which the test server does not send
-      vi.stubGlobal('performance', {
-        getEntriesByType: () => [{ serverTiming: content === null ? [] : [{ name: 'build', description: content }] }],
-      });
-    page('08e10cf');
+      [{ serverTiming: content === null ? [] : [{ name: 'build', description: content }] }] as unknown as PerformanceEntryList;
+    expect(parseBuildCommit(page('08e10cf'))).toBe('08e10cf');
+    expect(parseBuildCommit(page('not-a-sha'))).toBeUndefined();
+    expect(parseBuildCommit(page(null))).toBeUndefined();
+    expect(parseBuildCommit([])).toBeUndefined();
+    // A test page carries no Server-Timing header, so the shell sends no build.
     reportToolLifecycleEvent('tool_result_ready', 'merge');
-    expect(JSON.parse(await rec.calls[0].blob.text()).properties).toEqual({ tool: 'merge', build: '08e10cf', first: true });
-    page(null);
-    reportToolLifecycleEvent('tool_result_ready', 'merge');
-    expect(JSON.parse(await rec.calls[1].blob.text()).properties).toEqual({ tool: 'merge' });
+    expect(JSON.parse(await rec.calls[0].blob.text()).properties).toEqual({ tool: 'merge', first: true });
   });
 });
 
@@ -363,8 +363,9 @@ describe('performance measures (MEM-45)', () => {
 
   it('a tool page view waits for the window load, then sends once with the measures and ready', async () => {
     startLoading();
-    // Forced: a page whose requests the browser counted; jsdom lists no entries
-    vi.mocked(pagePerformance.collectPageMeasures).mockResolvedValueOnce({ net: '0', local: '16-30', lcp: 'le2.5s' });
+    vi.mocked(pagePerformance.collectPageMeasures).mockClear();
+    const measures = { net: '0', local: '16-30', lcp: 'le2.5s' } as const;
+    expect(pageViewMeasures(measures, 'sign', 1800)).toEqual({ ...measures, ready: 'le2.5s' });
     clock(1800);
     reportToolLifecycleEvent('tool_page_viewed', 'sign');
     await settleTick();
@@ -373,24 +374,52 @@ describe('performance measures (MEM-45)', () => {
     await finishLoading();
     await settleTick();
     expect(rec.calls).toHaveLength(1);
-    expect((await sent())[0].properties).toEqual({ tool: 'sign', first: true, visit: 'new', since: 'first', net: '0', local: '16-30', lcp: 'le2.5s', ready: 'le2.5s' });
+    expect(pagePerformance.collectPageMeasures).toHaveBeenCalledTimes(1);
+    // A test page lists no requests and no paint, so the shell sends ready alone.
+    expect((await sent())[0].properties).toEqual({ tool: 'sign', first: true, visit: 'new', since: 'first', ready: 'le2.5s' });
+  });
+
+  it('the sent bodies carry nav and the build commit off the navigation entry, and net, local and lcp off the page load', async () => {
+    // Forced: jsdom's performance has no navigation, resource or paint entries
+    vi.spyOn(performance, 'getEntriesByType').mockImplementation((type: string) =>
+      (type === 'navigation'
+        ? [{ type: 'reload', transferSize: 0, decodedBodySize: 4000, serverTiming: [{ name: 'build', description: '08e10cf' }] }]
+        : type === 'resource'
+          ? [{ transferSize: 0, decodedBodySize: 90000 }, { transferSize: 1200, decodedBodySize: 1200 }]
+          : []) as unknown as PerformanceEntryList);
+    // Forced: jsdom's performance has no navigation, resource or paint entries
+    vi.stubGlobal('PerformanceObserver', class {
+      static supportedEntryTypes = ['largest-contentful-paint'];
+      constructor(private cb: (l: { getEntries: () => { startTime: number }[] }) => void) {}
+      observe() { queueMicrotask(() => this.cb({ getEntries: () => [{ startTime: 800 }, { startTime: 2100 }] })); }
+      takeRecords() { return []; }
+    });
+    pagePerformance.resetPagePerformanceForTests(); // the observer is made once per page load
+    reportToolLifecycleEvent('tool_result_ready', 'merge');
+    reportToolLifecycleEvent('tool_page_viewed', 'merge');
+    await settleTick();
+    pagePerformance.resetPagePerformanceForTests();
+    const [result, view] = await sent();
+    expect(result.properties).toMatchObject({ tool: 'merge', build: '08e10cf', first: true, nav: 'reload' });
+    expect(view.properties).toMatchObject({ build: '08e10cf', nav: 'reload', net: '1', local: '2-5', lcp: 'le2.5s' });
   });
 
   it('the home page view carries net, local and lcp and never ready', async () => {
-    // Forced: a page whose requests the browser counted; jsdom lists no entries
-    vi.mocked(pagePerformance.collectPageMeasures).mockResolvedValueOnce({ net: '2-5', local: '6-15', lcp: 'le1s' });
+    const measures = { net: '2-5', local: '6-15', lcp: 'le1s' } as const;
+    expect(pageViewMeasures(measures, 'home')).toEqual(measures);
+    expect(pageViewMeasures(measures, 'home', 500)).toEqual(measures);
     clock(500);
     reportHomePageView();
     await settleTick();
-    expect((await sent())[0].properties).toEqual({ tool: 'home', first: true, visit: 'new', since: 'first', net: '2-5', local: '6-15', lcp: 'le1s' });
+    expect((await sent())[0].properties).toEqual({ tool: 'home', first: true, visit: 'new', since: 'first' });
   });
 
   it('leaves out what the browser could not measure', async () => {
-    // forced: a clock that reads NaN, which no real browser hands out on cue
-    vi.spyOn(performance, 'now').mockReturnValue(Number.NaN);
+    expect(pageViewMeasures({}, 'merge', Number.NaN)).toEqual({});
+    expect(pageViewMeasures({}, 'merge', undefined)).toEqual({});
     reportToolLifecycleEvent('tool_page_viewed', 'merge');
     await settleTick();
-    expect((await sent())[0].properties).toEqual({ tool: 'merge', first: true, visit: 'new', since: 'first' });
+    expect((await sent())[0].properties).toEqual({ tool: 'merge', first: true, visit: 'new', since: 'first', ready: 'le1s' });
   });
 
   it('tool_file_accepted carries the time since the arrival was marked', async () => {

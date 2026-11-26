@@ -1,4 +1,4 @@
-import type { Ref } from 'preact';
+import type { ComponentProps, Ref } from 'preact';
 import { useEffect, useLayoutEffect, useRef } from 'preact/hooks';
 import { ChevronLeft, ChevronRight, VectorSquare } from 'lucide-preact';
 import { workspaceStyles } from '#shell/pageWorkspace/PageWorkspace.tsx';
@@ -21,6 +21,7 @@ import styles from './ScanPageViewer.module.css';
 import ResultPage from './ResultPage.tsx';
 import PageActions from './PageActions.tsx';
 import ScanCornersView from './ScanCornersView.tsx';
+import { useCornerTrace } from '../hooks/useCornerTrace.ts';
 import ScanSplitView from './ScanSplitView.tsx';
 
 type Placed = Parameters<typeof resultViewFor>[2]['shown'];
@@ -132,6 +133,14 @@ export function viewerBack({ view, selected, failedIds, actions }: Pick<ScanPage
   return { unreadable, goBack };
 }
 
+type CornersStageProps = Omit<ComponentProps<typeof ScanCornersView>, 'sides'> & { onTrace: Parameters<typeof useCornerTrace>[1] };
+
+/** The corners view with its border trace: asked for only while the view is on screen. */
+function CornersStage({ onTrace, ...view }: CornersStageProps) {
+  const sides = useCornerTrace(view.selected, onTrace);
+  return <ScanCornersView {...view} sides={sides} />;
+}
+
 /** The page itself, inside the dialog: head, the slides or the corners or the split, the row and Done. */
 export default function ScanPageViewerBody(props: ScanPageViewerBodyProps) {
   const { refs, pages, selected, selectedIndex, view, results, turnedPreviews, finding, splitting, splitFailed, findMissed, pageSize, built, actions } = props;
@@ -189,7 +198,7 @@ export default function ScanPageViewerBody(props: ScanPageViewerBodyProps) {
         </div>
       ) : (
         <div class={`${styles.stage} ${styles.cornersStage}`}>
-          <ScanCornersView
+          <CornersStage
             selected={selected}
             photo={shownPhoto(selected, turnedPreviews)}
             shownAspect={shownAspect(selected)}
