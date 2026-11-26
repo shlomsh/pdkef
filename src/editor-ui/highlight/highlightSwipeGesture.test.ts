@@ -73,7 +73,12 @@ const move = (x: number, y: number) => window.dispatchEvent(new MouseEvent('mous
 const release = () => window.dispatchEvent(new MouseEvent('mouseup'));
 const types = (d: ReturnType<typeof vi.fn>) => d.mock.calls.map(([a]) => a.type);
 
-afterEach(() => release());
+// A mouse swipe arms a click swallower that lives until it eats a click or a tick after the next mouseup.
+// Tests are synchronous, so one left armed would eat the next test's first click: spend it here.
+afterEach(() => {
+  release();
+  document.body.click();
+});
 
 describe('startHighlightSwipe', () => {
   it('dispatches nothing until release, then one UPDATE_ELEMENT with bands and DISARM_TOOL', () => {
