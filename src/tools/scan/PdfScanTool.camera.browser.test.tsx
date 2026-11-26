@@ -100,7 +100,7 @@ describe('PdfScanTool camera', () => {
   });
 
   it('adds the photos of the native input when the camera falls back, and replaces a page in place from its page view, in mode one', async () => {
-    // forced: the device has no camera
+    // Forced: the device has no camera; the camera project launches Chromium with its fake camera, and a project without it would need its own test file and config, which no rule here allows.
     vi.spyOn(navigator.mediaDevices, 'getUserMedia').mockRejectedValueOnce(new DOMException('no camera', 'NotFoundError'));
     mount();
     await click(startScanning(), 'Start scanning');

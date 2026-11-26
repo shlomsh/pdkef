@@ -1081,37 +1081,37 @@ describe('a stored value that is not an object is cleaned up, not left behind', 
     indexedDB = new IDBFactory();
     vi.resetModules();
   });
-  afterEach(() => { vi.restoreAllMocks(); });
-
-  function corruptReadOf(key) {
-    const realGet = IDBObjectStore.prototype.get;
-    // forced: a stored record that is not an object, which put() cannot write
-    vi.spyOn(IDBObjectStore.prototype, 'get').mockImplementation(function get(query) {
-      const real = realGet.call(this, query);
-      if (query !== key) return real;
-      return {
-        set onsuccess(fn) { real.onsuccess = fn; },
-        set onerror(fn) { real.onerror = fn; },
-        get result() { return 'corrupt'; },
-        get error() { return real.error; },
+  // A stored record that is not an object, which the shipped store's own put() cannot write (its store has a
+  // keyPath). A database of the same name whose store takes out-of-line keys holds any value: the real store
+  // opens it as it is, and the pointer and index rows the real saves left in localStorage still point at it.
+  async function plantNonObject(key) {
+    indexedDB = new IDBFactory();
+    await new Promise((resolve, reject) => {
+      const open = indexedDB.open('pdf-toolkit-workspace', 1);
+      open.onupgradeneeded = () => { open.result.createObjectStore('workspace'); };
+      open.onsuccess = () => {
+        const db = open.result;
+        const tx = db.transaction('workspace', 'readwrite');
+        tx.objectStore('workspace').put('corrupt', key);
+        tx.oncomplete = () => { db.close(); resolve(); };
+        tx.onerror = () => { db.close(); reject(tx.error); };
       };
+      open.onerror = () => reject(open.error);
     });
   }
 
   it('takeHandoff deletes the key and returns null', async () => {
     await saveHandoff('sign', { fileName: 'a.pdf', fileBytes: bytesOf('%PDF-1.4 a') });
-    corruptReadOf('handoff:sign');
+    await plantNonObject('handoff:sign');
     expect(await takeHandoff('sign')).toBeNull();
-    vi.restoreAllMocks();
     expect(await getRawRecord('handoff:sign')).toBeUndefined();
   });
 
   it('loadDraft deletes the entry, drops the index row and the pointer, and returns null', async () => {
     await saveDraft('sign', { fileName: 'a.pdf', fileBytes: bytesOf('%PDF-1.4 a'), elements: [] });
     const id = readCurrentEntryId('sign');
-    corruptReadOf(`recent:${id}`);
+    await plantNonObject(`recent:${id}`);
     expect(await loadDraft('sign')).toBeNull();
-    vi.restoreAllMocks();
     expect(await getRawRecord(`recent:${id}`)).toBeUndefined();
     expect(readRecentFiles()).toEqual([]);
     expect(readCurrentEntryId('sign')).toBeNull();
@@ -1120,22 +1120,17 @@ describe('a stored value that is not an object is cleaned up, not left behind', 
   it('loadRecentFile deletes the entry and its index row and returns null', async () => {
     await saveDraft('sign', { fileName: 'a.pdf', fileBytes: bytesOf('%PDF-1.4 a'), elements: [] });
     const id = readCurrentEntryId('sign');
-    corruptReadOf(`recent:${id}`);
+    await plantNonObject(`recent:${id}`);
     expect(await loadRecentFile(id)).toBeNull();
-    vi.restoreAllMocks();
     expect(await getRawRecord(`recent:${id}`)).toBeUndefined();
     expect(readRecentFiles()).toEqual([]);
   });
 
   it('the legacy migration deletes the record and clears its localStorage hint', async () => {
     localStorage.setItem('pdf-toolkit:workspace:has-draft:sign', '1');
-    await putRawRecord({
-      tool: 'sign', fileName: 'a.pdf', fileBytes: bytesOf('%PDF-1.4 legacy'), savedAt: Date.now(), elements: [],
-    });
-    corruptReadOf('sign');
+    await plantNonObject('sign');
     const store = await import('./draftStore.ts');
     await store.loadDraft('sign');
-    vi.restoreAllMocks();
     expect(await getRawRecord('sign')).toBeUndefined();
     expect(localStorage.getItem('pdf-toolkit:workspace:has-draft:sign')).toBeNull();
   });

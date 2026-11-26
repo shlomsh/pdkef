@@ -141,12 +141,11 @@ describe('readAndStampVisits (since)', () => {
       expect(localStorage.getItem('pdkef:last-tool-visit')).toBe('2026-11-12');
     });
     it('a brand-new browser still reads new and first, and stamps the last visit', () => {
-      const setItem = Storage.prototype.setItem;
-      // Forced: a full storage has no room for the stamp either, which needs more than the first day
-      vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (this: Storage, k: string, v: string) {
-        if (k === 'pdkef:first-visit') throw new Error('quota');
-        setItem.call(this, k, v);
-      });
+      // No readable visit day on record: the last-visit key holds a value of the stamp's own length, so the
+      // full storage still takes the stamp in place while the first day, a new key, cannot be written.
+      localStorage.setItem('pdkef:last-tool-visit', 'xxxxxxxxxx');
+      fillStorage(localStorage);
+      expect(() => localStorage.setItem('pdkef:first-visit', '2026-11-12')).toThrow();
       expect(readAndStampVisits(now)).toEqual({ visit: 'new', since: 'first' });
       expect(localStorage.getItem('pdkef:last-tool-visit')).toBe('2026-11-12');
     });

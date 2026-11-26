@@ -59,7 +59,8 @@ describe('PdfPageCanvas when the document is destroyed between getPage and rende
     const page = await doc.getPage(1);
     const renderPage = vi.spyOn(page, 'render');
     const held = Promise.withResolvers<typeof page>();
-    // Forced: holds the real page until its document is destroyed; pdf.js has no such pause.
+    // Forced: holds the real page until its document is destroyed; pdf.js has no such pause (a request pending at destroy is
+    // rejected with 'Transport destroyed', and one made after it fails before page.render is reached).
     vi.spyOn(doc, 'getPage').mockReturnValue(held.promise);
 
     act(() => render(<PdfPageCanvas pdfDocument={doc} pageNum={1} />, host!));

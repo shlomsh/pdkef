@@ -87,22 +87,22 @@ describe('useDeletableObjects', () => {
   });
 
   it('falls back to an empty list when the file cannot be parsed at all', async () => {
-    // The hook logs the failure just before it settles its state: that is the signal the scan ended.
-    const logged = Promise.withResolvers();
-    // Forced: the log is the only signal that the scan ended, and a spy cannot be awaited without polling it.
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { logged.resolve(); });
-    const file = { name: 'not-a-pdf.pdf' };
-    const bytes = new Uint8Array([1, 2, 3]);
+    // Spy-through: the real log still prints; the list emptying is the signal that the scan ended.
+    const consoleSpy = vi.spyOn(console, 'error');
+    const sample = await buildSample();
     container = document.createElement('div');
     document.body.appendChild(container);
     apiRef = { current: undefined };
 
     act(() => {
-      render(<Harness apiRef={apiRef} file={file} bytes={bytes} />, container);
+      render(<Harness apiRef={apiRef} file={{ name: 'a.pdf' }} bytes={sample} />, container);
     });
-    await act(async () => { await logged.promise; await drainPromises(); });
+    await waitUntil(() => expect(apiRef.current).toHaveLength(1));
+    act(() => {
+      render(<Harness apiRef={apiRef} file={{ name: 'not-a-pdf.pdf' }} bytes={new Uint8Array([1, 2, 3])} />, container);
+    });
+    await waitUntil(() => expect(apiRef.current).toEqual([]));
 
-    expect(apiRef.current).toEqual([]);
     expect(consoleSpy).toHaveBeenCalledTimes(1);
     expect(consoleSpy).toHaveBeenCalledWith('Could not read deletable objects from this PDF', expect.anything());
   });

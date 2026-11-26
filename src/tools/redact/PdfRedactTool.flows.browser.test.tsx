@@ -87,8 +87,6 @@ describe('PdfRedactTool flows', () => {
     expect(events.filter(([name]) => name === 'tool_page_viewed')).toEqual([['tool_page_viewed', 'redact']]);
     return events.filter(([name]) => name !== 'tool_page_viewed');
   };
-  // forced: the failure paths below log through console.error, which would drown the run's output.
-  const silenceExpectedErrors = () => vi.spyOn(console, 'error').mockImplementation(() => {});
 
   function mountTool() {
     s.container = document.createElement('div');
@@ -390,10 +388,9 @@ describe('PdfRedactTool flows', () => {
   });
 
   it('a piece of the export that will not load (a tab left open across a deploy) asks for a reload, not a retry', async () => {
-    silenceExpectedErrors();
     const drawArea = await loadFileAndGetDrawArea();
     await drawBox(drawArea, 50, 200, 200, 500);
-    // forced: the export's chunk fails to load, as it does in a tab left open across a deploy.
+    // Forced: the module is already loaded in this page, so no request for the export's chunk is ever made to fail; a fresh import cannot be had.
     vi.mocked(applyPageEdits).mockRejectedValueOnce(new TypeError('Failed to fetch dynamically imported module: https://pdkef.com/_astro/applyPageEdits.x.js'));
     await act(async () => { downloadButton().click(); });
     await settleUntil('the failure', () => s.container.textContent.includes('The download stopped.'));
@@ -404,7 +401,6 @@ describe('PdfRedactTool flows', () => {
   });
 
   it('RED-50: a download that throws shows the error and no Saved line, and Download again completes', async () => {
-    silenceExpectedErrors();
     const drawArea = await loadFileAndGetDrawArea();
     await drawBox(drawArea, 50, 200, 200, 500);
     // forced: the browser refuses to make the download link.
@@ -511,7 +507,6 @@ describe('PdfRedactTool flows', () => {
   });
 
   it('a broken file leaves only add_files on the trail, and opening another file leaves no tool armed, even a locked one', async () => {
-    silenceExpectedErrors();
     mountTool();
     await pickFile(makePdfFile('broken.pdf', new TextEncoder().encode('this is not a pdf')));
     await waitUntil(() => expect(s.container.textContent).toContain("This PDF didn't open"));
@@ -594,12 +589,11 @@ describe('PdfRedactTool flows', () => {
     await waitUntil(() => titleOf() === 'This PDF has a password');
     await expectState('This PDF has a password', 'Unlock opens it on your device, then you can redact it.');
 
-    silenceExpectedErrors();
-    // forced: the device refuses the write (storage full), and the real saveHandoff fails on it. Only
-    // the first open after the click is refused (the hand-off write; the file is unedited, so nothing
-    // else opens the database then); every other open goes to the real IndexedDB.
+    // Only the first open after the click is refused (the hand-off write; the file is unedited, so nothing else opens
+    // the database then); every other open goes to the real IndexedDB.
     const realOpen = indexedDB.open.bind(indexedDB);
     let refuseNext = false;
+    // Forced: the device refuses the write (storage full). Chromium's quota override (CDP Storage.overrideQuotaForOrigin) did not fail a real IndexedDB write here, so the open is refused instead.
     const refused = vi.spyOn(indexedDB, 'open').mockImplementation((...args) => {
       if (!refuseNext) return realOpen(...args);
       refuseNext = false;

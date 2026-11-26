@@ -33,8 +33,6 @@ const close = () => act(() => { if (container) render(null, container); containe
 
 beforeEach(async () => {
   vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
-  vi.stubGlobal('requestAnimationFrame', () => 1); // Forced: a real frame can fire while the test page is being taken down, where cancelAnimationFrame is already gone
-  vi.stubGlobal('cancelAnimationFrame', () => {});
   vi.stubGlobal('Worker', class { onmessage = null; onerror = null; constructor() { worker = this; } postMessage() {} terminate() {} }); // forced: jsdom has no Worker
   now = 0;
   running = track();

@@ -424,7 +424,7 @@ describe('hand-off survives a reload before it is stored (2026-11-12)', () => {
     const cacheStarted = Promise.withResolvers<void>();
     const releaseWrite = Promise.withResolvers<void>();
     const real = await vi.importActual<typeof import('../drafts/draftStore.ts')>('../drafts/draftStore.ts');
-    // Forced: hold the recents write open, then let the real one run, so the window a reload lands in can be observed.
+    // Forced: hold the recents write open, then let the real one run, so the window a reload lands in can be observed. A real held store (holdDraftStore, measured) also blocks this test's own read of the record inside the window, so the test times out in 5000ms.
     vi.mocked(cacheRecentFile).mockImplementationOnce(async (...args) => {
       cacheStarted.resolve();
       await releaseWrite.promise;
@@ -450,13 +450,14 @@ describe('hand-off survives a reload before it is stored (2026-11-12)', () => {
   });
 
   it('still commits when the recents write fails, so a stale record is not re-opened every visit', async () => {
-    await saveHandoff('sign', { fileName: 'a.pdf', fileBytes: bytes('%PDF-1.7 quota') });
-    vi.mocked(cacheRecentFile).mockRejectedValueOnce(new Error('quota')); // forced: the real write answers false, it never rejects
+    // Bytes that are not an ArrayBuffer cannot be hashed, so the real recents write answers false.
+    await saveHandoff('sign', { fileName: 'a.pdf', fileBytes: new Uint8Array(bytes('%PDF-1.7 quota')) as never });
     const [onFiles, arrived] = arrivalSpy<[File[], string?]>();
     await act(async () => {
       render(<FilesHarness tool="sign" onFiles={onFiles} />, container);
     });
     await act(async () => { await arrived; });
+    expect(await vi.mocked(cacheRecentFile).mock.results[0].value).toBe(false);
     expect(commitHandoff).toHaveBeenCalledTimes(1);
     expect(await peekHandoff('sign')).toBeNull();
     expect(onFiles.calls).toHaveLength(1);

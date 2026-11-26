@@ -54,8 +54,8 @@ describe('useAutoFontProvisioning', () => {
   });
 
   it('does not re-provision the same family on a later render', () => {
-    // forced: a test page has no service worker, so the real call fails and would be retried; success needs a canned answer
-    const spy = vi.spyOn(fontOfflinePacks, 'provisionFontPack').mockResolvedValueOnce(true);
+    // The real call is still in flight on the second render (a test page has no service worker, so it will fail later).
+    const spy = vi.spyOn(fontOfflinePacks, 'provisionFontPack');
     mount([{ type: 'text', text: 'שלומי', fontFamily: 'Caveat' }]);
     expect(spy).toHaveBeenCalledTimes(1);
     act(() => { render(<Harness elements={[{ type: 'text', text: 'שלומי!', fontFamily: 'Caveat' }]} />, container); });

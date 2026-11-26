@@ -12,6 +12,8 @@ vi.mock('#lib/drafts/draftStore.ts', { spy: true });
 import { cacheRecentFile, commitHandoff, deleteDraft, loadDraft, peekHandoff, readRecentFiles, saveDraft, saveHandoff } from '#lib/drafts/draftStore.ts';
 import '../../test/support/realPdfjs.ts';
 import { buildPdf } from '../../test/support/redactCheckPdfs.test-helper.ts';
+import { withStore, reqToPromise } from '#lib/drafts/draftIdb.ts';
+import { readCurrentEntryId, recentFileKey } from '#lib/drafts/draftRecentIndex.ts';
 import { takeArrival, noteRecentOpen, resetFileArrivalForTests } from '#lib/handoff/fileArrival.ts';
 import { drainPromises } from '../../test/support/drainPromises.ts';
 import { waitUntil } from '../../test/support/waitUntil.ts';
@@ -60,6 +62,16 @@ const pdfBytes = (text = 'plain') => pdfs[text];
 async function seedDraft(tool: string, record: Record<string, unknown>) {
   expect(await saveDraft(tool, { fileName: 'contract.pdf', fileType: 'application/pdf', fileBytes: pdfBytes(), elements: [], extra: { actionHistory: [] }, ...record } as never)).toBe(true);
   vi.mocked(loadDraft).mockClear();
+}
+
+// What an older session or another writer could leave in the store: the tool's current entry, rewritten under the
+// store's own API with fields it would never save itself.
+async function corruptEntry(tool: string, patch: Record<string, unknown>) {
+  const key = recentFileKey(readCurrentEntryId(tool) as string);
+  await withStore('readwrite', async (store) => {
+    const entry = await reqToPromise(store.get(key)) as Record<string, unknown>;
+    store.put({ ...entry, ...patch });
+  });
 }
 
 beforeEach(() => {
@@ -148,8 +160,9 @@ describe('useEditorDraftPersistence - restore migrates and validates', () => {
   });
 
   it('treats a record failing the top-level check the same as no record at all', async () => {
-    // forced: a record the real store never hands back (it saves whole records only)
-    vi.mocked(loadDraft).mockResolvedValue({ fileName: 'contract.pdf', elements: [] } as never);
+    // The store hands back an entry whose bytes are empty (a write cut short), which the editor's check refuses.
+    await seedDraft('redact', { elements: [] });
+    await corruptEntry('redact', { fileBytes: new ArrayBuffer(0) });
     markHint();
 
     const props = baseProps();
@@ -163,13 +176,8 @@ describe('useEditorDraftPersistence - restore migrates and validates', () => {
     // The persistence hook has already established that bytes exist before it
     // calls onRestore. An empty filename therefore reaches editor validation
     // and represents a malformed record the generic store cannot diagnose.
-    // forced: the real store would not keep a nameless record
-    vi.mocked(loadDraft).mockResolvedValue({
-      fileName: '',
-      fileType: 'application/pdf',
-      fileBytes: pdfBytes(),
-      elements: [],
-    } as never);
+    await seedDraft('redact', { elements: [] });
+    await corruptEntry('redact', { fileName: '' });
     markHint();
     document.documentElement.setAttribute('data-editor-restore', '1');
 
@@ -302,7 +310,8 @@ describe('useEditorDraftPersistence - HERO-02 hand-off marker', () => {
     const real = await vi.importActual<typeof import('#lib/drafts/draftStore.ts')>('#lib/drafts/draftStore.ts');
     const writeStarted = Promise.withResolvers<void>();
     const releaseWrite = Promise.withResolvers<void>();
-    // forced: hold the recents write open, then let the real one run, so the window a reload lands in can be seen
+    // Forced: a real held transaction on the one draft store would also block the window's own reads (peekHandoff),
+    // so the write is held here while the store stays readable and the window a reload lands in can be seen.
     vi.mocked(cacheRecentFile).mockImplementationOnce(async (...args) => {
       writeStarted.resolve();
       await releaseWrite.promise;

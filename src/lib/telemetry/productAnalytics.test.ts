@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 // @vitest-environment-options { "url": "https://pdkef.com/merge/" }
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { TIME_BUCKETS } from './usageEventSchema';
 import { drainPromises } from '../../test/support/drainPromises.ts';
 import { installBeaconRecorder, type BeaconRecorder } from '../../test/support/beaconRecorder.ts';
 import { markArrival } from '../handoff/fileArrival.ts';
@@ -34,7 +35,6 @@ function freshBeacon(options?: { returns?: boolean }) {
   rec = installBeaconRecorder(options);
 }
 const texts = () => Promise.all(rec.calls.map((c) => c.blob.text()));
-const sentProps = async () => (await rec.bodies()).map((b) => (b as { properties: Record<string, any> }).properties);
 const sentEvents = async () => (await rec.bodies()) as { name: string; properties: Record<string, any> }[];
 // One page view goes out after the load event and the measures settle, a few microtasks on.
 const settleTick = () => drainPromises();
@@ -185,16 +185,21 @@ describe('reportToolLifecycleEvent', () => {
 });
 
 describe('the funnel (DEBT-58)', () => {
-  // Page views carry `ready` off the real clock; these tests are about visit, so the clock reads nothing.
-  // forced: a clock that reads NaN, which no real browser hands out on cue
-  beforeEach(() => void vi.spyOn(performance, 'now').mockReturnValue(Number.NaN));
   // A fixed day after the tools list started, so these tests do not depend on today's date.
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date('2026-11-20T12:00:00'));
   });
   afterEach(() => void vi.useRealTimers());
-  const props = sentProps;
+  // Page views carry `ready` off the real clock: only a page view may carry it, and only as a time bucket. Then it is set aside,
+  // since these tests are about visit.
+  const props = async () => (await sentEvents()).map(({ name, properties: { ready, ...rest } }) => {
+    if (ready !== undefined) {
+      expect(name).toBe('tool_page_viewed');
+      expect(TIME_BUCKETS).toContain(ready);
+    }
+    return rest;
+  });
   // What went to the analytics address, which alone carries the tools-opened values.
   const sinkProps = () => vi.mocked(sendToSink).mock.calls.map(([e]) => (e as { properties: Record<string, unknown> }).properties);
 

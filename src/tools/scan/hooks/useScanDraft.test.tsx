@@ -36,10 +36,13 @@ let host: HTMLDivElement;
 let out: ReturnType<typeof useScanDraft>;
 let restoredPages: ScanPage[];
 let work: { pages: ScanPage[] };
-const restorePages = vi.fn((restore: ScanDraftRestore) => { // forced: the tool's restore, here a recorder of the pages it is given
+// The tool's restore is a handler the hook is given; a recorder of the pages it is handed is the test's input.
+let restoreCalls = 0;
+const restorePages = (restore: ScanDraftRestore) => {
+  restoreCalls += 1;
   restoredPages = restore.files.map((file) => newPage(file, 'document'));
   return restoredPages;
-});
+};
 
 function Probe({ pages }: { pages: ScanPage[] }) {
   out = useScanDraft({
@@ -80,7 +83,7 @@ describe('useScanDraft', () => {
     vi.mocked(loadDraft).mockReset();
     vi.mocked(deleteDraft).mockClear();
     vi.mocked(clearCurrentEntry).mockClear();
-    restorePages.mockClear();
+    restoreCalls = 0;
     work = { pages: [] };
   });
   afterEach(() => {
@@ -94,7 +97,7 @@ describe('useScanDraft', () => {
     await seedScan();
     await show([]);
     await restoreChecked();
-    expect(restorePages).toHaveBeenCalledTimes(1);
+    expect(restoreCalls).toBe(1);
     expect(await restoredPages[0].file.text()).toBe('seeded photo');
     expect(out.checking).toBe(false);
     expect(document.documentElement.hasAttribute('data-draft-hint')).toBe(false);
@@ -106,18 +109,19 @@ describe('useScanDraft', () => {
     work.pages = [page('picked.jpg')];
     await restoreChecked();
     expect(loadDraft).toHaveBeenCalledTimes(1);
-    expect(restorePages).not.toHaveBeenCalled();
+    expect(restoreCalls).toBe(0);
   });
 
   it('lets go of a pointer at an entry with no photos', async () => {
-    await seedScan();
+    // The pointer names an entry that holds one file and no photo list (another tool's save): the real store hands it back.
+    await saveDraft('scan-to-pdf', { fileBytes: new TextEncoder().encode('not a scan').buffer, fileName: 'a.pdf', fileType: 'application/pdf' });
     expect(readCurrentEntryId('scan-to-pdf')).not.toBeNull();
-    vi.mocked(loadDraft).mockResolvedValueOnce({ files: [] } as never); // forced: an entry with no photos, which the real store never hands back
+    vi.mocked(clearCurrentEntry).mockClear();
     await show([]);
     await restoreChecked();
     expect(clearCurrentEntry).toHaveBeenCalledWith('scan-to-pdf');
     expect(readCurrentEntryId('scan-to-pdf')).toBeNull();
-    expect(restorePages).not.toHaveBeenCalled();
+    expect(restoreCalls).toBe(0);
   });
 
   it('skips the load while a hand-off is pending', async () => {

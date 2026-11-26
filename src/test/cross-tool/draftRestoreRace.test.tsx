@@ -5,11 +5,12 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, beforeAll, beforeEach, afterEach } from 'vitest';
 import PdfSignTool from '../../tools/sign/PdfSignTool.tsx';
 import PdfRedactTool from '../../tools/redact/PdfRedactTool.tsx';
-import { cacheRecentFile, hasDraftHint, loadDraft, peekHandoff, saveDraft, saveHandoff } from '#lib/drafts/draftStore.ts';
+import { cacheRecentFile, loadDraft, peekHandoff, saveDraft, saveHandoff } from '#lib/drafts/draftStore.ts';
 import { drainPromises } from '../support/drainPromises.ts';
 import { waitUntil } from '../support/waitUntil.ts';
 import { setInputFiles } from '../support/setInputFiles.js';
 import '../support/realPdfjs.ts';
+import { RECENT_FILES_META_KEY } from '#lib/drafts/recentFilesKey.js';
 import { buildPdf } from '../support/redactCheckPdfs.test-helper.ts';
 
 
@@ -23,9 +24,9 @@ import { buildPdf } from '../support/redactCheckPdfs.test-helper.ts';
 // overwrite the other's state, regardless of which one the user actually wanted.
 //
 // The draft store runs for real on fake-indexeddb: a test seeds the draft an earlier session left and the
-// hand-off the home page parked. Two forced lines on the spy keep the race controllable: loadDraft reads the
-// real record at once but answers only when the test opens a gate (a slow IndexedDB read), and hasDraftHint
-// says false so every scenario starts in the empty state, as before.
+// hand-off the home page parked. The forced lines on the spy keep the race controllable: loadDraft reads the
+// real record at once but answers only when the test opens a gate (a slow IndexedDB read); the real hasDraftHint
+// is false because the seed removes its recents entry.
 
 async function makePdfFile(name: string) {
   return new File([(await buildPdf([{ lines: [name] }])).slice().buffer], name, { type: 'application/pdf' });
@@ -39,6 +40,13 @@ function deferred() {
   return { promise, resolve };
 }
 
+// The seeded draft would open the tool in its restoring state, with no file input to pick with. Dropping its entry
+// from the recents index (as a person clearing recents does) makes the real draft hint false, so every scenario
+// starts in the empty state while the draft record itself stays in the store.
+function hideSeededHint() {
+  localStorage.setItem(RECENT_FILES_META_KEY, '[]');
+}
+
 // The draft an earlier session left, written by the real store. Its bytes differ from a fresh pick's so
 // the two are different entries.
 async function seedDraft(fileName: string, elements: unknown[]) {
@@ -50,6 +58,7 @@ async function seedDraft(fileName: string, elements: unknown[]) {
     extra: {}
   });
   expect(saved).toBe(true);
+  hideSeededHint();
 }
 async function seedRedactDraft(fileName: string, boxes: unknown[]) {
   const saved = await saveDraft('redact', {
@@ -60,6 +69,7 @@ async function seedRedactDraft(fileName: string, boxes: unknown[]) {
     extra: {}
   });
   expect(saved).toBe(true);
+  hideSeededHint();
 }
 
 let gate: ReturnType<typeof deferred>;
@@ -133,8 +143,6 @@ describe('draft-restore vs. manual file pick race', () => {
       const real = await vi.importActual<typeof import('#lib/drafts/draftStore.ts')>('#lib/drafts/draftStore.ts');
       return inJsdomRealm(await real.peekHandoff(...args));
     });
-    // Forced: a real hint (the seeded pointer) opens the tool in its restoring state, with no file input to pick with
-    vi.mocked(hasDraftHint).mockReturnValue(false);
   });
 
   afterEach(async () => {

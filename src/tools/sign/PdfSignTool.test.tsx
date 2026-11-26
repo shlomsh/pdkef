@@ -3,7 +3,6 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import fs from 'node:fs';
 import PdfSignTool from './PdfSignTool.tsx';
-import useFormFieldRegions from './hooks/useFormFieldRegions.ts';
 import { overlayHost } from '#editor-ui/whiteout/overlayHost.ts';
 import * as signModule from './lib/sign.js';
 import { resetMaintenanceEventsForTests } from '#lib/telemetry/maintenanceTelemetry.ts';
@@ -12,7 +11,8 @@ import { widthPercentToHeightPercent, pxToPercent, pxDeltaToPercent } from '#edi
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { waitUntil } from '../../test/support/waitUntil.ts';
 import { recentActions } from '#lib/telemetry/actionTrail.ts';
-import { PDFDocument } from '@cantoo/pdf-lib';
+import { PDFDocument, rgb } from '@cantoo/pdf-lib';
+import { formDetectionEvent } from './lib/formDetectionEvent.ts';
 import '../../test/support/realPdfjs.ts';
 import { serveFonts } from '#editor/adapters/pdf/fontServer.test-helper.ts';
 import { hideEncryption } from '../../test/support/hideEncryption.ts';
@@ -38,16 +38,6 @@ function spySignPdf(impl: (call: number, ...args: SignArgs) => Promise<Blob>) {
 }
 
 declare const __dirname: string;
-
-// FORM-35: the real hook runs; a test that needs a finished walk with a chosen page kind forces the
-// answer on the spy (a real finished walk always names a kind, so the "omits" case cannot come from one).
-vi.mock('./hooks/useFormFieldRegions.ts', { spy: true });
-async function forceFormRegions(over: Record<string, unknown>) {
-  const actual = await vi.importActual<typeof import('./hooks/useFormFieldRegions.ts')>('./hooks/useFormFieldRegions.ts');
-  // Forced: a real finished walk always names a kind, so the omits case cannot come from one; and the page has no
-  // sign that a walk ended well, so the other cases hand over a finished one too.
-  vi.mocked(useFormFieldRegions).mockImplementation((...args) => ({ ...actual.default(...args), ...over }));
-}
 
 function required<T>(value: T | null | undefined, description: string): T {
   if (value == null) throw new Error(`Expected ${description}`);
@@ -83,8 +73,28 @@ const twoPageLetter = await (async () => {
   doc.addPage([612, 792]);
   return doc.save();
 })();
-function makePdfFile(name: string) {
-  return new File([twoPageLetter], name, { type: 'application/pdf' });
+// The same two pages with a printed comb of nine cells along the left edge of the first (a line of teeth on a rule),
+// which the real detector finds at 10% across and 20% down.
+const combLetter = await (async () => {
+  const doc = await PDFDocument.create();
+  const page = doc.addPage([612, 792]);
+  doc.addPage([612, 792]);
+  const rule = 792 * 0.8 - 7;
+  const line = (x0: number, y0: number, x1: number, y1: number) => page.drawLine({ start: { x: x0, y: y0 }, end: { x: x1, y: y1 }, thickness: 0.5, color: rgb(0, 0, 0) });
+  line(61, rule, 61 + 9 * 20, rule);
+  for (let tooth = 0; tooth <= 9; tooth += 1) line(61 + tooth * 20, rule, 61 + tooth * 20, rule + 7);
+  return doc.save();
+})();
+// One page holding only a picture (a 1 x 1 PNG), which the walk calls an image page.
+const imageLetter = await (async () => {
+  const doc = await PDFDocument.create();
+  const page = doc.addPage([612, 792]);
+  const png = await doc.embedPng(Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='), (c) => c.charCodeAt(0)));
+  page.drawImage(png, { x: 100, y: 100, width: 200, height: 200 });
+  return doc.save();
+})();
+function makePdfFile(name: string, bytes: Uint8Array<ArrayBuffer> = twoPageLetter as Uint8Array<ArrayBuffer>) {
+  return new File([bytes], name, { type: 'application/pdf' });
 }
 
 serveFonts();
@@ -153,33 +163,26 @@ describe('PdfSignTool UI flow', () => {
 
   // SIGN-43: Tab between fields reads the turned page, not the file's own frame.
   it('Tab lands on the printed field where a turned page now shows it', async () => {
-    await forceFormRegions({
-      detection: 'done', detectionError: undefined,
-      combs: [{ pageIndex: 0, left: 10, top: 20, width: 30, height: 0.84, cells: 9 }],
-      checkboxes: [], cells: [], pageDirections: ['ltr', 'ltr'],
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => { render(<PdfSignTool />, container); });
+    const input = await picker(container);
+    await act(async () => {
+      setInputFiles(input, [makePdfFile('turned.pdf', combLetter)]);
     });
-    try {
-      container = document.createElement('div');
-      document.body.appendChild(container);
-      act(() => { render(<PdfSignTool />, container); });
-      const input = await picker(container);
-      await act(async () => {
-        setInputFiles(input, [makePdfFile('turned.pdf')]);
-      });
-      await loaded(container);
-      await act(async () => { findButton(container, 'Rotate').click(); });
-      // Select something so Tab has a place to move from, then hop to the field.
-      const overlay = query<HTMLElement>(container, '[data-page-overlay]');
-      overlay.getBoundingClientRect = () => ({ left: 0, top: 0, width: 600, height: 800, right: 600, bottom: 800, x: 0, y: 0, toJSON() {} });
-      await act(async () => { findButton(container, 'Text').click(); });
-      await act(async () => { overlay.dispatchEvent(new MouseEvent('click', { clientX: 300, clientY: 10, bubbles: true })); });
-      await act(async () => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true })); });
-      const placed = Array.from(container.querySelectorAll<HTMLElement>('[data-editor-element]')).at(-1)!;
-      // One quarter turn sends a left-edge field to the right of the page.
-      expect(parseFloat(placed.style.left)).toBeGreaterThan(50);
-    } finally {
-      vi.mocked(useFormFieldRegions).mockReset();
-    }
+    await loaded(container);
+    await act(async () => { findButton(container, 'Rotate').click(); });
+    // Select something so Tab has a place to move from, then hop to the field.
+    const overlay = query<HTMLElement>(container, '[data-page-overlay]');
+    overlay.getBoundingClientRect = () => ({ left: 0, top: 0, width: 600, height: 800, right: 600, bottom: 800, x: 0, y: 0, toJSON() {} });
+    await act(async () => { findButton(container, 'Text').click(); });
+    // With the Text tool armed, the printed field is outlined once the walk has found it.
+    await waitUntil(() => query(overlay, '[aria-hidden="true"]'));
+    await act(async () => { overlay.dispatchEvent(new MouseEvent('click', { clientX: 300, clientY: 10, bubbles: true })); });
+    await act(async () => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true })); });
+    const placed = Array.from(container.querySelectorAll<HTMLElement>('[data-editor-element]')).at(-1)!;
+    // One quarter turn sends a left-edge field to the right of the page.
+    expect(parseFloat(placed.style.left)).toBeGreaterThan(50);
   });
 
   it('a page that is only turned has an export to carry on', async () => {
@@ -266,26 +269,25 @@ describe('PdfSignTool UI flow', () => {
 
   // FORM-35: the success event carries the first page's kind off a closed list
   // when the walk knows it, and keeps exactly its old two keys when it does not.
-  it.each([
-    ['carries', 'image' as const, ['outcome', 'field_count_bucket', 'page_kind']],
-    ['omits', undefined, ['outcome', 'field_count_bucket']],
-  ])('a finished walk %s page_kind', async (_label, pageKind, keys) => {
-    await forceFormRegions({ detection: 'done', detectionError: undefined, pageKind });
-    try {
-      container = document.createElement('div');
-      document.body.appendChild(container);
-      act(() => { render(<PdfSignTool />, container); });
-      const input = await picker(container);
-      await act(async () => {
-        setInputFiles(input, [makePdfFile('kind.pdf')]);
-      });
-      await loaded(container);
-      const success = (await maintenanceEvents('sign_form_detection')).find((event) => event.properties.outcome === 'success');
-      expect(Object.keys(required(success, 'a success event').properties)).toEqual(keys);
-      if (pageKind) expect(success?.properties).toMatchObject({ page_kind: pageKind });
-    } finally {
-      vi.mocked(useFormFieldRegions).mockReset();
-    }
+  it('a finished walk carries page_kind', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => { render(<PdfSignTool />, container); });
+    const input = await picker(container);
+    await act(async () => {
+      setInputFiles(input, [makePdfFile('kind.pdf', imageLetter)]);
+    });
+    await loaded(container);
+    await waitUntil(() => harness.beacons().some((beacon) => (beacon.payload as { name?: string } | undefined)?.name === 'sign_form_detection'));
+    const success = (await maintenanceEvents('sign_form_detection')).find((event) => event.properties.outcome === 'success');
+    expect(Object.keys(required(success, 'a success event').properties)).toEqual(['outcome', 'field_count_bucket', 'page_kind']);
+    expect(success?.properties).toMatchObject({ page_kind: 'image' });
+  });
+
+  // A real finished walk always names a kind, so the event for a walk that does not is built from its regions.
+  it('a finished walk omits page_kind', () => {
+    const event = formDetectionEvent({ detection: 'done', combs: [], checkboxes: [], cells: [], pageDirections: [] });
+    expect(Object.keys(required(event, 'a success event').properties)).toEqual(['outcome', 'field_count_bucket']);
   });
 
   it.each([

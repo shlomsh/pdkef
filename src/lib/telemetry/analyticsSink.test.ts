@@ -3,10 +3,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { installBeaconRecorder, type BeaconRecorder } from '../../test/support/beaconRecorder.ts';
 import { setReportingEnabledForTests } from './errorReport.ts';
+import { clientBuckets } from './clientBuckets.ts';
 import { readSinkConfig, resetSinkForTests, sendToSink, toCapture } from './analyticsSink.ts';
 
 const CLIENT = { device: 'phone', browser: 'safari', os: 'ios', ref: 'search' } as const;
 const EVENT = { name: 'tool_page_viewed', properties: { tool: 'merge', visit: 'new', since: 'first' } };
+
+// The real bucketing runs; the spy only counts how often the sink asks for it.
+vi.mock('./clientBuckets.ts', { spy: true });
 
 describe('readSinkConfig', () => {
   it('is null unless both values are set and the host is https', () => {
@@ -119,11 +123,11 @@ describe('sendToSink', () => {
   });
 
   it('computes the buckets once per page load', async () => {
+    vi.mocked(clientBuckets).mockClear();
     configure();
     sendToSink(EVENT);
-    // Forced: a Firefox user agent, which the page's own cannot be changed to mid-load
-    vi.spyOn(Navigator.prototype, 'userAgent', 'get').mockReturnValue('Mozilla/5.0 Firefox/121.0');
     sendToSink(EVENT);
+    expect(clientBuckets).toHaveBeenCalledTimes(1);
     expect((await body(1)).properties.browser).toBe('safari');
   });
 

@@ -11,6 +11,21 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+// Draws a real image from another origin onto the canvas, which taints it: the test server's own icon, reached
+// through the loopback address its page is not on (127.0.0.1 or [::1], whichever the server listens on).
+async function taint(canvas: HTMLCanvasElement) {
+  for (const host of ['[::1]', '127.0.0.1']) {
+    const url = `${location.protocol}//${host}:${location.port}/icons/favicon-16.png`;
+    const image = new Image();
+    image.src = url;
+    // expected: the server does not listen on this loopback address, so try the other
+    if (await image.decode().then(() => false, () => true)) continue;
+    canvas.getContext('2d')!.drawImage(image, 0, 0);
+    return;
+  }
+  throw new Error('the test server is not reachable on a second loopback origin');
+}
+
 const nextFrame = () => new Promise<void>((done) => { requestAnimationFrame(() => done()); });
 
 function paint(canvas: HTMLCanvasElement, background: string, marks: Array<[number, number, number, number, string]>) {
@@ -77,14 +92,13 @@ describe('sampleRingColor', () => {
     expect(getImageData.mock.calls).toEqual([[0, 0, 300, 150]]);
   });
 
-  it('gives null when reading throws, there is no canvas or it has no size', () => {
+  it('gives null when reading throws, there is no canvas or it has no size', async () => {
     const box = { left: 40, top: 40, width: 20, height: 20 };
     const tainted = ringCanvas();
     paint(tainted, 'rgb(1,2,3)', []);
-    // forced: a tainted canvas, which makes getImageData throw
-    vi.spyOn(CanvasRenderingContext2D.prototype, 'getImageData').mockImplementation(() => { throw new Error('tainted'); });
+    await taint(tainted);
+    expect(() => tainted.getContext('2d')!.getImageData(0, 0, 1, 1)).toThrow();
     expect(sampleRingColor(tainted, box)).toBeNull();
-    vi.restoreAllMocks();
     expect(sampleRingColor(null, box)).toBeNull();
     expect(sampleRingColor(undefined, box)).toBeNull();
     expect(sampleRingColor(ringCanvas(0, 150), box)).toBeNull();

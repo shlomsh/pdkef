@@ -726,7 +726,7 @@ describe('PdfCompressTool flows in a real browser', () => {
   });
 
   it('after a failed build, hovering or focusing the phone bar Download does not rebuild', async () => {
-    // forced: the engine rejects, which no real file makes it do
+    // Forced: the engine rejects, and no real file makes it: pdf-lib opens even a truncated or mangled PDF, and a bad image stream (corrupt DCT or Flate data, a non-numeric Width, a bad SMask or DecodeParms) is left as it was, never thrown.
     vi.mocked(imagesLib.compressPdfImages).mockRejectedValueOnce(new Error('boom'));
     await loadPdf('flaky.pdf');
     expect(statusOf()).toBe('error');
