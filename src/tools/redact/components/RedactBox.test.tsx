@@ -2,26 +2,10 @@ import type { RedactBoxElement } from '../lib/redactElements.ts';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { setScreen } from '../../../test/support/screen.ts';
 import RedactBox from './RedactBox.tsx';
 
 const EL: RedactBoxElement = { id: 'a', type: 'blackout', left: 10, top: 10, width: 30, height: 10, pageIndex: 0 };
-
-// setup.js's matchMedia matches every query, which is a coarse pointer.
-const coarsePointer = window.matchMedia;
-function mockFinePointer() {
-  // Forced: a fine pointer, where the coarse query does not match, and jsdom evaluates no query.
-  window.matchMedia = ((q: string) => ({
-    matches: q.includes('fine'),
-    media: q,
-    addEventListener: () => {},
-    removeEventListener: () => {},
-  })) as any;
-}
-
-afterEach(() => {
-  // Forced: puts setup.js's matchMedia back after the stub above.
-  window.matchMedia = coarsePointer;
-});
 
 describe('RedactBox touch behaviour', () => {
   let container = document.createElement('div');
@@ -69,6 +53,7 @@ describe('RedactBox touch behaviour', () => {
   });
 
   it('on a coarse pointer the selected box controls render in a bar in document.body', () => {
+    setScreen({ pointer: 'coarse', hover: 'none' });
     const { box } = mount(true);
     const bar = document.body.querySelector('[data-redact-box-bar]');
     expect(bar).not.toBeNull();
@@ -77,6 +62,7 @@ describe('RedactBox touch behaviour', () => {
   });
 
   it('in pseudo full screen the bar portals into the element carrying data-pseudo-fullscreen', () => {
+    setScreen({ pointer: 'coarse', hover: 'none' });
     const host = document.createElement('div');
     host.setAttribute('data-pseudo-fullscreen', '');
     document.body.appendChild(host);
@@ -88,7 +74,6 @@ describe('RedactBox touch behaviour', () => {
   });
 
   it('pressing the toolbar Delete button starts no drag and selects nothing', () => {
-    mockFinePointer();
     const { box, onChange, onSelect } = mount(true);
     const del = box.querySelector<HTMLButtonElement>('[data-editor-actions] button[title="Delete"]')!;
     act(() => { del.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, clientY: 100, bubbles: true })); });
@@ -103,7 +88,6 @@ describe('RedactBox touch behaviour', () => {
     ['blackout', { id: 'w', type: 'blackout', left: 10, top: 10, width: 30, height: 10, pageIndex: 0 }, 3],
     ['blur', { id: 'w', type: 'blur', left: 10, top: 10, width: 30, height: 10, pageIndex: 0, strength: 0.3 }, 3],
   ] as [string, RedactBoxElement, number | null][])('a %s shows its toolbar and eight resizers only once selected', (type, whiteout, buttonCount) => {
-    mockFinePointer();
     const wrapper = document.createElement('div');
     const renderBox = (isSelected: boolean) => act(() => render(
       <RedactBox
@@ -134,7 +118,6 @@ describe('RedactBox touch behaviour', () => {
     afterEach(() => { vi.useRealTimers(); });
 
     it('holding the box for 250ms peeks it, release covers it again, and it never moves', () => {
-      mockFinePointer();
       const { box, onChange } = mount(true);
       vi.useFakeTimers();
       act(() => { box.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, clientY: 100, bubbles: true })); });
@@ -148,7 +131,6 @@ describe('RedactBox touch behaviour', () => {
     });
 
     it('moving 8px before 250ms is a normal move, not a peek', () => {
-      mockFinePointer();
       const { box } = mount(true);
       vi.useFakeTimers();
       act(() => { box.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, clientY: 100, bubbles: true })); });
@@ -161,7 +143,6 @@ describe('RedactBox touch behaviour', () => {
   });
 
   it('on a fine pointer the toolbar floats inside the box', () => {
-    mockFinePointer();
     const { box } = mount(true);
     expect(document.body.querySelector('[data-redact-box-bar]')).toBeNull();
     expect(box.querySelector('[data-editor-actions]')).not.toBeNull();
@@ -170,7 +151,6 @@ describe('RedactBox touch behaviour', () => {
 
 describe('RedactBox floating toolbar gap (RED-53)', () => {
   it('the pill sits 16px above the box, so the top handles can be grabbed', () => {
-    mockFinePointer();
     const container = document.createElement('div');
     document.body.appendChild(container);
     const wrapper = document.createElement('div');
@@ -189,7 +169,6 @@ describe('RedactBox floating toolbar gap (RED-53)', () => {
 
 describe('RedactBox keyboard (RED-43)', () => {
   it('is focusable, named, and routes keys to the existing callbacks', () => {
-    mockFinePointer();
     const container = document.createElement('div');
     document.body.appendChild(container);
     const onChange = vi.fn(), onSelect = vi.fn(), onDelete = vi.fn();

@@ -1,8 +1,9 @@
 import { readFileSync } from 'node:fs';
+import { setScreen } from '../../../test/support/screen.ts';
 import { render } from 'preact';
 import type { ComponentProps } from 'preact';
 import { act } from 'preact/test-utils';
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import { describe, expect, it, vi, afterEach } from 'vitest';
 import { FILE_ACTIONS } from '#shell/ToolShell.tsx';
 import ProductionSignToolbar from './SignToolbar.tsx';
 import { SignToolProvider, useSignTool, type SignToolAction, type SignToolState } from './SignToolContext.tsx';
@@ -592,10 +593,11 @@ describe('SignToolbar Component', () => {
       expect(state.toolLocked).toBe(false);
     });
 
-    // SIGN-31: on touch (the test setup's matchMedia reports a coarse pointer)
+    // SIGN-31: on touch (the screen has a coarse pointer)
     // a phone sends no dependable dblclick, so two quick taps lock instead.
     // `click()` is a tap here: the clicks land well inside DOUBLE_TAP_MS.
     it('on touch, one tap opens the More menu and a second quick tap locks the last pick', async () => {
+      setScreen({ pointer: 'coarse', hover: 'none' });
       let state!: SignToolState;
       renderToolbar((s) => { state = s; });
 
@@ -705,6 +707,7 @@ describe('SignToolbar Component', () => {
     // It used to drop the lock: handleSelectSavedSignature dispatched a bare
     // SET_TOOL, which always clears `toolLocked` (SignToolContext.tsx).
     it('on touch, two quick taps on Sign lock the active signature', async () => {
+      setScreen({ pointer: 'coarse', hover: 'none' });
       let state!: SignToolState;
       renderToolbarWithSignature((s) => { state = s; });
       const signBtn = findButton('Sign');
@@ -1464,23 +1467,8 @@ describe('SignToolbar Component', () => {
     const noFields = { hasFields: false, hasNext: false, hasPrevious: false, direction: 'ltr' as const, goToNext: () => {}, goToPrevious: () => {} };
     const someFields = { ...noFields, hasFields: true, hasNext: true, hasPrevious: true };
 
-    let originalMatchMedia: typeof window.matchMedia;
-    beforeEach(() => { originalMatchMedia = window.matchMedia; });
-    // Forced: setup.js's matchMedia always matches, so a fine pointer has no real input in jsdom
-    afterEach(() => { window.matchMedia = originalMatchMedia; });
-
     function setPointerCoarse(coarse: boolean) {
-      // Forced: setup.js's matchMedia always matches, so a fine pointer has no real input in jsdom
-      window.matchMedia = ((query: string) => ({
-        matches: query === '(pointer: coarse)' ? coarse : true,
-        media: query,
-        onchange: null,
-        addListener() {},
-        removeListener() {},
-        addEventListener() {},
-        removeEventListener() {},
-        dispatchEvent() { return false; },
-      })) as unknown as typeof window.matchMedia;
+      setScreen(coarse ? { pointer: 'coarse', hover: 'none' } : { pointer: 'fine', hover: 'hover' });
     }
 
     /**

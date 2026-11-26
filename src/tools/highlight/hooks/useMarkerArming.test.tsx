@@ -1,6 +1,7 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { setScreen } from '../../../test/support/screen.ts';
 import { coarsePointer, useMarkerArming } from './useMarkerArming.ts';
 
 let container: HTMLElement | null = null;
@@ -22,10 +23,10 @@ afterEach(() => {
 });
 
 describe('useMarkerArming', () => {
-  // Forced: setup.js answers yes to every query, so a fine pointer needs a screen that answers no.
-  const finePointer = () => vi.stubGlobal('matchMedia', () => ({ matches: false }));
+  const finePointer = () => setScreen({ pointer: 'fine', hover: 'hover' });
 
   it('starts with the marker in the hand on a touch screen, so a file opens ready to mark', () => {
+    setScreen({ pointer: 'coarse', hover: 'none' });
     expect(coarsePointer()).toBe(true);
     mount();
     expect(api.armed).toBe(true);

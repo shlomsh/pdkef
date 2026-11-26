@@ -1,4 +1,5 @@
 import { render } from 'preact';
+import { setScreen } from '../../../test/support/screen.ts';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, afterEach, beforeEach, vi } from 'vitest';
 import DraggableWrapper from './DraggableWrapper.tsx';
@@ -281,33 +282,18 @@ describe('DraggableWrapper RTL text positioning', () => {
 // fields keeps today's full toolbar).
 describe('DraggableWrapper compact editing toolbar (MOBI-16)', () => {
   let container: HTMLDivElement;
-  let originalMatchMedia: typeof window.matchMedia;
-
   beforeEach(() => {
     container = document.createElement('div');
     document.body.appendChild(container);
-    originalMatchMedia = window.matchMedia;
   });
 
   afterEach(() => {
     act(() => render(null, container));
     container.remove();
-    // Forced: puts the setup's matchMedia back.
-    window.matchMedia = originalMatchMedia;
   });
 
   function setPointerCoarse(coarse: boolean) {
-    // Forced: setup.js's matchMedia always matches, so a fine pointer has no real input in jsdom
-    window.matchMedia = ((query: string) => ({
-      matches: query === '(pointer: coarse)' ? coarse : true,
-      media: query,
-      onchange: null,
-      addListener() {},
-      removeListener() {},
-      addEventListener() {},
-      removeEventListener() {},
-      dispatchEvent() { return false; },
-    })) as unknown as typeof window.matchMedia;
+    setScreen(coarse ? { pointer: 'coarse', hover: 'none' } : { pointer: 'fine', hover: 'hover' });
   }
 
   const fieldNav = {
@@ -490,6 +476,7 @@ describe('DraggableWrapper fill mode (SNG-15)', () => {
   });
 
   it('SNG-17: collapses to Aa alone (no Previous/Next) in fill mode while editing on a coarse pointer', () => {
+    setScreen({ pointer: 'coarse', hover: 'none' });
     const wrapper = document.createElement('div');
     wrapper.setAttribute('data-page-wrapper', '');
     wrapper.getBoundingClientRect = pageRect;

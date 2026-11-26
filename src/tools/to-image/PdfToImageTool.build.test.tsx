@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act } from 'preact/test-utils';
 import { recentActions } from '#lib/telemetry/actionTrail.ts';
+import { setScreen } from '../../test/support/screen.ts';
 import { HeldFile } from '../../test/support/heldFile.ts';
 import { waitUntil as waitUntilWithClock } from '../../test/support/waitUntil.ts';
 import { convertPdfToImages } from './lib/toImage.js';
@@ -54,6 +55,7 @@ describe('PdfToImageTool builds', () => {
     });
 
     it('the done strip names the pattern for several images and the real name for one', async () => {
+    setScreen({ width: 390, height: 844 }); // a phone, where a tap on Download opens the done strip
       const stripName = () => s.container.querySelector('section[aria-label] p')?.textContent ?? '';
       await s.open(3);
       await s.saveAll(s.quietDownload(), 3);

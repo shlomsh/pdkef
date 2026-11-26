@@ -1,4 +1,5 @@
 import { render } from 'preact';
+import { resetScreen, setScreen } from '../../../test/support/screen.ts';
 import { waitUntil } from '../../../test/support/waitUntil.ts';
 import { drainPromises } from '../../../test/support/drainPromises.ts';
 import type * as preact from 'preact';
@@ -374,10 +375,8 @@ describe('HighlightPage rest toolbar', () => {
 });
 
 function stubPointer(coarse: boolean) {
-  const original = window.matchMedia;
-  // Forced: jsdom evaluates no media query; a test says which pointer this device has.
-  window.matchMedia = ((query: string) => ({ ...original(query), matches: query.includes('coarse') ? coarse : true })) as typeof window.matchMedia;
-  return () => { window.matchMedia = original; };
+  setScreen(coarse ? { pointer: 'coarse', hover: 'none' } : { pointer: 'fine', hover: 'hover' });
+  return () => resetScreen();
 }
 
 describe('HighlightPage picking a mark', () => {
@@ -620,10 +619,8 @@ describe('HighlightPage sweep (R13)', () => {
   });
 
   function markByClick(strings: string[], reduced = false) {
-    const original = window.matchMedia;
-    // Forced: jsdom evaluates no media query; a test says whether motion is reduced.
-    window.matchMedia = ((query: string) => ({ ...original(query), matches: query.includes('reduce') ? reduced : false })) as typeof window.matchMedia;
-    restore = () => { window.matchMedia = original; };
+    setScreen({ reducedMotion: reduced });
+    restore = () => resetScreen();
     const doc = textPage(strings);
     const draw = (elements: EditorElement[]) => act(() => render(
       <HighlightPage

@@ -5,6 +5,7 @@ import { act } from 'preact/test-utils';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import Sortable from 'sortablejs';
+import { setScreen } from '../support/screen.ts';
 // Asserts the .action class on the save link: a cell action is styled as one of the card's actions.
 import styles from '#shell/pageGrid/PageGrid.module.css';
 import { cellActionStyles } from '#shell/pageGrid/PageCellActions.tsx';
@@ -102,6 +103,7 @@ describe('PageGrid', () => {
   }, 60_000);
 
   beforeEach(() => {
+    setScreen({ width: 390, height: 844 }); // a phone: the grid takes its phone cell sizes
     wide = false;
     vi.mocked(thumbnailsLib.openThumbnailSource).mockClear(); // a state forced in one test must not reach the next: the real source and a clean call history
     vi.mocked(renderPageToCanvas).mockClear();
@@ -352,7 +354,7 @@ describe('PageGrid', () => {
     await act(async () => { img.dispatchEvent(new Event('load')); });
 
     const page = cards()[0];
-    // jsdom's window.matchMedia stub (src/test/support/setup.js) always matches, so
+    // The screen is a phone (beforeEach), so
     // baseCellSize() takes the phone branch here: a fixed 96px height, and a
     // landscape width of height * aspect (96 * 1.5 = 144) - never the old
     // swapped box, which would have reported a 72px height.

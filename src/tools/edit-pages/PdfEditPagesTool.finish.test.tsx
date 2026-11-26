@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act } from 'preact/test-utils';
+import { setScreen } from '../../test/support/screen.ts';
 import { getPdfLib } from '#lib/pdf/pdfLib.js';
 import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
 import { HeldFile } from '../../test/support/heldFile.ts';
@@ -71,6 +72,7 @@ describe('PdfEditPagesTool finish', () => {
   });
 
   it('a tap on a ready Download opens the done strip with Share and the hand-offs', async () => {
+    setScreen({ width: 390, height: 844 }); // a phone, where a tap on Download opens the done strip
     installedShare = mockNativeFileShare();
     await s.load();
     await s.prepareNow();

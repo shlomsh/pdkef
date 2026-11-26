@@ -1,4 +1,5 @@
-import { expect } from 'vitest';
+import { afterEach, expect } from 'vitest';
+import { matchMedia, resetScreen } from './screen.ts';
 import { sameFile } from './fileEquality.ts';
 
 // Vitest global setup. jsdom doesn't implement every browser API the components
@@ -29,24 +30,10 @@ if (typeof globalThis.IntersectionObserver === 'undefined') {
   };
 }
 
-// Forced: jsdom does not implement matchMedia at all. ArmHint.tsx gates its hover
-// tooltip on `(hover: hover) and (pointer: fine)` to keep it unreachable on
-// touch, computed once via window.matchMedia - default every query to
-// "matches", i.e. the desktop path, so tests exercise the normal behavior
-// without each one having to stub this individually. A test that specifically
-// covers the touch/no-hover case should override window.matchMedia itself.
-if (typeof window !== 'undefined' && typeof window.matchMedia === 'undefined') {
-  window.matchMedia = (query) => ({
-    matches: true,
-    media: query,
-    onchange: null,
-    addListener() {},
-    removeListener() {},
-    addEventListener() {},
-    removeEventListener() {},
-    dispatchEvent() { return false; }
-  });
-}
+// Forced: jsdom has no matchMedia; this one evaluates each query against the screen state a test sets
+// with setScreen (src/test/support/screen.ts), a desktop by default.
+if (typeof window !== 'undefined') window.matchMedia = matchMedia;
+afterEach(() => resetScreen());
 
 // Keep jsdom's intentionally-unimplemented browser APIs from drowning out a
 // real test diagnostic. These are the two known, benign messages emitted by

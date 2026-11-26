@@ -4,6 +4,7 @@ import { openNewerStore } from '#lib/drafts/newerStore.test-helper.ts';
 import { probeEncryption } from '#lib/pdf/pdfEncryption.ts';
 import { formatFileSize } from '#lib/text/format.js';
 import { recentActions, resetActionTrailForTests } from '#lib/telemetry/actionTrail.ts';
+import { setScreen } from '../../test/support/screen.ts';
 import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
 import { BYTES, UNLOCK_PASSWORD, realFile, useSecurityTool, waitUntil, type Protection } from './components/securityTool.test-helper.tsx';
 
@@ -266,6 +267,7 @@ describe('PdfSecurityTool finish', () => {
     });
 
     it('isolates the size in right-to-left text, in the Download element and the phone bar', async () => {
+    setScreen({ width: 390, height: 844 }); // a phone, where the Download element is the phone bar
       await unlockedDone({ messages: { dir: 'rtl' } });
       await waitUntil(() => expect(s.container.querySelector('a[download]')).not.toBeNull());
       const size = s.harness.blobForUrl(s.railDownload()?.getAttribute('href'))?.size ?? 0;

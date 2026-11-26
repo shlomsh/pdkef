@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 // @vitest-environment-options { "url": "https://pdkef.com/merge/", "referrer": "https://www.google.com/", "userAgent": "Mozilla/5.0 (iPhone) Safari/604" }
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { setScreen } from '../../test/support/screen.ts';
 import { installBeaconRecorder, type BeaconRecorder } from '../../test/support/beaconRecorder.ts';
 import { setReportingEnabledForTests } from './errorReport.ts';
 import { clientBuckets } from './clientBuckets.ts';
@@ -61,6 +62,8 @@ describe('toCapture client buckets', () => {
 describe('sendToSink', () => {
   let recorder: BeaconRecorder;
   beforeEach(() => {
+    // The environment's user agent is an iPhone, and a phone's pointer is coarse.
+    setScreen({ width: 390, height: 844, pointer: 'coarse', hover: 'none' });
     recorder = installBeaconRecorder();
     setReportingEnabledForTests(true);
     resetSinkForTests();

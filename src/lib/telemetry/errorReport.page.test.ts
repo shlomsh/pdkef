@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { setScreen } from '../../test/support/screen.ts';
 import { readPageContext } from './errorReport.ts';
 
 afterEach(() => {
@@ -16,7 +17,7 @@ describe('readPageContext', () => {
     history.pushState(null, '', '/he/sign/');
     // Forced: a service worker controlling the page, which cannot be set per test
     Object.defineProperty(navigator, 'serviceWorker', { configurable: true, value: { controller: {} } });
-    // setup.js's matchMedia matches every query, so the page reads as an installed app
+    setScreen({ displayMode: 'standalone' });
     expect(readPageContext()).toMatchObject({ tool: '/he/sign/', installed: true, sw: true });
   });
   it('falls back to / for a path outside the schema shape', () => {
