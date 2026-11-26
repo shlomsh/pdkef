@@ -63,7 +63,30 @@ describe('useScanResults failures', () => {
 });
 
 describe('useScanResults adoptResult', () => {
-  it('makes no result for a page removed while its run was in flight', () => {
+  it('makes no result for a page removed while its run was in flight', async () => {
+    const page = readPage();
+    const work = new ScanWork();
+    work.pages = [page];
+    const setResults = vi.fn();
+    const create = vi.spyOn(URL, 'createObjectURL');
+    let finish!: (value: never) => void;
+    const processed = vi.fn(() => new Promise((resolve) => { finish = resolve as never; })); // Forced: `processed` is the island's own page-processing function (real pdf.js and canvas work), held here so the page can be removed mid-run, then finished by hand
+    function Host() {
+      useScanResults({ pages: [page], work, processed: processed as never, unmountedRef: { current: false }, dispatch: vi.fn(), results: {}, setResults, turnedPreviews: {} });
+      return null;
+    }
+    container = document.createElement('div');
+    await act(async () => { render(<Host />, container!); });
+    work.removed.add(page.id);
+    finish({ blob: new Blob(['b']), thumb: new Blob(['t']) } as never);
+    await act(async () => { await drainPromises(); });
+    expect(work.results[page.id]).toBeUndefined();
+    expect(create).not.toHaveBeenCalled();
+    expect(setResults).not.toHaveBeenCalled();
+    create.mockRestore();
+  });
+
+  it('isAdoptable says no once the page is removed, and adoptResult then makes nothing', () => {
     const page = readPage();
     const work = new ScanWork();
     work.pages = [page];

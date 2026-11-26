@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   DATE_FORMAT_IDS,
+  browserLanguage,
   dateFormatForComb,
   detectLocale,
   formatDate,
@@ -86,6 +87,14 @@ describe('nextDateFormatId', () => {
       return [...acc, nextDateFormatId(previous)];
     }, []);
     expect(sequence).toEqual([...DATE_FORMAT_IDS]);
+  });
+});
+
+describe('browserLanguage', () => {
+  it("reads the browser's own navigator.language", () => {
+    // Live control: jsdom's navigator has a language.
+    expect(navigator.language).toBeTruthy();
+    expect(browserLanguage()).toBe(navigator.language);
   });
 });
 

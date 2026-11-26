@@ -236,7 +236,7 @@ describe('readBuildCommit', () => {
   });
   it('reads the build off the browser navigation entry', () => {
     // Forced: jsdom's performance has no navigation entry
-    vi.spyOn(performance, 'getEntriesByType').mockImplementation(() => entries(build('abc1234')));
+    vi.spyOn(performance, 'getEntriesByType').mockImplementation((type) => (type === 'navigation' ? entries(build('abc1234')) : []));
     try {
       expect(readBuildCommit()).toBe('abc1234');
     } finally {

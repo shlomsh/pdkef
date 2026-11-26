@@ -35,15 +35,10 @@ export interface TapGestureSample {
 
 /**
  * Samples a touch plus the visual viewport around it. `scrollTop` is the
- * caller's own reading (each surface scrolls a different container); `vv` is `window.visualViewport`,
- * absent where the browser has none.
+ * caller's own reading (each surface scrolls a different container).
  */
-export function readTapSample(
-  touch: Touch,
-  time: number,
-  scrollTop: number,
-  vv: Pick<VisualViewport, 'scale' | 'offsetLeft' | 'offsetTop'> | null | undefined,
-): TapGestureSample {
+export function readTapSample(touch: Touch, time: number, scrollTop: number): TapGestureSample {
+  const vv = typeof window !== 'undefined' ? window.visualViewport : null;
   return {
     x: touch.clientX,
     y: touch.clientY,

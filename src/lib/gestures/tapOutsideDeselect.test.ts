@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import { classifyTouchTap, isBlankAreaTarget, readTapSample, type TapGestureSample } from './tapOutsideDeselect.ts';
 
 function sample(overrides: Partial<TapGestureSample> = {}): TapGestureSample {
@@ -133,10 +133,12 @@ describe('isBlankAreaTarget', () => {
 
 describe('readTapSample', () => {
   const touch = { clientX: 12, clientY: 34 } as Touch;
+  afterEach(() => vi.unstubAllGlobals());
+
   it('reads x, y, time and the scrollTop it is given', () => {
     // Live control: jsdom really has no visualViewport.
     expect(window.visualViewport).toBeUndefined();
-    expect(readTapSample(touch, 99, 250, window.visualViewport)).toEqual({
+    expect(readTapSample(touch, 99, 250)).toEqual({
       x: 12,
       y: 34,
       time: 99,
@@ -148,7 +150,9 @@ describe('readTapSample', () => {
   });
 
   it('reads the zoomed visual viewport', () => {
-    const s = readTapSample(touch, 1, 0, { scale: 2.5, offsetLeft: 40, offsetTop: 90 });
+    // Forced: jsdom has no visualViewport to zoom
+    vi.stubGlobal('window', { visualViewport: { scale: 2.5, offsetLeft: 40, offsetTop: 90 } });
+    const s = readTapSample(touch, 1, 0);
     expect(s.viewportScale).toBe(2.5);
     expect(s.viewportOffsetLeft).toBe(40);
     expect(s.viewportOffsetTop).toBe(90);
@@ -156,7 +160,7 @@ describe('readTapSample', () => {
 
   it('defaults to scale 1 and no offset without a visualViewport', () => {
     expect(window.visualViewport).toBeUndefined();
-    const s = readTapSample(touch, 1, 7, window.visualViewport);
+    const s = readTapSample(touch, 1, 7);
     expect([s.viewportScale, s.viewportOffsetLeft, s.viewportOffsetTop]).toEqual([1, 0, 0]);
   });
 });

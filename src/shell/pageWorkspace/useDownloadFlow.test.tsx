@@ -360,7 +360,7 @@ describe('useDownloadFlow', () => {
     expect(reportHandedOn).toHaveBeenCalledWith('merge');
   });
 
-  it('a hand-off whose save throws reports nothing', async () => {
+  it('a hand-off whose save answers false reports nothing', async () => {
     await openNewerStore();
     mount({ ...base(ready()), navigate: vi.fn() });
     await act(async () => { await flow.requestHandoff('compress'); });

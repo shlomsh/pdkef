@@ -53,7 +53,7 @@ export function useTapOutsideDeselect({
     }
     const touch = e.changedTouches[0];
     if (!touch) return;
-    startRef.current = readTapSample(touch, Date.now(), readScrollTop(), window.visualViewport);
+    startRef.current = readTapSample(touch, Date.now(), readScrollTop());
     idRef.current = touch.identifier;
     multiRef.current = false;
   };
@@ -65,7 +65,7 @@ export function useTapOutsideDeselect({
     const endTouch = Array.from(e.changedTouches).find((t) => t.identifier === trackedId);
     if (!endTouch) return; // another finger lifted; the tracked one is still down
     const multiTouch = multiRef.current;
-    const end = readTapSample(endTouch, Date.now(), readScrollTop(), window.visualViewport);
+    const end = readTapSample(endTouch, Date.now(), readScrollTop());
     reset();
 
     if (e.defaultPrevented) return; // some handler below already owned this tap

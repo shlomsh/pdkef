@@ -54,8 +54,11 @@ export function detectLocale(language: string | undefined): string {
   return language || 'en-US';
 }
 
-/** The browser's language, read where it may be absent (SSR, a locked-down environment). */
-function browserLanguage(): string | undefined {
+/**
+ * The browser's language, read where it may be absent (SSR, a locked-down environment).
+ * @testSeam
+ */
+export function browserLanguage(): string | undefined {
   try {
     if (typeof navigator !== 'undefined') return navigator.language;
   } catch {

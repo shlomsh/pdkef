@@ -258,7 +258,8 @@ describe('PageGrid', () => {
   it('renders thumbnails only for cards near the viewport, one pdf.js document per file, and releases a removed file', async () => {
     const { rerender, entries } = mount();
     // Each file opens once up front, to read its page sizes; no page renders until it nears the viewport.
-    await waitFor(() => thumbnailsLib.openThumbnailSource.mock.calls.length === 2);
+    await waitFor(() => container.querySelector('[data-fit-settled]') != null);
+    expect(thumbnailsLib.openThumbnailSource).toHaveBeenCalledTimes(2);
     expect(container.querySelectorAll('[data-thumb-box] img')).toHaveLength(0);
 
     await act(async () => { observers.at(-1).intersect(['1:1', '2:0']); });
@@ -294,10 +295,30 @@ describe('PageGrid', () => {
   it('still reports a thumbnail render that fails on its own', async () => {
     // The file has one page, the plan two: pdf.js itself refuses the second page.
     const entries = [{ id: 1, file: makeFile('one-page.pdf'), pageCount: 2, error: null }];
-    mount({ entries, plan: planForFile(1, 2) });
-    await waitFor(() => container.querySelector('[data-fit-settled]') != null);
-    await act(async () => { observers.at(-1).intersect(['1:1']); });
-    await waitFor(() => vi.mocked(reportError).mock.calls.some(([, , step]) => step === 'render_thumbnail'));
+    const { openThumbnailSource: realOpen } = await vi.importActual<typeof import('#lib/pdf/thumbnails.js')>('#lib/pdf/thumbnails.js');
+    const settled = Promise.withResolvers<void>();
+    // Forced: a failed thumbnail leaves only its placeholder, so the moment to wait on is the real render settling: the real source,
+    // run through, with a hook on its render promise (registered before the grid awaits it, so the grid's catch has not run yet).
+    vi.mocked(thumbnailsLib.openThumbnailSource).mockImplementation(async (...args) => {
+      const source = await realOpen(...args);
+      return {
+        ...source,
+        render: (...renderArgs) => {
+          const rendering = source.render(...renderArgs);
+          rendering.then(() => settled.resolve(), () => settled.resolve());
+          return rendering;
+        },
+      };
+    });
+    try {
+      mount({ entries, plan: planForFile(1, 2) });
+      await waitFor(() => container.querySelector('[data-fit-settled]') != null);
+      await act(async () => { observers.at(-1).intersect(['1:1']); });
+      await settled.promise;
+      await act(async () => { await drainPromises(); });
+    } finally {
+      vi.mocked(thumbnailsLib.openThumbnailSource).mockImplementation(realOpen);
+    }
     expect(vi.mocked(reportError).mock.calls.filter(([, , step]) => step === 'render_thumbnail').map(([area, error]) => [area, error.message])).toEqual([['pdf_render', 'Invalid page request.']]);
   });
 

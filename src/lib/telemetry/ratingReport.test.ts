@@ -20,6 +20,7 @@ const NOW = 1_800_000_000_000;
 
 /** A browser whose beacon throws (sendBeacon refuses a payload it cannot queue); the recorder's restore puts the original back. */
 function breakBeacon() {
+  // Forced: jsdom has no sendBeacon and the recorder's never refuses; a beacon that throws is a state only a real browser's queue reaches.
   Object.defineProperty(navigator, 'sendBeacon', { configurable: true, writable: true, value: () => { throw new Error('x'); } });
 }
 

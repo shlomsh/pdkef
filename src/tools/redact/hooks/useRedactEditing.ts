@@ -3,6 +3,7 @@ import { uniqueId } from '#editor/model/ids.ts';
 import { recordAction } from '#lib/telemetry/actionTrail.ts';
 import { useEyedropper } from '#editor-ui/whiteout/pageSampling.ts';
 import { autoColorChanges, type PercentBox } from '#editor-ui/whiteout/pageColor.ts';
+import type { ElementUpdateKind } from '#editor/model/updateKind.ts';
 import type { BlurStrength } from '#editor/model/blurStrength.ts';
 import { isDeleteElement, type RedactElement } from '../lib/redactElements.ts';
 import type { RedactAction, RedactState } from '../state/redactState.ts';
@@ -15,6 +16,13 @@ import useLinkedBoxes from './useLinkedBoxes.ts';
 import useRedactUndo from './useRedactUndo.ts';
 import useRedactDrawing from './useRedactDrawing.ts';
 import type { RedactArming } from './useRedactArming.ts';
+
+/**
+ * The command path's label for an update: the box's own type in the shared voice.
+ * @testSeam useRedactCommands.test.ts runs this real wrapper over the spied describeRedactUpdate.
+ */
+export const describeElementUpdate = (kind: ElementUpdateKind, element: { type: string }): string =>
+  describeRedactUpdate(kind, element.type);
 
 /**
  * Everything that changes the boxes: the command path every edit goes through,
@@ -45,7 +53,7 @@ export default function useRedactEditing({ state, dispatch, setAnnouncement, fil
     elements,
     commit: (commit) => dispatch({ type: 'EDIT_COMMITTED', ...commit }),
     registerUndo,
-    describeUpdate: (kind, element) => describeRedactUpdate(kind, element.type),
+    describeUpdate: describeElementUpdate,
   });
 
   const { handlePointerDown, commitDrawn, addStroke, drawingPreviewRef } = useRedactDrawing({

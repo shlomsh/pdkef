@@ -87,20 +87,19 @@ export function sendToSink(event: SinkEvent, at?: Date): boolean {
     if (!config || !canSend()) return false;
     pageLoadId ??= makeId();
     if (!pageLoadId) return false;
-    const page = typeof location === 'object' ? location : { hostname: '', origin: '', pathname: '' };
     buckets ??= clientBuckets({
       ua: navigator.userAgent ?? '',
       width: typeof screen === 'object' ? Math.min(screen.width, screen.height) : 0,
       coarse: typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches,
       referrer: typeof document === 'object' ? document.referrer : '',
-      host: page.hostname,
+      host: location.hostname,
     });
     const capture = toCapture(event, {
       key: config.key,
       id: pageLoadId,
       now: at ?? new Date(),
-      origin: page.origin,
-      pathname: page.pathname,
+      origin: location.origin,
+      pathname: location.pathname,
       client: buckets,
     });
     return navigator.sendBeacon(`${config.host}/i/v0/e/`, new Blob([JSON.stringify(capture)], { type: 'text/plain' }));

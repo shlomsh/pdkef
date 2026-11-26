@@ -390,10 +390,17 @@ count). The rule is off meanwhile.
 - Fresh reviews of both: waves 17 and 18 ran 39 mutations, three lost and caught again (a media query listener left on, a swipe
   end read off its row, the hand-off's defensive catch); wave 19 ran 52, none lost, and found one extra render per corner trace
   request, now gone. Sign's form-detection test waits on the beacon being sent (`beaconNamed`) instead of polling the recorder.
+- Dead branches and decisions out of effects (2026-11-26, wave 20): the catches around rating and page-view reports go (every
+  path they guarded already catches itself); Scan's worker supervision and page answers, a date's locale, Redact's update label
+  and Highlight's note room and swipe reader are pure inputs production calls. 325 sites down to 314 in 129 files. Its fresh
+  review ran about 55 mutations and found eight lost: Scan's worker wiring, the tap sample's visual viewport, the build commit's
+  entry type, the hand-off store error and the in-flight Scan result went back to their kept doubles, with true reasons; the
+  browser language and the swipe reader's arguments got tests. Never caught in any version: Scan's adopt terms, the sink's page
+  fields, the page answer's cloning, and Redact's list-objects report.
 
 ## What is left (2026-11-26)
 
-Every site left carries its `// Forced:` reason, 325 in 135 files:
+Every site left carries its `// Forced:` reason, 314 in 129 files:
 
 - The largest part is what jsdom and Node do not have: the share sheet,
   fullscreen, dialogs, the visual viewport, the clipboard, workers, observers that report, a service worker and its windows.

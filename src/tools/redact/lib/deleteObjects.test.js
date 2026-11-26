@@ -519,7 +519,7 @@ describe('listDeletableObjects', () => {
     expect(objects.every((o) => o.pageIndex === 0)).toBe(true);
     expect(objects.length).toBeGreaterThan(0);
     expect(consoleSpy).toHaveBeenCalledTimes(1);
-    expect(consoleSpy).toHaveBeenCalledWith('Could not read deletable objects on page 2', expect.any(Error));
+    expect(consoleSpy).toHaveBeenCalledWith('Could not read deletable objects on page 2', expect.objectContaining({ message: expect.stringContaining('Expected instance of PDFArray') }));
 
     consoleSpy.mockRestore();
   });

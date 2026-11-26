@@ -90,7 +90,7 @@ export function useTouchTapDeselect({ workspaceRef, selectedTool, dispatch }: {
     }
     const touch = e.changedTouches[0];
     if (!touch) return;
-    touchTapStartRef.current = readTapSample(touch, Date.now(), readScrollTop(), window.visualViewport);
+    touchTapStartRef.current = readTapSample(touch, Date.now(), readScrollTop());
     touchTapIdRef.current = touch.identifier;
     touchTapMultiRef.current = false;
   };
@@ -102,7 +102,7 @@ export function useTouchTapDeselect({ workspaceRef, selectedTool, dispatch }: {
     const endTouch = Array.from(e.changedTouches).find((t) => t.identifier === trackedId);
     if (!endTouch) return; // some other touch ended; the tracked one is still down
     const multiTouch = touchTapMultiRef.current;
-    const end = readTapSample(endTouch, Date.now(), readScrollTop(), window.visualViewport);
+    const end = readTapSample(endTouch, Date.now(), readScrollTop());
     resetTouchTap();
 
     // A touchend another handler already preventDefault()ed (e.g. useFillTap's

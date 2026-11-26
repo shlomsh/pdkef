@@ -39,6 +39,7 @@ describe('reportPageView (MEM-45)', () => {
 
   it('never throws', () => {
     // Blocked storage: reading localStorage itself throws, as in a locked-down private window.
+    // Forced: jsdom's localStorage always opens; blocking it is a browser setting a test cannot turn on.
     const own = Object.getOwnPropertyDescriptor(window, 'localStorage');
     Object.defineProperty(window, 'localStorage', { configurable: true, get: () => { throw new Error('storage'); } });
     try {

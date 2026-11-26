@@ -80,6 +80,7 @@ afterEach(() => {
   // a swipe still going when its test ends would carry its release into the next test
   window.dispatchEvent(new MouseEvent('mouseup')); window.dispatchEvent(new Event('touchend'));
   pageCanvas = undefined;
+  pageGeometry = undefined;
   textDirection = undefined;
   fallbackDirection = 'ltr';
   armed = true;
@@ -396,9 +397,13 @@ describe('useMarkSwipe off the text', () => {
 
   it('one touch press that marks reads once and the gesture gets that reader', () => {
     onTheText();
+    pageGeometry = { width: 612, height: 500 };
+    fallbackDirection = 'rtl';
     mount(); pressTouch();
     touch('touchmove', [finger(130, 100)]);
     expect(createSwipeReader).toHaveBeenCalledTimes(1);
+    // Over the page's own canvas, at the page's own height and the direction at the press.
+    expect(createSwipeReader).toHaveBeenCalledWith(pageCanvas, 500, 'rtl');
     expect(vi.mocked(startHighlightSwipe).mock.calls.at(-1)![0].reader).toBe(vi.mocked(createSwipeReader).mock.results[0].value);
   });
 

@@ -9,11 +9,11 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { reportEdit, resetUsageEventsForTests } from '#lib/telemetry/productAnalytics.ts';
 import { describeRedactUpdate } from '../lib/describeRedactUpdate.ts';
+import { describeElementUpdate } from './useRedactEditing.ts';
 import useRedactCommands, { type RedactCommandDeps } from './useRedactCommands.ts';
 import { initialRedactState, redactReducer, type EditCommit } from '../state/redactState.ts';
 import type { ActionHistoryEntry } from '#editor/model/actionHistory.ts';
 import type { RedactElement } from '../lib/redactElements.ts';
-import type { ElementUpdateKind } from '#editor/model/updateKind.ts';
 
 vi.mock('#lib/telemetry/productAnalytics.ts', { spy: true });
 vi.mock('../lib/describeRedactUpdate.ts', { spy: true });
@@ -40,8 +40,8 @@ function makeHarness(initialElements: Box[] = [], selectedIds: string[] = []) {
     selection: { activeBoxId: selectedIds[0] ?? null, selectedBoxId: selectedIds[1] ?? selectedIds[0] ?? null },
   };
   const registerUndo = vi.fn();
-  // The island's own wrapper over describeRedactUpdate, which is spied through (the real one runs).
-  const describeUpdate = (kind: ElementUpdateKind, element: Box) => describeRedactUpdate(kind, element.type);
+  // The island's own wrapper over describeRedactUpdate; describeRedactUpdate is spied through (the real one runs).
+  const describeUpdate = describeElementUpdate;
 
   const deps: RedactCommandDeps<Box> = {
     get elements() { return state.edits.elements as unknown as Box[]; },

@@ -15,17 +15,19 @@ describe('sendToSink', () => {
   afterEach(() => {
     setReportingEnabledForTests(false);
     vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
     recorder.restore();
   });
 
   it('still sends when matchMedia, screen and document are missing', async () => {
     vi.stubEnv('PUBLIC_ANALYTICS_HOST', 'https://e.example.test');
     vi.stubEnv('PUBLIC_ANALYTICS_KEY', 'k');
+    // Forced: Node has no location, and the page address is read for every capture
+    vi.stubGlobal('location', { origin: 'https://pdkef.com', pathname: '/merge/', hostname: 'pdkef.com' });
     // Live control: Node really lacks all three
     expect(typeof matchMedia).toBe('undefined');
     expect(typeof screen).toBe('undefined');
     expect(typeof document).toBe('undefined');
-    expect(typeof location).toBe('undefined');
     expect(sendToSink(EVENT)).toBe(true);
     expect((await recorder.bodies())[0]).toMatchObject({ properties: { device: 'desktop', ref: 'direct' } });
   });
