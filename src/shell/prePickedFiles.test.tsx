@@ -1,7 +1,7 @@
 import { hydrate, render } from 'preact';
 import { useRef } from 'preact/hooks';
 import { act } from 'preact/test-utils';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { takeInputFiles, useAdoptPrePickedFiles } from './prePickedFiles.ts';
 import { setInputFiles } from '../test/support/setInputFiles.js';
 
@@ -15,6 +15,11 @@ const pdf = (name: string) => new File([''], name, { type: 'application/pdf' });
 
 describe('pre-picked files', () => {
   let container: HTMLElement;
+  // Every test gets its own container, so the teardown never meets one left unset or already removed.
+  beforeEach(() => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+  });
   afterEach(() => {
     act(() => render(null, container));
     container.remove();
@@ -22,9 +27,7 @@ describe('pre-picked files', () => {
 
   // The page ships the input as markup; the file is chosen into it before any script runs.
   function serveInputWith(files: File[]) {
-    container = document.createElement('div');
     container.innerHTML = '<input type="file">';
-    document.body.appendChild(container);
     const served = container.querySelector('input') as HTMLInputElement;
     if (files.length) setInputFiles(served, files);
     return served;
