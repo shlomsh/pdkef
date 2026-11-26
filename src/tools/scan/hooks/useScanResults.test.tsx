@@ -3,10 +3,10 @@ import { drainPromises } from '../../../test/support/drainPromises.ts';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { reportError } from '#lib/telemetry/errorReport.ts';
-import { newPage } from '../lib/scanPages.ts';
+import { newPage, resultKey } from '../lib/scanPages.ts';
 import { processPage } from '../lib/scanPipeline.ts';
 import { ScanWork, type ScanPage } from '../state/scanWork.ts';
-import { useScanResults } from './useScanResults.ts';
+import { adoptResult, isAdoptable, useScanResults } from './useScanResults.ts';
 
 vi.mock('#lib/telemetry/errorReport.ts', { spy: true });
 
@@ -63,23 +63,18 @@ describe('useScanResults failures', () => {
 });
 
 describe('useScanResults adoptResult', () => {
-  it('makes no result for a page removed while its run was in flight', async () => {
+  it('makes no result for a page removed while its run was in flight', () => {
     const page = readPage();
     const work = new ScanWork();
     work.pages = [page];
     const setResults = vi.fn();
     const create = vi.spyOn(URL, 'createObjectURL');
-    let finish!: (value: never) => void;
-    const processed = vi.fn(() => new Promise((resolve) => { finish = resolve as never; })); // forced: the run is held until the page is removed, then finishes
-    function Host() {
-      useScanResults({ pages: [page], work, processed: processed as never, unmountedRef: { current: false }, dispatch: vi.fn(), results: {}, setResults, turnedPreviews: {} });
-      return null;
-    }
-    container = document.createElement('div');
-    await act(async () => { render(<Host />, container!); });
+    const result = { blob: new Blob(['b']), thumb: new Blob(['t']), width: 1, height: 1, bentPx: 0 };
+    const key = resultKey(page);
+    expect(isAdoptable(false, work.removed, work.pages, work.results, page.id, key)).toBe(true);
     work.removed.add(page.id);
-    finish({ blob: new Blob(['b']), thumb: new Blob(['t']) } as never);
-    await act(async () => { await drainPromises(); });
+    expect(isAdoptable(false, work.removed, work.pages, work.results, page.id, key)).toBe(false);
+    adoptResult(page, key, result, { work, unmountedRef: { current: false }, dispatch: vi.fn(), setResults });
     expect(work.results[page.id]).toBeUndefined();
     expect(create).not.toHaveBeenCalled();
     expect(setResults).not.toHaveBeenCalled();

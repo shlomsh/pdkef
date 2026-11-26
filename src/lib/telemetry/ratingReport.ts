@@ -83,22 +83,12 @@ export function markRated(storage: RatingStorage | null, tool: RatingTool, stars
 
 /** Hands one rating to `/api/report` by beacon; false when invalid or not sent. Never throws. */
 export function reportRating(tool: RatingTool, stars: Stars): boolean {
-  try {
-    const event = parseRatingEvent({ name: 'tool_rating', properties: { tool, stars } });
-    return event !== null && sendBeacon(event);
-  } catch {
-    // expected: a rating must never alter the tool
-    return false;
-  }
+  const event = parseRatingEvent({ name: 'tool_rating', properties: { tool, stars } });
+  return event !== null && sendBeacon(event);
 }
 
 /** Hands the optional comment to `/api/report` by beacon; false when invalid (empty, too long) or not sent. Never throws. `share` is the person's OK to show it. */
 export function reportRatingComment(tool: RatingTool, stars: Stars, comment: string, share = false): boolean {
-  try {
-    const event = parseRatingCommentEvent({ name: 'tool_rating_comment', properties: { tool, stars, comment, ...(share ? { share } : {}) } });
-    return event !== null && sendBeacon(event);
-  } catch {
-    // expected: a comment must never alter the tool
-    return false;
-  }
+  const event = parseRatingCommentEvent({ name: 'tool_rating_comment', properties: { tool, stars, comment, ...(share ? { share } : {}) } });
+  return event !== null && sendBeacon(event);
 }

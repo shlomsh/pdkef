@@ -3,11 +3,11 @@ import { uniqueId } from '#editor/model/ids.ts';
 import { recordAction } from '#lib/telemetry/actionTrail.ts';
 import { useEyedropper } from '#editor-ui/whiteout/pageSampling.ts';
 import { autoColorChanges, type PercentBox } from '#editor-ui/whiteout/pageColor.ts';
-import { formatMessage } from '#lib/text/formatMessage.ts';
-import type { ElementUpdateKind } from '#editor/model/updateKind.ts';
 import type { BlurStrength } from '#editor/model/blurStrength.ts';
 import { isDeleteElement, type RedactElement } from '../lib/redactElements.ts';
 import type { RedactAction, RedactState } from '../state/redactState.ts';
+import { formatMessage } from '#lib/text/formatMessage.ts';
+import { describeRedactUpdate } from '../lib/describeRedactUpdate.ts';
 import { englishRedactMessages as t } from '../messages.ts';
 import useRedactCommands from './useRedactCommands.ts';
 import useDeleteTool from './useDeleteTool.ts';
@@ -15,17 +15,6 @@ import useLinkedBoxes from './useLinkedBoxes.ts';
 import useRedactUndo from './useRedactUndo.ts';
 import useRedactDrawing from './useRedactDrawing.ts';
 import type { RedactArming } from './useRedactArming.ts';
-
-/**
- * Labels an update entry in the same voice as `Added ${type} box`. Redact has
- * no text elements, so a `text` kind (which cannot occur here) falls back to
- * the style label rather than going unhandled.
- */
-function describeRedactUpdate(kind: ElementUpdateKind, type: string): string {
-  if (kind === 'move') return formatMessage(t.movedBox, { type });
-  if (kind === 'resize') return formatMessage(t.resizedBox, { type });
-  return formatMessage(t.changedBoxColor, { type });
-}
 
 /**
  * Everything that changes the boxes: the command path every edit goes through,

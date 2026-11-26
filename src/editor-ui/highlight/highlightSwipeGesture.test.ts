@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { startHighlightSwipe } from './highlightSwipeGesture.ts';
+import { createSwipeReader } from '#lib/pageLayout/swipeReader.ts';
 import { englishSignMessages } from '#editor/registry/signMessages.ts';
 import type { EditorElement } from '#editor/model/editorModel.ts';
 
@@ -23,6 +24,19 @@ function getImageData(sx: number, sy: number, w: number, h: number) {
     }
   }
   return { data, width: w, height: h };
+}
+
+// The reader the highlight tool hands a swipe: the real one, over a jsdom canvas with the same two text lines inked.
+function pageReader() {
+  const canvas = document.createElement('canvas');
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d')!;
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#000000';
+  for (const [x, y, rw, rh] of rects) ctx.fillRect(x, y, rw, rh);
+  return createSwipeReader(canvas, H)!;
 }
 
 function setup(isMouse = true, direction?: 'ltr' | 'rtl', reader?: SwipeReaderOption, getContext: () => unknown = () => ({ getImageData }), paintDraft?: (node: HTMLElement, geometry: unknown) => void, directionAt?: (point: { x: number; y: number }) => 'ltr' | 'rtl') {
@@ -146,22 +160,24 @@ describe('which end of the swipe is the press', () => {
 describe('startHighlightSwipe with a given reader', () => {
   it('uses the reader it is given and reads no canvas', () => {
     const getContext = vi.fn() as never; // never called, so it needs no answer
-    const band = { left: 10, top: 20, width: 30, height: 5 };
-    // Forced: a hand-made reader, the one production caller always wraps createSwipeReader.
-    const reader = { bandsBetween: vi.fn(() => [band]), onText: vi.fn(), onLine: vi.fn() };
-    const { dispatch } = setup(true, undefined, reader as never, getContext);
+    const reader = pageReader();
+    const bandsBetween = vi.spyOn(reader, 'bandsBetween');
+    const { dispatch } = setup(true, undefined, reader, getContext);
     move(60, 107);
     release();
     expect(getContext).not.toHaveBeenCalled();
-    expect(reader.bandsBetween).toHaveBeenCalled();
+    expect(bandsBetween).toHaveBeenCalled();
     expect(types(dispatch)).toEqual(['UPDATE_ELEMENT', 'DISARM_TOOL']);
+    expect(dispatch.mock.calls[0][0].payload.changes.bands).toHaveLength(1);
   });
 });
 
 describe('startHighlightSwipe with directionAt', () => {
-  const band = { left: 10, top: 20, width: 30, height: 5 };
-  // Forced: a hand-made reader that records the direction it is asked with.
-  const readerSpy = () => ({ bandsBetween: vi.fn((..._args: unknown[]) => [band]), onText: vi.fn(), onLine: vi.fn() });
+  // Spy-through: the real reader reads the page; the spy records the direction it is asked with.
+  const readerSpy = () => {
+    const reader = pageReader();
+    return Object.assign(reader, { bandsBetween: vi.spyOn(reader, 'bandsBetween') });
+  };
 
   it('asks it at each move, passes the answer to the bands and commits the last one', () => {
     const reader = readerSpy();

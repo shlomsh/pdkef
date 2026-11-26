@@ -6,7 +6,7 @@ import { peekHandoff, saveHandoff } from '../drafts/draftStore.ts';
 import { holdDraftStore } from '../drafts/heldStore.test-helper.ts';
 import { drainPromises } from '../../test/support/drainPromises.ts';
 
-// The real store runs on fake-indexeddb; the spy lets a test see when a save settled, and one test forces a reject the real store never produces.
+// The real store runs on fake-indexeddb; the spy lets a test see when a save settled.
 vi.mock('../drafts/draftStore.ts', { spy: true });
 
 import { sendHandoff } from './sendHandoff.ts';
@@ -79,12 +79,6 @@ describe('sendHandoff', () => {
     // A function in the payload fails the real write: structured clone refuses it and the store answers false.
     const uncloneable = { ...payload(), fileName: (() => 'a.pdf') as unknown as string };
     await expect(sendHandoff('compress', uncloneable, { navigate })).rejects.toThrow('handoff');
-    expect(navigate).not.toHaveBeenCalled();
-  });
-
-  it('lets a store error through and does not navigate', async () => {
-    vi.mocked(saveHandoff).mockRejectedValueOnce(new Error('boom')); // Forced: the real store never rejects, it answers false
-    await expect(sendHandoff('compress', payload(), { navigate })).rejects.toThrow('boom');
     expect(navigate).not.toHaveBeenCalled();
   });
 

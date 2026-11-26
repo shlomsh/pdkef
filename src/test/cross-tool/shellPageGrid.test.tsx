@@ -2,7 +2,7 @@
 import { render } from 'preact';
 import { createRef } from 'preact';
 import { act } from 'preact/test-utils';
-import { PDFDocument } from '@cantoo/pdf-lib';
+import { PDFArray, PDFDocument, PDFName, PDFRef } from '@cantoo/pdf-lib';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import Sortable from 'sortablejs';
 import { setScreen } from '../support/screen.ts';
@@ -35,6 +35,8 @@ const PAGE_SIZES: Record<string, [number, number][]> = {
   'a.pdf': [[200, 300], [201, 300]],
   'a-wide.pdf': [[300, 200], [154, 200]],
   'b.pdf': [[210, 300], [211, 300]],
+  'one-page.pdf': [[200, 300]],
+  'broken-second.pdf': [[300, 200], [200, 300]],
 };
 const FALLBACK_SIZES: [number, number][] = [[612, 792], [612, 792]];
 const pdfBytes = new Map<string, Uint8Array>();
@@ -94,6 +96,11 @@ describe('PageGrid', () => {
       for (const size of sizes) doc.addPage(size);
       pdfBytes.set(name, await doc.save());
     }
+    // broken-second.pdf: the second page's entry in the page tree points at nothing, so pdf.js reads page 1 and refuses page 2.
+    const broken = await PDFDocument.create();
+    for (const size of PAGE_SIZES['broken-second.pdf']) broken.addPage(size);
+    (broken.catalog.Pages().lookup(PDFName.of('Kids'), PDFArray)).set(1, PDFRef.of(9999, 0));
+    pdfBytes.set('broken-second.pdf', await broken.save());
     // pdf.js's first document in a process loads its worker module, once and slowly; later ones are quick.
     const task = (await getPdfjs()).getDocument({ data: pdfBytes.get('fallback')!.slice() });
     await (await task.promise).getPage(1);
@@ -275,35 +282,23 @@ describe('PageGrid', () => {
   });
 
   it('does not report a thumbnail render it cancelled itself when its file is removed mid-render', async () => {
-    const painting = Promise.withResolvers<void>();
-    const cancelled = Promise.withResolvers<void>();
-    // forced: a page still painting when its file goes, cancelled the way pdf.js cancels a render
-    vi.mocked(renderPageToCanvas).mockImplementationOnce((async (_page, { signal }) => {
-      painting.resolve();
-      await new Promise((resolve) => { signal.addEventListener('abort', resolve, { once: true }); });
-      cancelled.resolve();
-      throw new DOMException('Rendering cancelled', 'AbortError');
-    }) as never);
     const { rerender, entries } = mount();
-    await waitFor(() => thumbnailsLib.openThumbnailSource.mock.calls.length === 2);
+    await waitFor(() => container.querySelector('[data-fit-settled]') != null);
+    // The render starts for real; the file goes before pdf.js has painted the page, so the render is cancelled the way pdf.js cancels one.
     await act(async () => { observers.at(-1).intersect(['1:0']); });
-    await painting.promise;
     rerender({ sources: [entries[1]], plan: planForFile(2, 2) });
-    await cancelled.promise;
     await act(async () => { await drainPromises(); });
     expect(vi.mocked(reportError).mock.calls.filter(([, , step]) => step === 'render_thumbnail')).toEqual([]);
   });
 
   it('still reports a thumbnail render that fails on its own', async () => {
-    const failed = Promise.withResolvers<void>();
-    // forced: a page that will not paint
-    vi.mocked(renderPageToCanvas).mockImplementationOnce((async () => { failed.resolve(); throw new Error('broken page'); }) as never);
-    mount();
-    await waitFor(() => thumbnailsLib.openThumbnailSource.mock.calls.length === 2);
-    await act(async () => { observers.at(-1).intersect(['1:0']); });
-    await failed.promise;
-    await act(async () => { await drainPromises(); });
-    expect(vi.mocked(reportError).mock.calls.filter(([, , step]) => step === 'render_thumbnail').map(([area, error]) => [area, error.message])).toEqual([['pdf_render', 'broken page']]);
+    // The file has one page, the plan two: pdf.js itself refuses the second page.
+    const entries = [{ id: 1, file: makeFile('one-page.pdf'), pageCount: 2, error: null }];
+    mount({ entries, plan: planForFile(1, 2) });
+    await waitFor(() => container.querySelector('[data-fit-settled]') != null);
+    await act(async () => { observers.at(-1).intersect(['1:1']); });
+    await waitFor(() => vi.mocked(reportError).mock.calls.some(([, , step]) => step === 'render_thumbnail'));
+    expect(vi.mocked(reportError).mock.calls.filter(([, , step]) => step === 'render_thumbnail').map(([area, error]) => [area, error.message])).toEqual([['pdf_render', 'Invalid page request.']]);
   });
 
   // DEBT-65: the span comes from the PDF's own page sizes, so a landscape page is two cells wide
@@ -341,10 +336,14 @@ describe('PageGrid', () => {
   // cell now keeps the SAME fixed height, and a landscape page takes a
   // landscape WIDTH for that height instead.
   it('gives a landscape page a fixed cell height and a width scaled to its aspect', async () => {
-    // Forced: a source that cannot say its page sizes (a state a real one never reports), so the grid
-    // falls back to the thumbnail's own size. The rest of the source is the real one.
-    vi.mocked(thumbnailsLib.openThumbnailSource).mockImplementationOnce(async (file) => ({ ...(await (await vi.importActual<typeof import('#lib/pdf/thumbnails.js')>('#lib/pdf/thumbnails.js')).openThumbnailSource(file)), aspects: async () => null })); // forced: the first file's source reports no page sizes
-    mount();
+    // The first file's second page cannot be read, so the file reports no page sizes (as a slow read would
+    // before the grid's patience runs out) and the grid falls back to the thumbnail's own size.
+    const entries = [
+      { id: 1, file: makeFile('broken-second.pdf'), pageCount: 2, error: null },
+      { id: 2, file: makeFile('b.pdf'), pageCount: 2, error: null },
+    ];
+    mount({ entries, plan: [...planForFile(1, 2), ...planForFile(2, 2)] });
+    await waitFor(() => container.querySelector('[data-fit-settled]') != null);
     await act(async () => { observers.at(-1).intersect(['1:0']); });
     await waitFor(() => container.querySelectorAll('[data-thumb-box] img').length === 1);
     const img = container.querySelector('[data-thumb-box] img');

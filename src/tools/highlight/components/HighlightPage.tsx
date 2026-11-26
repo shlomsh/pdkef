@@ -13,8 +13,6 @@ import type { PageGeometry } from '#editor/geometry/coords.ts';
 import { pageTextDirection } from '#editor/text/textDirection.js';
 import { directionAtPoint, readerTextDirection, resolveHighlightDirection } from '#editor/highlight/resolveDirection.ts';
 import useCoarsePointer from '#editor-ui/hooks/useCoarsePointer.ts';
-import { createSwipeReader } from '#lib/pageLayout/swipeReader.ts';
-import { PAGE_HEIGHT_DEFAULT_PTS } from '#editor/model/signGeometry.js';
 import { usePageGeometry } from '../hooks/usePageGeometry.ts';
 import HighlightPageHeader from './HighlightPageHeader.tsx';
 import MarkHatch from './MarkHatch.tsx';
@@ -120,15 +118,9 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, chrome 
     dispatch, logAction, setAnnouncement, onMark: inkLanded,
   });
 
-  /** R52: a finger marks only from a line of text. One reader per press; no page canvas to read yet (null): on a line. */
-  const readerAt = (point: { x: number; y: number }) => {
-    const canvas = overlayRef.current?.parentElement?.querySelector<HTMLCanvasElement>('canvas') ?? null;
-    return createSwipeReader(canvas, geometry?.height || PAGE_HEIGHT_DEFAULT_PTS, directionAt(point));
-  };
-
   const startSwipe = useMarkSwipe({
     pageIndex, geometry, turns: turnsOf(pageTurns, pageIndex), elements, marker, armed, getPointerPercent, directionAt, textDirectionAt, dispatch, logAction, setAnnouncement, clicks,
-    onPress: rest.clearHint, onInk: inkLanded, readerAt,
+    onPress: rest.clearHint, onInk: inkLanded,
   });
   const onPointerDown = (event: PointerEvent) => {
     lastPointerType.current = event.pointerType;

@@ -7,7 +7,7 @@ vi.mock('#lib/telemetry/visitRecency.ts', { spy: true });
 
 import { resetSinkForTests, sendToSink } from '#lib/telemetry/analyticsSink.ts';
 import { sendBeacon } from '#lib/telemetry/errorReport.ts';
-import { FIRST_VISIT_KEY, readAndStampVisits } from '#lib/telemetry/visitRecency.ts';
+import { FIRST_VISIT_KEY } from '#lib/telemetry/visitRecency.ts';
 import { reportPageView } from './pageView.ts';
 
 describe('reportPageView (MEM-45)', () => {
@@ -38,7 +38,15 @@ describe('reportPageView (MEM-45)', () => {
   });
 
   it('never throws', () => {
-    vi.mocked(readAndStampVisits).mockImplementationOnce(() => { throw new Error('storage'); }); // forced: the visit lookup throws (this one call)
-    expect(() => reportPageView()).not.toThrow();
+    // Blocked storage: reading localStorage itself throws, as in a locked-down private window.
+    const own = Object.getOwnPropertyDescriptor(window, 'localStorage');
+    Object.defineProperty(window, 'localStorage', { configurable: true, get: () => { throw new Error('storage'); } });
+    try {
+      expect(() => reportPageView()).not.toThrow();
+      expect(sendToSink).toHaveBeenCalledExactlyOnceWith({ name: 'page_viewed', properties: {} });
+    } finally {
+      if (own) Object.defineProperty(window, 'localStorage', own);
+      else Reflect.deleteProperty(window, 'localStorage');
+    }
   });
 });

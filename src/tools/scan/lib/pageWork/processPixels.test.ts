@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { GrayImage, Quad, RgbaImage } from '#lib/pageEnhance/quad.ts';
-import { measureBend } from '#lib/pageEnhance/dewarp/index.ts';
+import { FLAT_PAGE, bentPx, measureBend } from '#lib/pageEnhance/dewarp/index.ts';
 import { spreadQuads } from '#lib/pageEnhance/plan.ts';
 import { warpPerspective } from '#lib/pageEnhance/warp.ts';
 import type { Pins } from '../edges/follow.ts';
@@ -8,7 +8,7 @@ import { traceSides } from '../edges/follow.ts';
 import { evenMargins } from '../evenMargins.ts';
 import { FULL_QUAD } from '../quad.ts';
 import { curvesFromSides } from './tracedCurves.ts';
-import { processPixels, splitFromGray, traceGray } from './processPixels.ts';
+import { processPixels, settle, splitFromGray, traceGray } from './processPixels.ts';
 
 // The real modules run; the spies show what they were handed. A test that forces a failure does so on one call with mock*Once.
 vi.mock('#lib/pageEnhance/dewarp/index.ts', { spy: true });
@@ -98,12 +98,17 @@ describe('processPixels', () => {
 
   it('hands back a measuring failure with the page, flattened by its corners', () => {
     const error = new Error('measure failed');
-    // forced: a measuring step that throws, which no photo makes it do
+    const bend = settle(() => { throw error; }, FLAT_PAGE);
+    expect(bend.error).toBe(error);
+    expect(bend.value).toBe(FLAT_PAGE);
+    expect(bentPx(bend.value, 0, 394, 295)).toBe(0);
+    expect(settle(() => 7, 0)).toEqual({ value: 7, error: null });
+    // Forced: no real photo makes measureBend throw while the rest of the page still flattens
     vi.mocked(measureBend).mockImplementationOnce(() => { throw error; });
-    const { image, bentPx, measureError } = processPixels(rgbaOf(400, 300), null, FULL_QUAD, 'original', true, null);
-    expect(measureError).toBe(error);
-    expect(bentPx).toBe(0);
-    expect(image.width).toBe(394);
+    const flat = processPixels(rgbaOf(400, 300), null, FULL_QUAD, 'original', true, null);
+    expect(flat.measureError).toBe(error);
+    expect(flat.bentPx).toBe(0);
+    expect(flat.image.width).toBe(394);
   });
 
   it('paints the dark triangle a pinned sheet leaves in a corner in the paper colour', () => {
@@ -199,11 +204,10 @@ describe('processPixels traced border', () => {
   });
 
   it('still produces the page when tracing throws, measures it as before, and hands the error back to be reported', () => {
-    const error = new Error('trace failed');
-    // forced: a trace that throws, which no photo makes it do
-    vi.mocked(traceSides).mockImplementationOnce(() => { throw error; });
-    const { image, measureError } = processPixels(rgbaOf(400, 300), grayOf(400, 300), INNER, 'original', true, null);
-    expect(measureError).toBe(error);
+    // A gray copy with no pixels: the real trace throws on it.
+    const unreadable = { width: 400, height: 300, data: null } as unknown as GrayImage;
+    const { image, measureError } = processPixels(rgbaOf(400, 300), unreadable, INNER, 'original', true, null);
+    expect(measureError).toBeInstanceOf(TypeError);
     expect(lastBendArgs()).toHaveLength(6);
     expect(image.width).toBeGreaterThan(0);
   });

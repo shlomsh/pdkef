@@ -510,27 +510,17 @@ describe('listDeletableObjects', () => {
   it('skips a page the extractor cannot parse instead of failing the whole file', async () => {
     const doc = await PDFDocument.load(await buildSample());
     const [copied] = await doc.copyPages(doc, [0]);
-    doc.addPage(copied);
+    // A MediaBox that is not a rectangle: the page's size read throws before its content is walked.
+    doc.addPage(copied).node.set(PDFName.of('MediaBox'), PDFName.of('Broken'));
     const source = new Uint8Array(await doc.save());
 
     const consoleSpy = vi.spyOn(console, 'error');
-    const pdfObjects = await import('#editor/adapters/pdf/pdfObjects.js');
-    const realExtract = pdfObjects.extractPageObjects;
-    const extractSpy = vi
-      .spyOn(pdfObjects, 'extractPageObjects')
-      // Forced: pdf-lib and the extractor tolerate every damaged page tried (bad stream, bad array, bad text, bad resources), so none reaches this catch.
-      .mockImplementation((page, pageIndex) => {
-        if (pageIndex === 1) throw new Error('unsupported operator');
-        return realExtract(page, pageIndex);
-      });
-
     const objects = await listDeletableObjects(source);
     expect(objects.every((o) => o.pageIndex === 0)).toBe(true);
     expect(objects.length).toBeGreaterThan(0);
     expect(consoleSpy).toHaveBeenCalledTimes(1);
-    expect(consoleSpy).toHaveBeenCalledWith('Could not read deletable objects on page 2', expect.objectContaining({ message: 'unsupported operator' }));
+    expect(consoleSpy).toHaveBeenCalledWith('Could not read deletable objects on page 2', expect.any(Error));
 
-    extractSpy.mockRestore();
     consoleSpy.mockRestore();
   });
 });

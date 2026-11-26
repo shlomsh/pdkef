@@ -41,7 +41,7 @@ export default withIslandBoundary(function PdfHighlightTool() {
   const marks = useHighlightMarks();
   // R28: the first note makes room for the notes column in the event that opens its card, so the dispatches that
   // open and close cards go through here. Zoom and the comments view are created below and read when it runs.
-  const room = useNoteRoom({ state: marks.state, dispatch: marks.dispatch, columnRef, zoom: () => zoom, isWide: () => comments.sheet === null });
+  const room = useNoteRoom({ state: marks.state, dispatch: marks.dispatch, columnRef, makeRoom: (noted, point) => zoom.makeRoom(noted, point), isWide: () => comments.sheet === null });
   const comments = useHighlightComments({ state: marks.state, dispatch: room.dispatch, logAction: marks.logAction, announce: setAnnouncement });
   const zoom = useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscreen, noted: comments.showRail, pageTurns: marks.pageTurns });
   const markerMemory = useMarkerMemory({ marker: marks.marker, rearm: marks.rearm });

@@ -19,10 +19,16 @@ interface ScanResultsInput {
 
 type ResultHost = Pick<ScanResultsInput, 'work' | 'processed' | 'unmountedRef' | 'dispatch' | 'setResults'>;
 
-/** A finished run becomes the page's result, unless the page moved on while it ran. */
-function adoptResult(page: ScanPage, key: string, result: ProcessedPage, { work, unmountedRef, dispatch, setResults }: ResultHost) {
+/** Whether a finished run for `key` is still wanted: not once the island is gone, the page was removed, its corners or look moved
+ * on, or the result is already there. @testSeam */
+export function isAdoptable(unmounted: boolean, removed: ReadonlySet<number>, pages: ScanPage[], results: Record<number, PageResult>, pageId: number, key: string): boolean {
+  return !unmounted && !removed.has(pageId) && isCurrentKey(pages, key) && results[pageId]?.key !== key;
+}
+
+/** A finished run becomes the page's result, unless the page moved on while it ran. @testSeam */
+export function adoptResult(page: ScanPage, key: string, result: ProcessedPage, { work, unmountedRef, dispatch, setResults }: Omit<ResultHost, 'processed'>) {
   work.watching.delete(key);
-  if (unmountedRef.current || work.removed.has(page.id) || !isCurrentKey(work.pages, key) || work.results[page.id]?.key === key) return;
+  if (!isAdoptable(unmountedRef.current, work.removed, work.pages, work.results, page.id, key)) return;
   const previous = work.results[page.id];
   if (previous) {
     URL.revokeObjectURL(previous.url);

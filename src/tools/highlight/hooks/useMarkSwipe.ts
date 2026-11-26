@@ -11,11 +11,11 @@ import { englishSignMessages } from '#editor/registry/signMessages.ts';
 import type { ReadingDirection } from '#lib/pageLayout/bands.ts';
 import type { Marker } from '../lib/marker/markerState.ts';
 import { directionLatch, isMultiTouch, sidewaysEnough, swipeIntent } from '../lib/marker/swipeIntent.ts';
-import type { createSwipeReader } from '#lib/pageLayout/swipeReader.ts';
+import { createSwipeReader } from '#lib/pageLayout/swipeReader.ts';
+import { PAGE_HEIGHT_DEFAULT_PTS } from '#editor/model/signGeometry.js';
 import type { useClickMarks } from './useClickMarks.ts';
 
 type Point = { x: number; y: number };
-type SwipeReader = NonNullable<ReturnType<typeof createSwipeReader>>;
 
 interface MarkSwipeOptions {
   pageIndex: number;
@@ -35,8 +35,6 @@ interface MarkSwipeOptions {
   logAction: HistoryLogger<EditorElement>;
   setAnnouncement: (message: string) => void;
   clicks: ReturnType<typeof useClickMarks>;
-  /** The page's reader for a finger pressed here (page percent), read once per press. Off a line it moves the page and never marks. Absent or null (no canvas): on a line. */
-  readerAt?: (point: Point) => SwipeReader | null;
   /** A press that will lay a mark begins. */
   onPress: () => void;
   /** The swipe committed a mark. */
@@ -126,7 +124,10 @@ export function useMarkSwipe(o: MarkSwipeOptions): (event: PointerEvent) => void
     // The pointer's screen offset from the press, for the swipe's own direction.
     const offset = { dx: 0, dy: 0 };
     // A finger that starts off the text moves the page sideways and never marks; the browser keeps the vertical scroll.
-    const reader = !isMouse && !onMark ? o.readerAt?.(start) : undefined;
+    // One reader per press, over the page's own canvas; with no canvas to read (null) the finger is on a line.
+    const reader = !isMouse && !onMark
+      ? createSwipeReader(container.parentElement?.querySelector<HTMLCanvasElement>('canvas') ?? null, o.geometry?.height || PAGE_HEIGHT_DEFAULT_PTS, o.directionAt(start))
+      : undefined;
     const pans = !!reader && !reader.onLine(start);
     const scroller = pans ? container.closest<HTMLElement>('[data-workspace]') : null;
     const startScrollLeft = scroller?.scrollLeft ?? 0;

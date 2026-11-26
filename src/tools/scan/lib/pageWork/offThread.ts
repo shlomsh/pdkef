@@ -2,9 +2,7 @@
 // the visit, and given up on, for good, where it cannot do the work as the main thread would. A job the
 // worker cannot take comes back as NO_WORKER, and the caller runs it on the main thread instead.
 import type { PageJob, PageJobResult, PageReply } from './protocol.ts';
-
-/** How long a new worker may take to load and answer its probe before the pages go to the main thread. */
-const PROBE_MS = 15_000;
+import { PROBE_MS, canStartWorker, supervise, type Phase, type Signal } from './workerSupervisor.ts';
 
 export const NO_WORKER = Symbol('NO_WORKER');
 
@@ -33,7 +31,7 @@ function retire(worker: Worker): null {
 }
 
 function start(): Promise<Worker | null> {
-  if (typeof Worker !== 'function' || typeof OffscreenCanvas !== 'function') return Promise.resolve(null);
+  if (!canStartWorker({ worker: typeof Worker === 'function', offscreenCanvas: typeof OffscreenCanvas === 'function' })) return Promise.resolve(null);
   let worker: Worker;
   try {
     worker = new Worker(new URL('./page.worker.ts', import.meta.url), { type: 'module' });
@@ -41,6 +39,14 @@ function start(): Promise<Worker | null> {
     // expected: a browser that cannot start a module worker processes pages on the main thread
     return Promise.resolve(null);
   }
+  let phase: Phase = 'probing';
+  /** What a signal means for the worker (workerSupervisor.ts), acted on: the worker, while it stands. */
+  const settle = (signal: Signal): Worker | null => {
+    const next = supervise(phase, signal);
+    phase = next.phase;
+    if (next.retire) retire(worker);
+    return phase === 'ready' ? worker : null;
+  };
   worker.onmessage = (e: MessageEvent<PageReply>) => {
     const reply = e.data;
     const job = waiting.get(reply.id);
@@ -53,13 +59,13 @@ function start(): Promise<Worker | null> {
   // later one, run on the main thread. The jobs' callers report an error the main thread does not share.
   worker.onerror = (event) => {
     event.preventDefault();
-    retire(worker);
+    settle({ kind: 'crashed' });
   };
   return new Promise<Worker | null>((resolve) => {
-    const timer = setTimeout(() => resolve(retire(worker)), PROBE_MS);
-    send(worker, { kind: 'probe' }).then((ok) => resolve(ok ? worker : retire(worker)), () => {
+    const timer = setTimeout(() => resolve(settle({ kind: 'probe-timeout' })), PROBE_MS);
+    send(worker, { kind: 'probe' }).then((ok) => resolve(settle({ kind: 'probe-answered', ok: Boolean(ok) })), () => {
       // expected: a probe that cannot even answer means no worker, the same as one that answers no
-      resolve(retire(worker));
+      resolve(settle({ kind: 'probe-failed' }));
     }).finally(() => clearTimeout(timer));
   });
 }

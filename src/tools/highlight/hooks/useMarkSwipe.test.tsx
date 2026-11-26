@@ -2,10 +2,13 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { startHighlightSwipe } from '#editor-ui/highlight/highlightSwipeGesture.ts';
+import { createSwipeReader } from '#lib/pageLayout/swipeReader.ts';
 import { useMarkSwipe } from './useMarkSwipe.ts';
 
 // Spy-through: the real swipe gesture runs on the real events; the spy shows what the hook handed it.
 vi.mock('#editor-ui/highlight/highlightSwipeGesture.ts', { spy: true });
+// Spy-through: the real reader reads the page canvas each test draws; the spy shows who asked for one.
+vi.mock('#lib/pageLayout/swipeReader.ts', { spy: true });
 
 let container: HTMLElement | null = null;
 let handler: (event: PointerEvent) => void;
@@ -18,9 +21,22 @@ let pageGeometry: { width: number; height: number } | undefined;
 let marker: Record<string, unknown> = { color: 'yellow', style: 'highlight', opacity: 1 };
 let textDirection: 'ltr' | 'rtl' | undefined;
 let fallbackDirection: 'ltr' | 'rtl' = 'ltr';
-let readerAt: ((point: { x: number; y: number }) => Reader | null) | undefined;
-type Reader = { onLine: (point: { x: number; y: number }) => boolean; bandsBetween: () => never[] };
-const readerOf = (on: boolean): Reader => ({ onLine: () => on, bandsBetween: () => [] });
+// The page canvas a touch press sits beside (its workspace's child); none: nothing to read.
+let pageCanvas: HTMLCanvasElement | undefined;
+// A 300 x 400 px page, white; with `text` a line of two words under the press (page 10%, 10%, which is pixel 30, 40).
+const pageWith = (text: boolean) => {
+  const canvas = document.createElement('canvas');
+  canvas.width = 300;
+  canvas.height = 400;
+  const ctx = canvas.getContext('2d')!;
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, 300, 400);
+  ctx.fillStyle = '#000000';
+  if (text) for (const [x, w] of [[20, 40], [66, 64]]) ctx.fillRect(x, 33, w, 14);
+  return canvas;
+};
+const onTheText = () => { pageCanvas = pageWith(true); };
+const offTheText = () => { pageCanvas = pageWith(false); };
 
 function Probe() {
   handler = useMarkSwipe({
@@ -32,7 +48,7 @@ function Probe() {
     textDirectionAt: () => textDirection,
     dispatch, logAction, setAnnouncement,
     clicks: { beginPress: vi.fn(), inkStarted: vi.fn(), noteSwipeAction: vi.fn() } as never,
-    onPress, onInk: vi.fn(), readerAt: readerAt as never,
+    onPress, onInk: vi.fn(),
   });
   return null;
 }
@@ -53,6 +69,7 @@ function pressTouch(x = 100, y = 100) {
   workspace.scrollLeft = 50;
   const target = document.createElement('div');
   workspace.append(target);
+  if (pageCanvas) workspace.append(pageCanvas);
   handler({ button: 0, pointerType: 'touch', clientX: x, clientY: y, target, currentTarget: target } as unknown as PointerEvent);
   return workspace;
 }
@@ -62,7 +79,7 @@ const move = (x: number, y: number) => window.dispatchEvent(new MouseEvent('mous
 afterEach(() => {
   // a swipe still going when its test ends would carry its release into the next test
   window.dispatchEvent(new MouseEvent('mouseup')); window.dispatchEvent(new Event('touchend'));
-  readerAt = undefined;
+  pageCanvas = undefined;
   textDirection = undefined;
   fallbackDirection = 'ltr';
   armed = true;
@@ -266,7 +283,7 @@ describe('useMarkSwipe off the text', () => {
   afterEach(() => zoom(1));
 
   it('a sideways start off a line lays nothing and moves the page sideways with the finger', () => {
-    readerAt = () => readerOf(false);
+    offTheText();
     mount(); const workspace = pressTouch();
     touch('touchmove', [finger(130, 100)]);
     expect(dispatch).not.toHaveBeenCalled();
@@ -277,7 +294,7 @@ describe('useMarkSwipe off the text', () => {
   });
 
   it('stops moving the page when the finger lifts or a second finger lands', () => {
-    readerAt = () => readerOf(false);
+    offTheText();
     mount(); const workspace = pressTouch();
     touch('touchstart', [finger(100, 100), finger(200, 100)]);
     touch('touchmove', [finger(130, 100)]);
@@ -289,7 +306,7 @@ describe('useMarkSwipe off the text', () => {
   });
 
   it('a sideways start on a line marks as before and leaves the page', () => {
-    readerAt = () => readerOf(true);
+    onTheText();
     mount(); const workspace = pressTouch();
     touch('touchmove', [finger(130, 100)]);
     expect(dispatch.mock.calls[0][0]).toMatchObject({ type: 'ADD_ELEMENT' });
@@ -299,7 +316,7 @@ describe('useMarkSwipe off the text', () => {
   // R52 under the browser's zoom: a zoomed page pans sideways with one finger whatever touch-action says, so a press on a
   // line claims its sideways moves; a vertical one, or any move off the text, stays the browser's.
   it('on a line, a sideways move is claimed from the first pixel, a vertical one is left to the browser', () => {
-    readerAt = () => readerOf(true);
+    onTheText();
     mount(); pressTouch();
     expect(touch('touchmove', [finger(100, 104)])).toBe(true);
     expect(touch('touchmove', [finger(104, 101)])).toBe(false);
@@ -308,7 +325,7 @@ describe('useMarkSwipe off the text', () => {
   // WebKit reads the touch listeners in place when a touch starts: one added at the press cannot stop that touch's pan.
   it('the claiming touchmove listener is in place before any press', () => {
     const added = vi.spyOn(window, 'addEventListener');
-    readerAt = () => readerOf(true);
+    onTheText();
     mount();
     expect(added).toHaveBeenCalledWith('touchmove', expect.any(Function), { passive: false });
     added.mockClear();
@@ -318,7 +335,7 @@ describe('useMarkSwipe off the text', () => {
 
   it('at the browser\'s 1x nothing is claimed: the page cannot move sideways, and a scroll stays the browser\'s', () => {
     zoom(1);
-    readerAt = () => readerOf(true);
+    onTheText();
     mount(); pressTouch();
     expect(touch('touchmove', [finger(104, 101)])).toBe(true);
     touch('touchmove', [finger(130, 100)]);
@@ -328,7 +345,7 @@ describe('useMarkSwipe off the text', () => {
   });
 
   it('zoomed in, a move is claimed only once it is as sideways as a mark: a diagonal stays a scroll', () => {
-    readerAt = () => readerOf(true);
+    onTheText();
     mount(); pressTouch();
     expect(touch('touchmove', [finger(103, 102)])).toBe(true);
     expect(touch('touchmove', [finger(115, 110)])).toBe(true);
@@ -342,7 +359,7 @@ describe('useMarkSwipe off the text', () => {
   });
 
   it('once a line\'s swipe has begun, its later moves stay claimed until the finger lifts', () => {
-    readerAt = () => readerOf(true);
+    onTheText();
     mount(); pressTouch();
     touch('touchmove', [finger(130, 100)]);
     expect(dispatch.mock.calls[0][0]).toMatchObject({ type: 'ADD_ELEMENT' });
@@ -353,14 +370,14 @@ describe('useMarkSwipe off the text', () => {
   });
 
   it('two fingers are never claimed, mid-swipe or not: the pinch stays the browser\'s', () => {
-    readerAt = () => readerOf(true);
+    onTheText();
     mount(); pressTouch();
     touch('touchmove', [finger(130, 100)]);
     expect(touch('touchmove', [finger(140, 100), finger(260, 100)])).toBe(true);
   });
 
   it('off a line, nothing is claimed: the browser pans the zoomed page', () => {
-    readerAt = () => readerOf(false);
+    offTheText();
     mount(); pressTouch();
     expect(touch('touchmove', [finger(104, 100)])).toBe(true);
   });
@@ -372,34 +389,30 @@ describe('useMarkSwipe off the text', () => {
   });
 
   it('no canvas to read (a null reader) counts as on a line', () => {
-    readerAt = () => null;
     mount(); pressTouch();
     touch('touchmove', [finger(130, 100)]);
     expect(dispatch.mock.calls[0][0]).toMatchObject({ type: 'ADD_ELEMENT' });
   });
 
   it('one touch press that marks reads once and the gesture gets that reader', () => {
-    const reader = readerOf(true);
-    // Forced: production always passes a thin wrapper of createSwipeReader, so the reader is a collaborator and its double stays visible.
-    const factory = vi.fn(() => reader);
-    readerAt = factory;
+    onTheText();
     mount(); pressTouch();
     touch('touchmove', [finger(130, 100)]);
-    expect(factory).toHaveBeenCalledTimes(1);
-    expect(vi.mocked(startHighlightSwipe).mock.calls.at(-1)![0].reader).toBe(reader);
+    expect(createSwipeReader).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(startHighlightSwipe).mock.calls.at(-1)![0].reader).toBe(vi.mocked(createSwipeReader).mock.results[0].value);
   });
 
   it('a mouse press never asks for a reader', () => {
-    // Forced: as above, the reader is the page's pixel reader.
-    const factory = vi.fn(() => readerOf(true));
-    readerAt = factory;
+    onTheText();
     mount(); press();
+    // The swipe starts on the first move; by then a touch would have read the page, a mouse has not.
+    expect(createSwipeReader).not.toHaveBeenCalled();
     move(130, 100);
-    expect(factory).not.toHaveBeenCalled();
+    expect(vi.mocked(startHighlightSwipe).mock.calls.at(-1)![0]).not.toHaveProperty('reader');
   });
 
   it('a mouse ignores the line test', () => {
-    readerAt = () => readerOf(false);
+    offTheText();
     mount(); press();
     move(130, 100);
     expect(dispatch.mock.calls[0][0]).toMatchObject({ type: 'ADD_ELEMENT' });

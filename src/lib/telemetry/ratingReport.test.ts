@@ -1,8 +1,7 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { installBeaconRecorder, type BeaconRecorder } from '../../test/support/beaconRecorder.ts';
 
-vi.mock('./errorReport.ts', { spy: true });
-import { sendBeacon, setReportingEnabledForTests } from './errorReport.ts';
+import { setReportingEnabledForTests } from './errorReport.ts';
 import { hasRated, markAsked, markRated, MY_STARS_KEY, ownStars, ratedKey, RATING_ASK_GAP_MS, ASKED_AT_KEY, reportRating, reportRatingComment, shouldAsk } from './ratingReport.ts';
 
 function memoryStorage(initial: Record<string, string> = {}) {
@@ -19,9 +18,13 @@ const blocked = {
 
 const NOW = 1_800_000_000_000;
 
+/** A browser whose beacon throws (sendBeacon refuses a payload it cannot queue); the recorder's restore puts the original back. */
+function breakBeacon() {
+  Object.defineProperty(navigator, 'sendBeacon', { configurable: true, writable: true, value: () => { throw new Error('x'); } });
+}
+
 let recorder: BeaconRecorder;
 beforeEach(() => {
-  vi.mocked(sendBeacon).mockClear();
   setReportingEnabledForTests(true);
   recorder = installBeaconRecorder();
 });
@@ -111,8 +114,7 @@ describe('reportRating', () => {
     expect(recorder.calls).toHaveLength(0);
   });
   it('never throws', () => {
-    // Forced: the real sendBeacon catches a throwing beacon itself, so reportRating's own catch needs a throwing send.
-    vi.mocked(sendBeacon).mockImplementationOnce(() => { throw new Error('x'); });
+    breakBeacon();
     expect(reportRating('compress', 4)).toBe(false);
   });
 });
@@ -136,8 +138,7 @@ describe('reportRatingComment', () => {
     expect(recorder.calls).toHaveLength(0);
   });
   it('never throws', () => {
-    // Forced: the real sendBeacon catches a throwing beacon itself, so reportRatingComment's own catch needs a throwing send.
-    vi.mocked(sendBeacon).mockImplementationOnce(() => { throw new Error('x'); });
+    breakBeacon();
     expect(reportRatingComment('compress', 4, 'hi')).toBe(false);
   });
 });

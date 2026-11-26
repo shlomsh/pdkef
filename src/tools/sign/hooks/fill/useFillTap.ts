@@ -138,7 +138,7 @@ export default function useFillTap(options: UseFillTapOptions): FillTapHandlers 
       ?.getAttribute(FILL_KEY_ATTR) ?? null;
 
   const sample = (touch: Touch): TapGestureSample =>
-    readTapSample(touch, Date.now(), document.scrollingElement?.scrollTop ?? 0);
+    readTapSample(touch, Date.now(), document.scrollingElement?.scrollTop ?? 0, window.visualViewport);
 
   // The element's own options bar (Delete, colour, font) always wins over the box-first
   // rule below it in fillTapDecision - see FillTapInput.onElementBar's own comment.

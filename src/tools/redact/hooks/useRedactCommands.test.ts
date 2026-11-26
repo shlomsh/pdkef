@@ -8,6 +8,7 @@
 // and the selection back from it.
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { reportEdit, resetUsageEventsForTests } from '#lib/telemetry/productAnalytics.ts';
+import { describeRedactUpdate } from '../lib/describeRedactUpdate.ts';
 import useRedactCommands, { type RedactCommandDeps } from './useRedactCommands.ts';
 import { initialRedactState, redactReducer, type EditCommit } from '../state/redactState.ts';
 import type { ActionHistoryEntry } from '#editor/model/actionHistory.ts';
@@ -15,7 +16,8 @@ import type { RedactElement } from '../lib/redactElements.ts';
 import type { ElementUpdateKind } from '#editor/model/updateKind.ts';
 
 vi.mock('#lib/telemetry/productAnalytics.ts', { spy: true });
-beforeEach(() => { resetUsageEventsForTests(); vi.mocked(reportEdit).mockClear(); });
+vi.mock('../lib/describeRedactUpdate.ts', { spy: true });
+beforeEach(() => { resetUsageEventsForTests(); vi.mocked(reportEdit).mockClear(); vi.mocked(describeRedactUpdate).mockClear(); });
 
 interface Box {
   id: string;
@@ -38,8 +40,8 @@ function makeHarness(initialElements: Box[] = [], selectedIds: string[] = []) {
     selection: { activeBoxId: selectedIds[0] ?? null, selectedBoxId: selectedIds[1] ?? selectedIds[0] ?? null },
   };
   const registerUndo = vi.fn();
-  // Forced: production passes a thin wrapper of describeRedactUpdate, which is private to useRedactEditing.ts and cannot be imported.
-  const describeUpdate = vi.fn((kind: ElementUpdateKind) => `describeUpdate:${kind}`);
+  // The island's own wrapper over describeRedactUpdate, which is spied through (the real one runs).
+  const describeUpdate = (kind: ElementUpdateKind, element: Box) => describeRedactUpdate(kind, element.type);
 
   const deps: RedactCommandDeps<Box> = {
     get elements() { return state.edits.elements as unknown as Box[]; },
@@ -58,7 +60,6 @@ function makeHarness(initialElements: Box[] = [], selectedIds: string[] = []) {
     getRevision: () => state.edits.documentRevision,
     getSelection: () => state.selection,
     registerUndo,
-    describeUpdate,
   };
 }
 
@@ -160,10 +161,10 @@ describe('useRedactCommands.update', () => {
 
     expect(h.getElements()).toEqual([box({ id: 'a', left: 10, top: 0 })]);
     expect(h.getRevision()).toBe(1);
-    expect(h.describeUpdate).toHaveBeenCalledWith('move', box({ id: 'a', left: 0, top: 0 }));
+    expect(describeRedactUpdate).toHaveBeenCalledWith('move', 'blackout');
     const entry = h.getHistory().past[0];
     expect(entry.operation).toBe('update');
-    expect(entry.description).toBe('describeUpdate:move');
+    expect(entry.description).toBe('Moved blackout box');
     if (entry.operation !== 'update') throw new Error('expected an update entry');
     expect(entry.updates).toEqual([{ id: 'a', before: { left: 0 }, after: { left: 10 } }]);
   });
@@ -190,21 +191,22 @@ describe('useRedactCommands.update', () => {
   it('uses the describe override instead of describeUpdate, e.g. unlinking', () => {
     const h = makeHarness([box({ id: 'a' })]);
     h.commands.update('a', [{ id: 'a', changes: { color: '#fff' } }], { describe: () => 'Unlinked the box on this page' });
-    expect(h.describeUpdate).not.toHaveBeenCalled();
+    expect(describeRedactUpdate).not.toHaveBeenCalled();
     expect(h.getHistory().past[0].description).toBe('Unlinked the box on this page');
   });
 
   it('describes an entry by the primary change, so a move that re-sampled a colour is still a move', () => {
     const h = makeHarness([box({ id: 'a', left: 0, top: 0, color: '#fff' })]);
     h.commands.update('a', [{ id: 'a', changes: { left: 5, top: 6, color: '#000' } }], { primary: { left: 5, top: 6 } });
-    expect(h.describeUpdate).toHaveBeenCalledWith('move', expect.anything());
-    expect(h.getHistory().past[0].description).toBe('describeUpdate:move');
+    expect(describeRedactUpdate).toHaveBeenCalledWith('move', 'blackout');
+    expect(h.getHistory().past[0].description).toBe('Moved blackout box');
   });
 
   it('without a primary the same changes read as a style change', () => {
     const h = makeHarness([box({ id: 'a', left: 0, top: 0, color: '#fff' })]);
     h.commands.update('a', [{ id: 'a', changes: { left: 5, top: 6, color: '#000' } }]);
-    expect(h.describeUpdate).toHaveBeenCalledWith('style', expect.anything());
+    expect(describeRedactUpdate).toHaveBeenCalledWith('style', 'blackout');
+    expect(h.getHistory().past[0].description).toBe('Changed blackout box color');
   });
 
   it('is a no-op when the box does not exist', () => {

@@ -361,10 +361,10 @@ describe('useDownloadFlow', () => {
   });
 
   it('a hand-off whose save throws reports nothing', async () => {
-    // Forced: the real saveHandoff answers false and never throws, so a save that throws is forced.
-    vi.mocked(saveHandoff).mockRejectedValue(new Error('save'));
+    await openNewerStore();
     mount({ ...base(ready()), navigate: vi.fn() });
     await act(async () => { await flow.requestHandoff('compress'); });
+    expect(await vi.mocked(saveHandoff).mock.results.at(-1)!.value).toBe(false);
     expect(reportHandedOn).not.toHaveBeenCalled();
   });
 

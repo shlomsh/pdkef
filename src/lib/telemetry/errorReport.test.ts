@@ -1,4 +1,5 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { parseBuildCommit } from './pagePerformance.ts';
 import { installBeaconRecorder, type BeaconRecorder } from '../../test/support/beaconRecorder.ts';
 import {
   ACTIONS,
@@ -218,26 +219,40 @@ describe('build field', () => {
 });
 
 describe('readBuildCommit', () => {
-  const perfWith = (timing: { name: string; description: string }[] | null) => ({
-    getEntriesByType: (type: string) => (type === 'navigation' && timing ? [{ serverTiming: timing }] : []),
-  }) as unknown as Pick<Performance, 'getEntriesByType'>;
+  const entries = (timing: { name: string; description: string }[] | null) => (timing ? [{ serverTiming: timing }] : []) as unknown as PerformanceEntry[];
   const build = (description: string) => [{ name: 'build', description }];
-  it('reads a valid build entry', () => expect(readBuildCommit(perfWith(build('abc1234')))).toBe('abc1234'));
+  it('reads a valid build entry', () => expect(parseBuildCommit(entries(build('abc1234')))).toBe('abc1234'));
   it('finds it among other entries', () => {
-    expect(readBuildCommit(perfWith([{ name: 'cdn', description: 'hit' }, ...build('abc1234')]))).toBe('abc1234');
+    expect(parseBuildCommit(entries([{ name: 'cdn', description: 'hit' }, ...build('abc1234')]))).toBe('abc1234');
   });
   it('is undefined with no navigation entry or no build entry', () => {
-    expect(readBuildCommit(perfWith(null))).toBeUndefined();
-    expect(readBuildCommit(perfWith([{ name: 'cdn', description: 'hit' }]))).toBeUndefined();
+    expect(parseBuildCommit(entries(null))).toBeUndefined();
+    expect(parseBuildCommit(entries([{ name: 'cdn', description: 'hit' }]))).toBeUndefined();
   });
   it('is undefined for invalid content', () => {
     for (const bad of ['', 'ABC1234', 'abc123', 'abc12345', 'zzzzzzz']) {
-      expect(readBuildCommit(perfWith(build(bad)))).toBeUndefined();
+      expect(parseBuildCommit(entries(build(bad)))).toBeUndefined();
+    }
+  });
+  it('reads the build off the browser navigation entry', () => {
+    // Forced: jsdom's performance has no navigation entry
+    vi.spyOn(performance, 'getEntriesByType').mockImplementation(() => entries(build('abc1234')));
+    try {
+      expect(readBuildCommit()).toBe('abc1234');
+    } finally {
+      vi.restoreAllMocks();
     }
   });
   it('never throws when the performance object throws', () => {
-    const throwing = { getEntriesByType: () => { throw new Error('no'); } } as unknown as Pick<Performance, 'getEntriesByType'>;
-    expect(readBuildCommit(throwing)).toBeUndefined();
+    // Forced: a performance timeline that throws, which no browser can be put in
+    vi.spyOn(performance, 'getEntriesByType').mockImplementation(() => {
+      throw new Error('no');
+    });
+    try {
+      expect(readBuildCommit()).toBeUndefined();
+    } finally {
+      vi.restoreAllMocks();
+    }
   });
 });
 

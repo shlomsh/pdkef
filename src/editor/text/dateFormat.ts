@@ -47,16 +47,21 @@ function fromIsoDateString(isoDate: string): Date {
 }
 
 /**
- * Best-effort browser locale; `formatDate`'s 'locale' option only.
+ * The locale to format with: the browser's language when it has one, else en-US. Pure.
  * @testSeam
  */
-export function detectLocale(): string {
+export function detectLocale(language: string | undefined): string {
+  return language || 'en-US';
+}
+
+/** The browser's language, read where it may be absent (SSR, a locked-down environment). */
+function browserLanguage(): string | undefined {
   try {
-    if (typeof navigator !== 'undefined' && navigator.language) return navigator.language;
+    if (typeof navigator !== 'undefined') return navigator.language;
   } catch {
     // expected: navigator.language is optional (SSR, locked-down environment), falls back to en-US
   }
-  return 'en-US';
+  return undefined;
 }
 
 function pad2(value: number): string {
@@ -64,7 +69,7 @@ function pad2(value: number): string {
 }
 
 /** Formats a `toIsoDateString`-shaped date per `formatId`. */
-export function formatDate(isoDate: string, formatId: DateFormatId, locale: string = detectLocale()): string {
+export function formatDate(isoDate: string, formatId: DateFormatId, locale: string = detectLocale(browserLanguage())): string {
   const date = fromIsoDateString(isoDate);
   switch (formatId) {
     case 'iso': return isoDate;

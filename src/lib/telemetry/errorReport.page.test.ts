@@ -43,8 +43,9 @@ describe('readPageContext', () => {
 describe('build in the page context and report', () => {
   const stubBuild = (content: string | null) => {
     const timing = content === null ? [] : [{ name: 'build', description: content }];
-    // Forced: a Server-Timing header with the build commit, which the test server does not send
-    vi.stubGlobal('performance', { getEntriesByType: () => [{ serverTiming: timing }] });
+    vi.restoreAllMocks();
+    // Forced: jsdom's performance has no navigation entry
+    vi.spyOn(performance, 'getEntriesByType').mockImplementation(() => [{ serverTiming: timing }] as unknown as PerformanceEntryList);
   };
   it('readPageContext includes build only when the tag is valid', () => {
     history.pushState(null, '', '/sign/');

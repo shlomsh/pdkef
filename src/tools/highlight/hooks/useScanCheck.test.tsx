@@ -124,7 +124,7 @@ describe('useScanCheck', () => {
 
   it('reports nothing for a file that was replaced before the read ended', async () => {
     let finish: (v: 'spread' | null) => void = () => {};
-    // Forced: the real read answers null once its file is gone, so only a late verdict reaches the hook's own check.
+    // Forced: real readScan checks liveness only after getPage and after each sheet, so a file replaced during the last page's operator-list read still returns a verdict; real pdf.js cannot be timed to land there.
     vi.mocked(readScan).mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
     mount(await openPlain());
     await startIdle();

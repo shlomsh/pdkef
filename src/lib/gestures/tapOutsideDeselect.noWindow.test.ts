@@ -8,6 +8,6 @@ describe('readTapSample', () => {
   it('defaults to scale 1 when window is undefined', () => {
     // Live control: under Node there really is no window.
     expect(typeof window).toBe('undefined');
-    expect(readTapSample(touch, 1, 0).viewportScale).toBe(1);
+    expect(readTapSample(touch, 1, 0, undefined).viewportScale).toBe(1);
   });
 });

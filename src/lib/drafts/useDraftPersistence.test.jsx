@@ -165,7 +165,7 @@ describe('useDraftPersistence - save outcome reporting', () => {
   });
 
   it('reports "error", never "saved", when the write rejects', async () => {
-    vi.mocked(saveDraft).mockRejectedValue(new Error('storage unavailable')); // forced: the real store never rejects
+    vi.mocked(saveDraft).mockRejectedValue(new Error('storage unavailable')); // forced: saveDraft answers false for every store failure it knows, but useDraftSave's catch also covers build() and the preview attach, and saveDraft's post-commit index writes are not proven non-throwing
     const props = baseProps();
     mount(props);
     renderFirstEdit(apiRef, props, container);

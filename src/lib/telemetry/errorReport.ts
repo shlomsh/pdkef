@@ -173,9 +173,9 @@ function readTranslated(): boolean {
  * `Server-Timing` header (set by middleware.ts), or undefined when it is missing or malformed. The header
  * survives the service worker's Cache API, so cache-served pages carry it too. Never throws.
  */
-export function readBuildCommit(perf?: Pick<Performance, 'getEntriesByType'>): string | undefined {
+export function readBuildCommit(): string | undefined {
   return safely(() => {
-    return parseBuildCommit((perf ?? performance).getEntriesByType('navigation'));
+    return parseBuildCommit(performance.getEntriesByType('navigation'));
   }, undefined);
 }
 

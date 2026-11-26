@@ -1,6 +1,6 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { captureAddedElement } from '#editor/model/actionHistory.ts';
 import type { CommentElement, HighlightElement } from '#editor/model/editorModel.ts';
 import { useHighlightMarks } from './useHighlightMarks.ts';
@@ -22,14 +22,15 @@ let marks: ReturnType<typeof useHighlightMarks>;
 let room: ReturnType<typeof useNoteRoom>;
 let wide = true;
 const order: string[] = [];
-// Forced: the zoom's makeRoom needs a laid-out workspace and a PDF; this one records the room it is told to make.
-const makeRoom = vi.fn((noted: boolean) => { order.push(`room:${noted}`); });
+// The rooms the hook was told to make, in order; the tool makes them through the zoom (a callback prop, so test input).
+const rooms: { noted: boolean; point: { x: number; y: number } }[] = [];
+const makeRoom = (noted: boolean, point: { x: number; y: number }) => { rooms.push({ noted, point }); order.push(`room:${noted}`); };
 
 function Probe() {
   marks = useHighlightMarks();
   room = useNoteRoom({
     state: marks.state, dispatch: (action) => { order.push(`dispatch:${action.type}`); marks.dispatch(action); },
-    columnRef: { current: column }, zoom: () => ({ zoom: 2, makeRoom }), isWide: () => wide,
+    columnRef: { current: column }, makeRoom, isWide: () => wide,
   });
   return null;
 }
@@ -41,7 +42,7 @@ function rectOf(left: number, top: number) {
 beforeEach(() => {
   wide = true;
   order.length = 0;
-  makeRoom.mockClear();
+  rooms.length = 0;
   host = document.createElement('div');
   document.body.appendChild(host);
   column = document.createElement('div');
@@ -68,17 +69,16 @@ describe('useNoteRoom', () => {
       room.dispatch({ type: 'ADD_ELEMENT', payload: blank });
       room.dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: 'c1' });
     });
-    expect(makeRoom).toHaveBeenCalledTimes(1);
-    expect(makeRoom).toHaveBeenCalledWith(true, { x: 300, y: 450 });
+    expect(rooms).toEqual([{ noted: true, point: { x: 300, y: 450 } }]);
     expect(order).toEqual(['dispatch:ADD_ELEMENT', 'room:true', 'dispatch:SET_ACTIVE_ELEMENT_ID']);
     expect(marks.state.activeElementId).toBe('c1');
   });
 
   it('the last card going gives the room back, also when the highlight takes its note with it', () => {
     act(() => marks.dispatch({ type: 'LOAD_DOCUMENT', payload: { elements: [mark, saved], actionHistory: [] } }));
-    makeRoom.mockClear();
+    rooms.length = 0;
     act(() => room.dispatch({ type: 'DELETE_ELEMENT', payload: 'h1' }));
-    expect(makeRoom).toHaveBeenCalledWith(false, { x: 300, y: 450 });
+    expect(rooms).toEqual([{ noted: false, point: { x: 300, y: 450 } }]);
     expect(marks.state.elements).toEqual([]);
   });
 
@@ -87,9 +87,9 @@ describe('useNoteRoom', () => {
       room.dispatch({ type: 'ADD_ELEMENT', payload: blank });
       room.dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: 'c1' });
     });
-    makeRoom.mockClear();
+    rooms.length = 0;
     act(() => room.dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null }));
-    expect(makeRoom).toHaveBeenCalledWith(false, { x: 300, y: 450 });
+    expect(rooms).toEqual([{ noted: false, point: { x: 300, y: 450 } }]);
   });
 
   it('makes no room on a narrow screen, where the sheet opens instead', () => {
@@ -98,13 +98,13 @@ describe('useNoteRoom', () => {
       room.dispatch({ type: 'ADD_ELEMENT', payload: blank });
       room.dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: 'c1' });
     });
-    expect(makeRoom).not.toHaveBeenCalled();
+    expect(rooms).toEqual([]);
     expect(marks.state.activeElementId).toBe('c1');
   });
 
   it('passes every other action straight through', () => {
     act(() => room.dispatch({ type: 'UPDATE_ELEMENT', payload: { id: 'h1', changes: { color: '#FF8080' } } }));
-    expect(makeRoom).not.toHaveBeenCalled();
+    expect(rooms).toEqual([]);
     expect(marks.state.elements[0]).toMatchObject({ color: '#FF8080' });
   });
 
@@ -113,26 +113,23 @@ describe('useNoteRoom', () => {
       marks.dispatch({ type: 'ADD_ELEMENT', payload: saved });
       marks.logAction('add', 'comment', 0, 'Add note', [captureAddedElement(saved, 1)]);
     });
-    makeRoom.mockClear();
+    rooms.length = 0;
     act(() => room.dispatch({ type: 'UNDO' }));
     expect(marks.state.elements).toEqual([mark]);
-    expect(makeRoom).toHaveBeenCalledTimes(1);
-    expect(makeRoom).toHaveBeenCalledWith(false, { x: 300, y: 450 });
-    makeRoom.mockClear();
+    expect(rooms).toEqual([{ noted: false, point: { x: 300, y: 450 } }]);
+    rooms.length = 0;
     act(() => room.dispatch({ type: 'REDO' }));
     expect(marks.state.elements).toHaveLength(2);
-    expect(makeRoom).toHaveBeenCalledTimes(1);
-    expect(makeRoom).toHaveBeenCalledWith(true, { x: 300, y: 450 });
+    expect(rooms).toEqual([{ noted: true, point: { x: 300, y: 450 } }]);
   });
 
   it('a non-note action in the same event is seen by the next dispatch', () => {
     act(() => marks.dispatch({ type: 'LOAD_DOCUMENT', payload: { elements: [mark, blank], actionHistory: [] } }));
-    makeRoom.mockClear();
+    rooms.length = 0;
     act(() => {
       room.dispatch({ type: 'UPDATE_ELEMENT', payload: { id: 'c1', changes: { comment: 'Check this' } } });
       room.dispatch({ type: 'DELETE_ELEMENT', payload: 'c1' });
     });
-    expect(makeRoom).toHaveBeenCalledTimes(1);
-    expect(makeRoom).toHaveBeenCalledWith(false, { x: 300, y: 450 });
+    expect(rooms).toEqual([{ noted: false, point: { x: 300, y: 450 } }]);
   });
 });

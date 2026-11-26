@@ -21,18 +21,23 @@ export const OUTPUT_LONG_EDGE = 2400;
  * that sliver turns into a black line under the Document look (QA, 2026-10-26). */
 const EDGE_INSET = 0.016;
 
+/** `fn`'s value, or `fallback` and the error it threw: a failing step is handed back with the page instead of stopping it. @testSeam */
+export function settle<T>(fn: () => T, fallback: T): { value: T; error: unknown } {
+  try {
+    return { value: fn(), error: null };
+  } catch (error) {
+    // expected: handed back with the page, which carries on without this step
+    return { value: fallback, error };
+  }
+}
+
 /** The page's bend beyond its corners; a measuring failure leaves the page flat and is handed back. `traced`, when given
  * (an object or null), is the page's border the editor drew: the page's own edges are then not searched. */
 function bendOf(src: RgbaImage, quad: Quad, inset: number, width: number, height: number, paperEdges: boolean, traced?: EdgeCurves | null): { bend: PageBend; error: unknown } {
-  try {
-    const bend = traced === undefined
-      ? measureBend(src, quad, inset / 2, width, height, paperEdges)
-      : measureBend(src, quad, inset / 2, width, height, paperEdges, traced);
-    return { bend, error: null };
-  } catch (error) {
-    // expected: handed back with the page, and reported on the main thread (a worker cannot report)
-    return { bend: FLAT_PAGE, error };
-  }
+  const { value: bend, error } = settle(() => (traced === undefined
+    ? measureBend(src, quad, inset / 2, width, height, paperEdges)
+    : measureBend(src, quad, inset / 2, width, height, paperEdges, traced)), FLAT_PAGE);
+  return { bend, error };
 }
 
 /** The pure middle of processing a page: the photo's pixels flattened to its corners and its bend, then
@@ -58,12 +63,8 @@ const isWholePicture = (quad: Quad): boolean => quad.every(({ x, y }) => (x === 
  * are ignored). A failure to read it is handed back, and the page is then measured as before. */
 export function traceGray(quad: Quad, fine: boolean, read: () => GrayImage): { gray: GrayImage | null; error: unknown } {
   if (!fine || isWholePicture(quad)) return { gray: null, error: null };
-  try {
-    return { gray: read(), error: null };
-  } catch (error) {
-    // expected: handed back with the page, which is then flattened as it was before the trace
-    return { gray: null, error };
-  }
+  const { value: gray, error } = settle<GrayImage | null>(read, null);
+  return { gray, error };
 }
 
 /** The page's traced border as the editor draws it (the same gray copy and trace), as the side curves the bend measure
@@ -71,12 +72,8 @@ export function traceGray(quad: Quad, fine: boolean, read: () => GrayImage): { g
  * measured as before. */
 function tracedFromGray(gray: GrayImage | null, quad: Quad, pins: Pins | null): { curves: EdgeCurves | null | undefined; error: unknown } {
   if (!gray) return { curves: undefined, error: null };
-  try {
-    return { curves: curvesFromSides(quad, traceSides(gray, quad, pins), gray.width, gray.height), error: null };
-  } catch (error) {
-    // expected: handed back with the page, which is then flattened as it was before the trace
-    return { curves: undefined, error };
-  }
+  const { value: curves, error } = settle<EdgeCurves | null | undefined>(() => curvesFromSides(quad, traceSides(gray, quad, pins), gray.width, gray.height), undefined);
+  return { curves, error };
 }
 
 /** A page's pixels flattened to its corners and given its look; `gray` is the copy its border is traced on, when it is traced

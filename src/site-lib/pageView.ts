@@ -5,10 +5,7 @@
 import { sendToSink } from '#lib/telemetry/analyticsSink.ts';
 import { readAndStampVisits } from '#lib/telemetry/visitRecency.ts';
 
+/** Never throws: both callees catch everything themselves (readAndStampVisits answers undefined without storage, sendToSink answers false). */
 export function reportPageView(): void {
-  try {
-    sendToSink({ name: 'page_viewed', properties: { ...readAndStampVisits() } });
-  } catch {
-    // expected: telemetry never throws and never blocks a page
-  }
+  sendToSink({ name: 'page_viewed', properties: { ...readAndStampVisits() } });
 }
