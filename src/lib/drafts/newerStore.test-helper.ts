@@ -6,7 +6,10 @@
 export function openNewerStore(): Promise<void> {
   return new Promise<void>((resolve, reject) => {
     const request = indexedDB.open('pdf-toolkit-workspace', 2);
-    request.onupgradeneeded = () => { request.result.createObjectStore('workspace', { keyPath: 'tool' }); };
+    request.onupgradeneeded = () => {
+      // A database the product already made at version 1 has the store; a fresh one does not.
+      if (!request.result.objectStoreNames.contains('workspace')) request.result.createObjectStore('workspace', { keyPath: 'tool' });
+    };
     request.onsuccess = () => { request.result.close(); resolve(); };
     request.onerror = () => reject(request.error);
   });

@@ -19,6 +19,7 @@ import { installBrowserToolHarness, type BrowserToolHarness } from '../../test/h
 import { answerNetwork } from '../../test/support/network.browser.ts';
 import { waitUntil } from '../../test/support/waitUntil.ts';
 import { drainPromises } from '../../test/support/drainPromises.ts';
+import { HeldFile } from '../../test/support/heldFile.ts';
 import needsPasswordUrl from '../../lib/__fixtures__/encrypted/needs-password.pdf?url';
 import ownerOnlyUrl from '../../lib/__fixtures__/encrypted/owner-only.pdf?url';
 import plainUrl from '../../lib/__fixtures__/encrypted/plain.pdf?url';
@@ -39,7 +40,6 @@ vi.mock('#lib/handoff/sendHandoff.ts', { spy: true });
 const actualImages = await vi.importActual<typeof imagesLib>('./lib/compressImages.js');
 const actualPhoto = await vi.importActual<typeof compressImageLib>('./lib/compressImage.js');
 const actualThumbnails = await vi.importActual<typeof thumbnails>('#lib/pdf/thumbnails.js');
-const actualProbe = await vi.importActual<typeof encryption>('#lib/pdf/pdfEncryption.ts');
 const actualHandoff = await vi.importActual<typeof handoff>('#lib/handoff/sendHandoff.ts');
 
 // Tests that are not about timing build 5ms after the last change instead of 1.5s.
@@ -101,16 +101,46 @@ beforeAll(async () => {
   BYTES.ownerOnly = await fetched(ownerOnlyUrl);
   BYTES.needsPassword = await fetched(needsPasswordUrl);
   BYTES.plain = await fetched(plainUrl);
+  BYTES.badEncrypt = badEncryptPdf('Foo');
+  BYTES.cannotDecrypt = badEncryptPdf('Standard');
   const photo = async (width: number, height: number) => ({ bytes: new Uint8Array(await (await noiseBlob(width, height)).arrayBuffer()), type: 'image/jpeg' });
   PHOTOS.landscape = await photo(1600, 1200);
   PHOTOS.portrait = await photo(900, 1200);
   PHOTOS.broken = { bytes: new Uint8Array(2000), type: 'image/jpeg' };
 });
 
+// A PDF with a malformed /Encrypt dictionary, so pdf.js's probe rejects with an error of its own. Under a
+// handler pdf-lib does not know ('Foo') the build hands the file back untouched; under 'Standard' pdf-lib tries to
+// carry its permissions across, fails to set up the decryption, and the build rejects.
+function badEncryptPdf(filter: string): Uint8Array {
+  const objects = [
+    '<< /Type /Catalog /Pages 2 0 R >>',
+    '<< /Type /Pages /Kids [] /Count 0 >>',
+    `<< /Filter /${filter} /V 9 /R 9 /O (x) /U (y) /P -4 >>`,
+  ];
+  let text = '%PDF-1.4\n';
+  const offsets = objects.map((body, i) => {
+    const at = text.length;
+    text += `${i + 1} 0 obj\n${body}\nendobj\n`;
+    return at;
+  });
+  const xref = text.length;
+  text += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n${offsets.map((at) => `${String(at).padStart(10, '0')} 00000 n \n`).join('')}`;
+  text += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R /Encrypt 3 0 R /ID [<00112233445566778899aabbccddeeff> <00112233445566778899aabbccddeeff>] >>\nstartxref\n${xref}\n%%EOF\n`;
+  return new TextEncoder().encode(text);
+}
+
+// A pick reads its PDF three times: the encryption probe and the analysis start at once, then the build and the
+// original page. `passReads: 2` lets the first two through and holds the rest; no option holds them all. A read of
+// `started` before the pick would miss the held one: the hold renews it.
+const heldPdf = (shape: string, name: string, options?: { passReads?: number }) => new HeldFile(new Uint8Array(BYTES[shape]), name, options);
+
 const makePdfFile = (name: string, shape = 'photo') => new File([BYTES[shape] as BlobPart], name, { type: 'application/pdf' });
 const makeImageFile = (name: string, key = 'landscape') => new File([PHOTOS[key].bytes as BlobPart], name, { type: PHOTOS[key].type });
 
-// forced: holds the next call to `fn` open until the test releases it, then runs the real one.
+// forced: holds the next call to `fn` open until the test releases it, then runs the real one. Only the
+// calls no file read can hold still use it: two consumers of one file released in a chosen order, a page
+// rendered from a Blob the product makes, and a photo decode (createImageBitmap reads no arrayBuffer).
 function hold<A extends unknown[], R>(fn: (...args: A) => R, original: (...args: A) => R) {
   const started = Promise.withResolvers<void>();
   const gate = Promise.withResolvers<void>();
@@ -422,9 +452,13 @@ describe('PdfCompressTool flows in a real browser', () => {
 
   it('a file replaced mid-run by a locked PDF never compresses, a level click during the probe builds nothing, and a file with no PDF header is skipped', async () => {
     mount();
-    // forced: A's run is held open until the test lets it finish
-    const runA = hold(imagesLib.compressPdfImages, actualImages.compressPdfImages);
-    await pick(makePdfFile('run_a.pdf'), runA.started);
+    // A's run is held open by its file, until the test lets it finish
+    const runA = heldPdf('photo', 'run_a.pdf', { passReads: 2 });
+    await act(async () => { setInputFiles(fileInput, [runA]); });
+    // The run starts once the password check has answered; the page shows it as processing from then on.
+    await waitUntil(() => statusOf() === 'processing');
+    await drain();
+    expect(imagesLib.compressPdfImages).toHaveBeenCalledTimes(1);
     await act(async () => { radio('Smallest').click(); });
     await pick(makePdfFile('locked.pdf', 'needsPassword'), () => $('[data-needs-unlock]') !== null);
     await act(async () => {
@@ -439,9 +473,9 @@ describe('PdfCompressTool flows in a real browser', () => {
     // A level click while the encryption probe is out builds nothing; one run follows the answer.
     mount();
     vi.mocked(imagesLib.compressPdfImages).mockClear();
-    // forced: the encryption probe is held open until the test lets it answer
-    const probing = hold(encryption.probeEncryption, actualProbe.probeEncryption);
-    await pick(makePdfFile('probing.pdf'), () => $('[data-tool-shell]') !== null);
+    // The encryption probe reads the file first, so a held file holds the probe until the test lets it answer
+    const probing = heldPdf('photo', 'probing.pdf');
+    await pick(probing, () => $('[data-tool-shell]') !== null);
     await act(async () => { await probing.started; });
     // The quiet timer (FAST_QUIET.baseMs, 5) is the product timer that would build after the click: fake only
     // setTimeout from here, so one advance reaches it (afterEach restores the real ones).
@@ -478,9 +512,12 @@ describe('PdfCompressTool flows in a real browser', () => {
 
   it('Exact size lands real sizes at both targets, and the Hebrew page points the arrow left and isolates the size', async () => {
     mount({ messages: hebrewCompressMessages });
-    // forced: the first run is held open, so no result exists yet
-    const run = hold(imagesLib.compressPdfImages, actualImages.compressPdfImages);
-    const file = await pick(makePdfFile('big_scan.pdf'), run.started);
+    // The first run is held open by its file, so no result exists yet
+    const run = heldPdf('photo', 'big_scan.pdf', { passReads: 2 });
+    await act(async () => { setInputFiles(fileInput, [run]); });
+    await waitUntil(() => statusOf() === 'processing');
+    await drain();
+    const file = run;
     expect($('[data-compress-sizes]')!.textContent).toBe(formatBytes(file.size));
     await act(async () => { run.release(); });
     await settled();
@@ -726,9 +763,8 @@ describe('PdfCompressTool flows in a real browser', () => {
   });
 
   it('after a failed build, hovering or focusing the phone bar Download does not rebuild', async () => {
-    // Forced: the engine rejects, and no real file makes it: pdf-lib opens even a truncated or mangled PDF, and a bad image stream (corrupt DCT or Flate data, a non-numeric Width, a bad SMask or DecodeParms) is left as it was, never thrown.
-    vi.mocked(imagesLib.compressPdfImages).mockRejectedValueOnce(new Error('boom'));
-    await loadPdf('flaky.pdf');
+    // A file whose /Encrypt dictionary names the Standard handler but is malformed: the real pdf-lib fails to decrypt it.
+    await loadPdf('flaky.pdf', 'cannotDecrypt');
     expect(statusOf()).toBe('error');
     const quiet = $('[data-quiet-download]');
     expect(quiet).not.toBeNull();
@@ -745,7 +781,8 @@ describe('PdfCompressTool flows in a real browser', () => {
   describe('a protected PDF', () => {
     const buttons = () => $$('button').map((b) => b.textContent!.trim());
     const loaded = () => $('[data-compress-status]') !== null;
-    const protectedFile = (name: string) => new File([BYTES[{ 'needs-password': 'needsPassword', 'owner-only': 'ownerOnly', plain: 'plain' }[name]!] as BlobPart], `${name}.pdf`, { type: 'application/pdf' });
+    const shapeOf = (name: string) => ({ 'needs-password': 'needsPassword', 'owner-only': 'ownerOnly', plain: 'plain' }[name]!);
+    const protectedFile = (name: string) => new File([BYTES[shapeOf(name)] as BlobPart], `${name}.pdf`, { type: 'application/pdf' });
     // The real classifier runs under pdf.js, which is slow to start: wait for the state the pick ends in.
     const pickProtected = async (file: File) => {
       await act(async () => { setInputFiles(fileInput, [file]); });
@@ -796,9 +833,10 @@ describe('PdfCompressTool flows in a real browser', () => {
       }
 
       mount();
-      // forced: the probe rejects, which no file makes it do
-      vi.mocked(encryption.probeEncryption).mockRejectedValueOnce(new Error('pdfjs failed'));
-      await pickProtected(protectedFile('plain'));
+      // A malformed /Encrypt makes pdf.js's probe reject with an error of its own.
+      await act(async () => { setInputFiles(fileInput, [new File([BYTES.badEncrypt as BlobPart], 'bad-encrypt.pdf', { type: 'application/pdf' })]); });
+      await waitUntil(() => expect(statusOf()).toBe('done'));
+      await drain();
       expect($('[data-needs-unlock]')).toBeNull();
       expect(loaded()).toBe(true);
       expect(statusOf()).toBe('done');
@@ -806,19 +844,17 @@ describe('PdfCompressTool flows in a real browser', () => {
     });
 
     it('nothing runs until the password check answers, and an answer that lands after a newer pick is dropped', async () => {
-      // forced: the password check is held open until the test releases it
-      let release!: (answer: Awaited<ReturnType<typeof encryption.probeEncryption>>) => void;
-      const probed = Promise.withResolvers<void>();
-      vi.mocked(encryption.probeEncryption).mockImplementationOnce(() => new Promise((resolve) => { release = resolve; probed.resolve(); }));
+      // The password check reads the file first, so a held file holds the check until the test releases it.
+      const checking = heldPdf('plain', 'plain.pdf');
       mount();
-      await act(async () => { setInputFiles(fileInput, [protectedFile('plain')]); });
-      await probed.promise;
+      await act(async () => { setInputFiles(fileInput, [checking]); });
+      await checking.started;
       await drain();
       // The strip is up while the check is out, but no build has started.
       expect(imagesLib.compressPdfImages).not.toHaveBeenCalled();
       expect(runNo()).toBe('0');
       expect(statusOf()).not.toMatch(/^(processing|done)$/);
-      await act(async () => { release('open'); });
+      await act(async () => { checking.release(); });
       await waitUntil(() => expect(statusOf()).toBe('done'));
       await drain();
       expect(imagesLib.compressPdfImages).toHaveBeenCalledTimes(1);
@@ -828,17 +864,21 @@ describe('PdfCompressTool flows in a real browser', () => {
       for (const newer of ['pdf', 'image'] as const) {
         mount();
         vi.mocked(imagesLib.compressPdfImages).mockClear();
-        // forced: the first check (a password file) is held open while a newer pick lands
-        const answer = Promise.withResolvers<Awaited<ReturnType<typeof encryption.probeEncryption>>>();
-        const asked = Promise.withResolvers<void>();
-        vi.mocked(encryption.probeEncryption).mockImplementationOnce(() => { asked.resolve(); return answer.promise; });
-        // The tool awaited `answer` first, so this runs after the tool has been handed the result.
-        const handedOver = answer.promise.then(() => {});
-        await act(async () => { setInputFiles(fileInput, [protectedFile('needs-password')]); });
-        await asked.promise;
+        // The first check (a password file) is held open by its file while a newer pick lands. The spy on its read
+        // returns the product's own promise for it: the check carries on in that promise's continuation.
+        const stale = heldPdf('needsPassword', 'needs-password.pdf');
+        const staleRead = vi.spyOn(stale, 'arrayBuffer');
+        await act(async () => { setInputFiles(fileInput, [stale]); });
+        await stale.started;
         if (newer === 'pdf') await pickProtected(protectedFile('plain'));
         else await pickProtected(makeImageFile('photo.jpg'));
-        await act(async () => { answer.resolve('needs-password'); await handedOver; await drainPromises(); });
+        await act(async () => {
+          stale.release();
+          // The product asked for its bytes before this line did, so its check has begun by the time this resolves.
+          await staleRead.mock.results[0].value;
+          await vi.mocked(encryption.probeEncryption).mock.results.at(-1)!.value;
+          await drainPromises();
+        });
         expect($('[data-needs-unlock]')).toBeNull();
         expect(statusOf()).toBe('done');
         expect(runNo()).toBe('1');

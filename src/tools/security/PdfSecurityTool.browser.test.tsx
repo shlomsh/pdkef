@@ -102,7 +102,6 @@ describe('PdfSecurityTool page preview drawn in Chromium', () => {
   });
 
   it('keeps the previous image on screen until the unlocked output is drawn, and what is drawn no longer asks for a password', async () => {
-    const actualRender = (await vi.importActual<typeof import('#lib/pdf/thumbnails.js')>('#lib/pdf/thumbnails.js')).renderComparePreview;
     const file = pdfFile(BYTES.ownerRestricted);
     const original = file.arrayBuffer.bind(file);
     const unlockRead = Promise.withResolvers<void>();
@@ -119,23 +118,27 @@ describe('PdfSecurityTool page preview drawn in Chromium', () => {
     expect(firstSrc).toMatch(/^data:image\/png;base64,/);
     expect(await vi.mocked(renderComparePreview).mock.results[0].value).toBe(firstSrc);
     expect(frameBusy()).not.toBe('true');
-    // forced: the output's render is held open until the test releases it
-    const renderHeld = Promise.withResolvers<void>();
-    const renderStarted = Promise.withResolvers<void>();
-    let secondSrc = '';
-    vi.mocked(renderComparePreview).mockImplementationOnce(async (...args) => {
-      renderStarted.resolve();
-      await renderHeld.promise;
-      secondSrc = await actualRender(...args);
-      return secondSrc;
+    // The real render of the output runs in Chromium; the frame is watched, not held. Every change of the busy flag or
+    // of the image is recorded with what the frame showed at that moment.
+    const frame = container.querySelector('[data-page-frame]');
+    if (!frame) throw new Error('Expected the preview frame');
+    const seen: { busy: string | null; src: string | null | undefined }[] = [];
+    const watcher = new MutationObserver(() => {
+      seen.push({ busy: frame.getAttribute('aria-busy'), src: frame.querySelector('img')?.getAttribute('src') });
     });
+    watcher.observe(frame, { attributes: true, attributeFilter: ['aria-busy', 'src'], childList: true, subtree: true });
     await act(async () => { unlockHeld.resolve(); });
-    await waitUntil(() => expect(frameBusy()).toBe('true'));
-    await renderStarted.promise;
+    await waitUntil(() => {
+      expect(tagOf()).toBe('Unlocked');
+      expect(frameBusy()).not.toBe('true');
+    });
+    await drain();
+    watcher.disconnect();
     expect(renderComparePreview).toHaveBeenCalledTimes(2);
-    expect(previewSrc()).toBe(firstSrc);
-    await act(async () => { renderHeld.resolve(); });
-    await waitUntil(() => expect(frameBusy()).not.toBe('true'));
+    const busyRecords = seen.filter((record) => record.busy === 'true');
+    expect(busyRecords.length).toBeGreaterThan(0);
+    expect(busyRecords.every((record) => record.src === firstSrc)).toBe(true);
+    const secondSrc = await vi.mocked(renderComparePreview).mock.results.at(-1)?.value;
     expect(previewSrc()).toBe(secondSrc);
     expect(tagOf()).toBe('Unlocked');
     const drawn = vi.mocked(renderComparePreview).mock.calls.at(-1)?.[0];

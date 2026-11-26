@@ -6,6 +6,7 @@ import { describe, expect, it, vi, beforeAll, beforeEach, afterEach } from 'vite
 import PdfSignTool from '../../tools/sign/PdfSignTool.tsx';
 import PdfRedactTool from '../../tools/redact/PdfRedactTool.tsx';
 import { cacheRecentFile, loadDraft, peekHandoff, saveDraft, saveHandoff } from '#lib/drafts/draftStore.ts';
+import { holdDraftStore } from '#lib/drafts/heldStore.test-helper.ts';
 import { drainPromises } from '../support/drainPromises.ts';
 import { waitUntil } from '../support/waitUntil.ts';
 import { setInputFiles } from '../support/setInputFiles.js';
@@ -24,20 +25,12 @@ import { buildPdf } from '../support/redactCheckPdfs.test-helper.ts';
 // overwrite the other's state, regardless of which one the user actually wanted.
 //
 // The draft store runs for real on fake-indexeddb: a test seeds the draft an earlier session left and the
-// hand-off the home page parked. The forced lines on the spy keep the race controllable: loadDraft reads the
-// real record at once but answers only when the test opens a gate (a slow IndexedDB read); the real hasDraftHint
-// is false because the seed removes its recents entry.
+// hand-off the home page parked. A slow IndexedDB read is a real write transaction held on the store
+// (holdDraftStore), released when the test opens it; the real hasDraftHint is false because the seed
+// removes its recents entry.
 
 async function makePdfFile(name: string) {
   return new File([(await buildPdf([{ lines: [name] }])).slice().buffer], name, { type: 'application/pdf' });
-}
-
-function deferred() {
-  let resolve!: (value: unknown) => void;
-  const promise = new Promise<unknown>((res) => {
-    resolve = res;
-  });
-  return { promise, resolve };
 }
 
 // The seeded draft would open the tool in its restoring state, with no file input to pick with. Dropping its entry
@@ -72,8 +65,6 @@ async function seedRedactDraft(fileName: string, boxes: unknown[]) {
   hideSeededHint();
 }
 
-let gate: ReturnType<typeof deferred>;
-
 /** The same record with its bytes copied into the jsdom realm, where the shipped pdf.js accepts them. */
 const inJsdomRealm = <T extends { fileBytes?: ArrayBuffer } | null | undefined>(record: T): T => (
   record?.fileBytes ? { ...record, fileBytes: new Uint8Array(record.fileBytes).slice().buffer } : record
@@ -84,17 +75,15 @@ vi.mock('#lib/drafts/draftStore.ts', { spy: true });
 const announced = (container: HTMLElement, tag: 'p' | 'div') =>
   container.querySelector(`${tag}.sr-only[role="status"]`)?.textContent ?? '';
 
-// The product awaits loadDraft() and then checks whether the restore was superseded. Our await on the
-// same promise runs after its continuation (same promise, reactions in order), so by then the stale
-// restore has either been dropped or has started applying; the drain carries the rest into the render.
-let restoreResult: Promise<unknown> | undefined;
-async function resolveRestore({ readExpected = true } = {}) {
-  // The restore read starts only once the hand-off check before it has answered: wait for it, then open the gate.
-  // (A pending hand-off opens its file first and the draft is never read.)
-  if (readExpected) await waitUntil(() => restoreResult !== undefined);
+// The product awaits the held read and then checks whether the restore was superseded. Releasing the hold lets
+// the stale restore run for real; the drain carries it into the render.
+let hold: Awaited<ReturnType<typeof holdDraftStore>>;
+let restoreRead: PromiseWithResolvers<Promise<unknown>>;
+async function resolveRestore() {
   await act(async () => {
-    gate.resolve(null);
-    await restoreResult;
+    await hold.release();
+    // The restore's own read, which the product awaits on this same promise.
+    await (await restoreRead.promise);
     await drainPromises();
   });
 }
@@ -109,18 +98,8 @@ async function pickFile(container: HTMLElement, file: File) {
 describe('draft-restore vs. manual file pick race', () => {
   let container: HTMLElement | null = null;
 
-  // Forced: fake-indexeddb clones with Node's structuredClone, so a restored draft's bytes are a Node-realm ArrayBuffer that fails the shipped pdf.js's `instanceof ArrayBuffer` in jsdom ('Invalid PDF binary data', measured: `structuredClone(buffer) instanceof ArrayBuffer` is false); the bytes are copied into jsdom's realm and pdf.js still parses them for real.
-  // Forced: a held store would also hold the picked file's own save, so the draft read would not be the stale one the race needs; the restore read starts at once on the real store but answers when the gate opens.
-  const holdRestore = () => {
-    gate = deferred();
-    restoreResult = undefined;
-    vi.mocked(loadDraft).mockImplementationOnce(async (name) => {
-      const real = await vi.importActual<typeof import('#lib/drafts/draftStore.ts')>('#lib/drafts/draftStore.ts');
-      const record = real.loadDraft(name).then(inJsdomRealm);
-      restoreResult = record;
-      await gate.promise;
-      return record;
-    });
+  const holdRestore = async () => {
+    hold = await holdDraftStore();
   };
 
   // The chunks a restored or picked file loads lazily (annotation read-back, the pdf-lib wrapper, field
@@ -134,11 +113,17 @@ describe('draft-restore vs. manual file pick race', () => {
     ]);
   });
 
-  beforeEach(() => {
+  beforeEach(async () => {
     indexedDB = new IDBFactory();
     localStorage.clear();
-    vi.mocked(loadDraft).mockReset();
-    // Forced: the hand-off record's bytes come out of fake-indexeddb in the Node realm too (see holdRestore); the real read runs, its bytes are copied into jsdom's realm.
+    // Forced: fake-indexeddb clones with Node's structuredClone, so a restored draft's or hand-off's bytes are a Node-realm ArrayBuffer that fails the shipped pdf.js's `instanceof ArrayBuffer` in jsdom ('Invalid PDF binary data', measured with the wrappers removed); the real reads run, their bytes are copied into jsdom's realm, and pdf.js parses them for real. A browser has one realm, so no product line changes for it.
+    restoreRead = Promise.withResolvers();
+    const real = await vi.importActual<typeof import('#lib/drafts/draftStore.ts')>('#lib/drafts/draftStore.ts');
+    vi.mocked(loadDraft).mockImplementation((...args) => {
+      const record = real.loadDraft(...args).then(inJsdomRealm);
+      restoreRead.resolve(record);
+      return record;
+    });
     vi.mocked(peekHandoff).mockImplementation(async (...args) => {
       const real = await vi.importActual<typeof import('#lib/drafts/draftStore.ts')>('#lib/drafts/draftStore.ts');
       return inJsdomRealm(await real.peekHandoff(...args));
@@ -163,7 +148,7 @@ describe('draft-restore vs. manual file pick race', () => {
     await seedDraft('draft-old.pdf', [
       { id: 'stale-1', pageIndex: 0, x: 10, y: 10, type: 'text', text: 'stale' }
     ]);
-    holdRestore();
+    await holdRestore();
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => {
@@ -191,16 +176,14 @@ describe('draft-restore vs. manual file pick race', () => {
 
   it('PdfSignTool: restores the draft normally when no manual pick preempts it', async () => {
     await seedDraft('draft-old.pdf', []);
-    holdRestore();
+    await holdRestore();
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => {
       render(<PdfSignTool />, container!);
     });
 
-    await act(async () => {
-      gate.resolve(null);
-    });
+    await resolveRestore();
     await waitUntil(() => announced(container!, 'p').includes('Restored your last draft of "draft-old.pdf"'));
 
     const announcement = container.querySelector('p.sr-only[role="status"]');
@@ -211,7 +194,7 @@ describe('draft-restore vs. manual file pick race', () => {
     await seedRedactDraft('draft-old.pdf', [
       { id: 'stale-1', pageIndex: 0, left: 5, top: 5, width: 10, height: 10, style: 'blackout' }
     ]);
-    holdRestore();
+    await holdRestore();
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => {
@@ -237,16 +220,14 @@ describe('draft-restore vs. manual file pick race', () => {
     await seedRedactDraft('draft-old.pdf', [
       { id: 'stale-1', pageIndex: 0, left: 5, top: 5, width: 10, height: 10, style: 'blackout' }
     ]);
-    holdRestore();
+    await holdRestore();
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => {
       render(<PdfRedactTool />, container!);
     });
 
-    await act(async () => {
-      gate.resolve(null);
-    });
+    await resolveRestore();
     await waitUntil(() => announced(container!, 'div').includes('Restored your last draft of "draft-old.pdf"')
       && container!.querySelectorAll('[data-redact-box-id]').length === 1);
 
@@ -266,7 +247,6 @@ describe('draft-restore vs. manual file pick race', () => {
       fileType: 'application/pdf',
       fileBytes: (await buildPdf([{ lines: ['home drop'] }])).slice().buffer
     })).toBe(true);
-    holdRestore();
 
     container = document.createElement('div');
     document.body.appendChild(container);
@@ -274,11 +254,10 @@ describe('draft-restore vs. manual file pick race', () => {
       render(<PdfSignTool />, container!);
     });
 
-    // Let the draft resolve too: it must lose, and it must lose deterministically
-    // rather than because the handoff happened to be quicker.
-    await resolveRestore({ readExpected: false });
+    // The draft is in the real store the whole time: it must lose, and it must lose by the order of the
+    // checks rather than because the handoff happened to be quicker.
     await waitUntil(() => announced(container!, 'p').includes('dropped-on-home.pdf'));
-    await resolveRestore({ readExpected: false });
+    await act(async () => { await drainPromises(); });
 
     const announcement = container.querySelector('p.sr-only[role="status"]');
     expect(announcement.textContent).toContain('dropped-on-home.pdf');
@@ -287,16 +266,14 @@ describe('draft-restore vs. manual file pick race', () => {
 
   it('PdfSignTool: falls back to the draft when there is no handoff waiting', async () => {
     await seedDraft('draft-old.pdf', []);
-    holdRestore();
+    await holdRestore();
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => {
       render(<PdfSignTool />, container!);
     });
 
-    await act(async () => {
-      gate.resolve(null);
-    });
+    await resolveRestore();
     await waitUntil(() => announced(container!, 'p').includes('Restored your last draft of "draft-old.pdf"'));
 
     expect(peekHandoff).toHaveBeenCalledWith('sign');

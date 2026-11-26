@@ -63,7 +63,8 @@ describe('useObjectPreviews when the document is replaced and destroyed mid-read
       }),
       commonObjs: { get: () => null },
     };
-    // Forced: a real destroyed document never fails its read this way: pdf.js drops the terminated task and the read just hangs.
+    // Forced: the hook gives no moment between its getPage and getOperatorList to destroy a real document in, so this page
+    // fails its read once the document is replaced, with the TypeError a real destroyed page throws (readGlyphs.test.js runs that one).
     const oldDoc = fakePdfDocument({ getPage: vi.fn(async () => page) });
     // Forced: the new document's read stays pending, as it does while pdf.js loads.
     const newDoc = fakePdfDocument({ getPage: vi.fn(() => new Promise(() => {})) });

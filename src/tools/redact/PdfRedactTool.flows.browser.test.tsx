@@ -13,6 +13,7 @@ import { getPdfjs } from '#editor/adapters/pdf/pdfjsLoader.js';
 import { sendHandoff } from '#lib/handoff/sendHandoff.ts';
 import { resetRatingPromptForTests } from '#shell/RatingPrompt.tsx';
 import { waitUntil } from '../../test/support/waitUntil.ts';
+import { openNewerStore } from '#lib/drafts/newerStore.test-helper.ts';
 import { drainPromises } from '../../test/support/drainPromises.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { installBrowserToolHarness } from '../../test/harness/browserToolHarness.ts';
@@ -254,16 +255,14 @@ describe('PdfRedactTool flows', () => {
     await act(async () => { toolbarBtn('Redo').click(); });
     await waitUntil(() => expect(candidates()).toHaveLength(1));
 
-    // forced: a browser with no element full screen (iPhone Safari), where the tool draws its own; read once, by the first press (workspaceFullscreen.ts:36)
-    const fullscreenEnabled = vi.spyOn(Document.prototype, 'fullscreenEnabled', 'get').mockReturnValueOnce(false);
+    // A synthetic click carries no user activation, so Chromium itself refuses requestFullscreen and the tool draws its own full screen.
     const workspace = () => query<HTMLElement>(s.container, '[data-workspace]');
     const toggle = (label: string) => required(s.container.querySelector<HTMLButtonElement>(`button[title="${label}"]`), label);
     expect(workspace().hasAttribute('data-pseudo-fullscreen')).toBe(false);
     await act(async () => { toggle('Full screen').click(); });
-    expect(workspace().hasAttribute('data-pseudo-fullscreen')).toBe(true);
+    await waitUntil(() => expect(workspace().hasAttribute('data-pseudo-fullscreen')).toBe(true));
     await act(async () => { toggle('Exit full screen').click(); });
     expect(workspace().hasAttribute('data-pseudo-fullscreen')).toBe(false);
-    fullscreenEnabled.mockRestore();
   });
 
   it('Download while peeking, under a typed name: the editor stays open, both files show the box, and the second Download keeps the strip and the one rating dialog', async () => {
@@ -589,25 +588,16 @@ describe('PdfRedactTool flows', () => {
     await waitUntil(() => titleOf() === 'This PDF has a password');
     await expectState('This PDF has a password', 'Unlock opens it on your device, then you can redact it.');
 
-    // Only the first open after the click is refused (the hand-off write; the file is unedited, so nothing else opens
-    // the database then); every other open goes to the real IndexedDB.
-    const realOpen = indexedDB.open.bind(indexedDB);
-    let refuseNext = false;
-    // Forced: the device refuses the write (storage full). Chromium's quota override (CDP Storage.overrideQuotaForOrigin) did not fail a real IndexedDB write here, so the open is refused instead.
-    const refused = vi.spyOn(indexedDB, 'open').mockImplementation((...args) => {
-      if (!refuseNext) return realOpen(...args);
-      refuseNext = false;
-      const request: { error?: DOMException; onerror?: () => void } = {};
-      queueMicrotask(() => { request.error = new DOMException('full', 'QuotaExceededError'); request.onerror?.(); });
-      return request as unknown as IDBOpenDBRequest;
+    // The device refuses the hand-off write: the store is already at a newer version, so the product's own open fails with a real VersionError.
+    await openNewerStore();
+    await act(async () => { unlockButton().click(); });
+    await waitUntil(() => expect(state()?.textContent ?? '').toContain("Couldn't open Unlock with this file. Open Unlock and choose it there."));
+    // The harness reads the hand-off at version 1, so the newer database goes first.
+    await new Promise<void>((resolve, reject) => {
+      const request = indexedDB.deleteDatabase('pdf-toolkit-workspace');
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
     });
-    try {
-      refuseNext = true;
-      await act(async () => { unlockButton().click(); });
-      await settleUntil('the failure line', () => (state()?.textContent ?? '').includes("Couldn't open Unlock with this file. Open Unlock and choose it there."));
-    } finally {
-      refused.mockRestore();
-    }
     expect(unlockButton().disabled).toBe(false);
     expect(await s.harness.takeHandoff('unlock')).toBeNull();
     expect(await failedOperations()).toEqual([]);

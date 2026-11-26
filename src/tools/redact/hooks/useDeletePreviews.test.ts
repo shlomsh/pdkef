@@ -108,8 +108,10 @@ describe('useDeletePreviews', () => {
     vi.spyOn(console, 'error');
     const { fileBytes, elements } = await fileWithFirstLineDeleted(['Alpha one', 'Alpha two']);
     const load = vi.spyOn(PDFDocument, 'load');
-    // Forced: a read failing once on bytes that load fine is not something the real loader does.
-    load.mockRejectedValueOnce(new Error('load failed'));
+    // Real failing parse: the same buffer without its PDF header makes pdf-lib throw; the header is put back below.
+    const head = new Uint8Array(fileBytes, 0, 8);
+    const header = head.slice();
+    head.fill(0);
 
     let latest: any = null;
     const onPreviews = (p: unknown) => { latest = p; };
@@ -118,12 +120,14 @@ describe('useDeletePreviews', () => {
     await waitUntil(() => expect(console.error).toHaveBeenCalled(), { timeout: 3000 });
     await act(async () => { await drainPromises(); });
     expect(latest.size).toBe(0);
+    await expect(load.mock.results[0].value).rejects.toThrow();
+    head.set(header);
 
     // A new elements array for the same bytes (the person marks again) rebuilds.
     act(() => {
       render(h(Harness, { fileBytes, elements: [{ ...elements[0] }], onPreviews }), container!);
     });
-    await waitUntil(() => latest.size === 1, { timeout: 3000 });
+    await waitUntil(() => expect(latest.size).toBe(1), { timeout: 3000 });
 
     expect(load).toHaveBeenCalledTimes(2);
     expect(latest.size).toBe(1);

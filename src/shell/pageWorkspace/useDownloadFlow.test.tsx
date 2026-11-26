@@ -9,11 +9,12 @@ import { recentActions, resetActionTrailForTests } from '#lib/telemetry/actionTr
 import { openNewerStore } from '#lib/drafts/newerStore.test-helper.ts';
 import { holdDraftStore } from '#lib/drafts/heldStore.test-helper.ts';
 import { setScreen } from '../../test/support/screen.ts';
+import { HeldFile } from '../../test/support/heldFile.ts';
 import { decideDownloadState, deliverParts, useDownloadFlow, type DownloadFlowInput } from './useDownloadFlow.ts';
 
 vi.mock('#lib/telemetry/productAnalytics.ts', { spy: true });
 // The draft store runs for real on fake-indexeddb; the spy sees the call. A refused save is a real VersionError,
-// a held save is a real held transaction, and a save that throws or fails late is forced.
+// a held save is a real held transaction, and a late failure is a real failure behind a held read of the output.
 vi.mock('#lib/drafts/draftStore.ts', { spy: true });
 
 type Prepared = DownloadFlowInput['prepared'];
@@ -415,18 +416,21 @@ describe('useDownloadFlow', () => {
   });
 
   it('a superseded hand-off whose save fails later leaves the newer hand-off busy', async () => {
-    let failA!: (saved: boolean) => void;
-    // Forced: a real store cannot be made to fail the first of two saves late and hold the second.
-    vi.mocked(saveHandoff)
-      .mockReturnValueOnce(new Promise<boolean>((resolve) => { failA = resolve; }))
-      .mockReturnValueOnce(new Promise<boolean>(() => {}));
-    mount({ ...base(ready()), navigate: vi.fn() });
+    // Each hand-off reads its own held output, so A's read can be released alone. The store is refused for real
+    // (a newer database version), so A's save fails with the real error once its read lets it reach the store.
+    await openNewerStore();
+    const heldA = new HeldFile(new Uint8Array([1]), 'a.pdf');
+    const heldB = new HeldFile(new Uint8Array([2]), 'b.pdf');
+    const navigate = vi.fn();
+    mount({ ...base({ ...ready(), blob: heldA }), navigate });
     let runA!: Promise<void>;
-    await act(async () => { runA = flow.requestHandoff('compress'); await Promise.resolve(); });
+    await act(async () => { runA = flow.requestHandoff('compress'); await heldA.started; });
     act(() => flow.reset());
-    await act(async () => { void flow.requestHandoff('merge'); await Promise.resolve(); });
+    mount({ ...base({ ...ready(), blob: heldB }), navigate });
+    await act(async () => { void flow.requestHandoff('merge'); await heldB.started; });
     expect(flow.handoffBusy).toBe(true);
-    await act(async () => { failA(false); await runA; });
+    await act(async () => { heldA.release(); await runA; });
+    expect(await vi.mocked(saveHandoff).mock.results.at(-1)!.value).toBe(false);
     expect(flow.handoffBusy).toBe(true);
     expect(flow.handoffFailed).toBe(false);
   });

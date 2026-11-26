@@ -20,6 +20,7 @@ import { DETAILS_SURVIVED_ANNOUNCEMENT } from '../lib/check/checkCopy.ts';
 import { runSavedFileCheck } from '../lib/check/runCheck.ts';
 import { waitUntil } from '../../../test/support/waitUntil.ts';
 import { drainPromises } from '../../../test/support/drainPromises.ts';
+import { HeldFile } from '../../../test/support/heldFile.ts';
 
 const toBuffer = (data: Uint8Array) => data.slice().buffer as ArrayBuffer;
 
@@ -123,18 +124,14 @@ describe('useSavedFileCheck results', () => {
   const blobWithThumbnail = () => exportOf(savedWithThumbnail);
   // Everything after the hook's first await is settled promises, so one event-loop turn runs it out.
   const settle = () => act(async () => { await drainPromises(); });
-  // The next check waits for `release`, then runs for real. `started` says it began.
-  const slowNextCheck = async () => {
-    const actual = await vi.importActual<typeof import('../lib/check/runCheck.ts')>('../lib/check/runCheck.ts');
-    const started = Promise.withResolvers<void>();
-    const release = Promise.withResolvers<void>();
-    // Forced: timing in the middle of a check, no real file is slow.
-    vi.mocked(runSavedFileCheck).mockImplementationOnce(async (args) => {
-      started.resolve();
-      await release.promise;
-      return actual.runSavedFileCheck(args);
-    });
-    return { started: started.promise, release: release.resolve };
+  // A saved export whose read waits for release(): the older export is still being read when a newer one arrives.
+  const heldExport = () => new HeldFile(savedWithThumbnail as Uint8Array<ArrayBuffer>, 'saved.pdf');
+  // After release the older effect reads, then starts its real check, which is the last call so far.
+  const olderCheckFinished = async (calls: number) => {
+    await settle();
+    expect(runSavedFileCheck).toHaveBeenCalledTimes(calls);
+    await act(async () => { await vi.mocked(runSavedFileCheck).mock.results[calls - 1].value; });
+    await settle();
   };
 
   // A rendered hook whose export can change under it, as it does when the person edits and exports again.
@@ -165,8 +162,8 @@ describe('useSavedFileCheck results', () => {
 
   it('does not let a slow check for an old export overwrite the result of the newer export', async () => {
     const announce = vi.fn();
-    const older = await slowNextCheck();
-    const { seen, exportAgain } = mount(blobWithThumbnail(), announce);
+    const older = heldExport();
+    const { seen, exportAgain } = mount(older, announce);
     await act(async () => { await older.started; });
     await exportAgain(blob());
     await waitUntil(() => seen.state.status === 'done');
@@ -174,8 +171,7 @@ describe('useSavedFileCheck results', () => {
     expect(newer).toMatchObject({ status: 'done', typed: [] });
 
     older.release();
-    await act(async () => { await vi.mocked(runSavedFileCheck).mock.results[0].value; });
-    await settle();
+    await olderCheckFinished(2);
     expect(seen.state).toBe(newer);
     expect(seen.detailsSurvived).toEqual([]);
     expect(announce).not.toHaveBeenCalled();
@@ -183,16 +179,15 @@ describe('useSavedFileCheck results', () => {
 
   it('shows nothing once the export goes stale, even when its check finishes afterwards', async () => {
     const announce = vi.fn();
-    const pending = await slowNextCheck();
-    const { seen, exportAgain } = mount(blobWithThumbnail(), announce);
+    const pending = heldExport();
+    const { seen, exportAgain } = mount(pending, announce);
     await act(async () => { await pending.started; });
     expect(seen.state.status).toBe('checking');
     await exportAgain(null);
     expect(seen.state.status).toBe('idle');
 
     pending.release();
-    await act(async () => { await vi.mocked(runSavedFileCheck).mock.results[0].value; });
-    await settle();
+    await olderCheckFinished(1);
     expect(seen.state.status).toBe('idle');
     expect(seen.detailsSurvived).toEqual([]);
     expect(announce).not.toHaveBeenCalled();
