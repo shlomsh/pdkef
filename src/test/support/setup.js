@@ -30,10 +30,14 @@ if (typeof globalThis.IntersectionObserver === 'undefined') {
   };
 }
 
-// Forced: jsdom has no matchMedia; this one evaluates each query against the screen state a test sets
-// with setScreen (src/test/support/screen.ts), a desktop by default.
-if (typeof window !== 'undefined') window.matchMedia = matchMedia;
-afterEach(() => resetScreen());
+// jsdom has no matchMedia; this one evaluates each query against the screen state a test sets with
+// setScreen (src/test/support/screen.ts), a desktop by default. A real browser (the browser project
+// loads this file too) keeps its own.
+if (typeof window !== 'undefined' && typeof window.matchMedia === 'undefined') {
+  // Forced: jsdom has no matchMedia at all.
+  window.matchMedia = matchMedia;
+  afterEach(() => resetScreen());
+}
 
 // Keep jsdom's intentionally-unimplemented browser APIs from drowning out a
 // real test diagnostic. These are the two known, benign messages emitted by

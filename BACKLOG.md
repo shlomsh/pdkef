@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 182 live: 79 up next, 24 then, 26 waiting, 53 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 183 live: 79 up next, 24 then, 26 waiting, 54 parked.
 
 ## Redact: finish removal
 
@@ -334,6 +334,12 @@ One landmines rule at a time: fix its sites, turn it on in CI. Where a rule miss
 | --- | --- | --- | --- |
 | LAND-04 | P3 | [LAND-04](backlog/tasks/LAND-04.md) · Fewer replaced dependencies in unit tests | In progress |
 | LAND-05 | P3 | [LAND-05](backlog/tasks/LAND-05.md) · Tests live beside what they test | In progress |
+
+### Parked
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| DEBT-78 | P3 | [DEBT-78](backlog/tasks/DEBT-78.md) · The app's media queries read through one module |  |
 
 ## Polish
 

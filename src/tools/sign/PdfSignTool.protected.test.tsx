@@ -62,6 +62,7 @@ describe('a protected PDF in Sign (ENC-07)', () => {
     container.remove();
     document.body.innerHTML = '';
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
     window.history.pushState({}, '', '/');
     harness.restore();
   });
@@ -85,10 +86,13 @@ describe('a protected PDF in Sign (ENC-07)', () => {
   it('Unlock it parks the file for Unlock, then navigates there', async () => {
     await pick(fixture('owner-only.pdf'));
     await stateShown();
+    const location = { href: '/sign/' };
+    // Forced: no navigation in jsdom, so location is replaced to see where the button sends the page
+    vi.stubGlobal('location', location);
     await act(async () => { unlockButton().click(); });
-    // jsdom does not navigate (e2e/handoff/encrypted-roundtrip-sign.spec.js follows the button to /unlock/); the hand-off
-    // marker is set once the file is parked, which is what the next page reads before it paints.
-    await waitUntil(() => sessionStorage.getItem('pdkef:handoff-pending:unlock') !== null);
+    await waitUntil(() => location.href === '/unlock/');
+    // The hand-off marker is set once the file is parked: the next page reads it before it paints.
+    expect(sessionStorage.getItem('pdkef:handoff-pending:unlock')).not.toBeNull();
     const parked = await harness.takeHandoff('unlock');
     expect(parked).toEqual(expect.objectContaining({ fileName: 'owner-only.pdf', fileType: 'application/pdf', from: 'sign' }));
     // The bytes are the file's own (read back from IndexedDB, so a different realm's ArrayBuffer).
