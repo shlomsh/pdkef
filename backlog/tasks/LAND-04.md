@@ -402,10 +402,15 @@ count). The rule is off meanwhile.
   screen. A destroyed page's read gets a lower test on a real destroyed document. 314 sites down to 302 in 126 files. Kept:
   the page loaders of the page workspace and Split, which run on bytes already read; the draft restore's realm copy, which
   only jsdom needs (a real browser has one realm, so no product change); Merge's 200 MB draft, whose real read costs 430 MB.
+- Two browser tests (2026-11-26, wave 22, Shlomi's call on a short list of 32): page sharpness in every editor page view, and
+  the rescue of a damaged PNG in Image to PDF and Merge, both core and out of reach of jsdom. Each is one test, and two pairs
+  of narrow browser tests merged, every assertion kept, so the browser count stays at 156. 302 sites down to 292 in 122
+  files. The other 30 candidates keep their mocks: the service worker and the update flow are proved by e2e, the rest are
+  covered by a real browser elsewhere or not core.
 
 ## What is left (2026-11-26)
 
-Every site left carries its `// Forced:` reason, 302 in 126 files:
+Every site left carries its `// Forced:` reason, 292 in 122 files:
 
 - The largest part is what jsdom and Node do not have: the share sheet,
   fullscreen, dialogs, the visual viewport, the clipboard, workers, observers that report, a service worker and its windows.
