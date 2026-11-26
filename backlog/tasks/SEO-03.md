@@ -275,6 +275,9 @@ Read: 2026-12-01, against the baseline above, logged in [findings doc section 8]
   [hemanth/awesome-pwa#640](https://github.com/hemanth/awesome-pwa/pull/640) (Tools and Utilities) and
   [diegoleme/awesome-open-source-alternatives#99](https://github.com/diegoleme/awesome-open-source-alternatives/pull/99)
   (Adobe Acrobat). Its rules warn that very new projects may be asked to come back later.
+- 2026-11-26, awesome-pwa: listed. After a README merge conflict the maintainer pulled the entry into
+  `master` directly (commit `11a6aab`, co-author credit) and closed #640, so the closed PR is a landed
+  listing, not a rejection. The status of #99 was not checked on this date.
 - OpenAlternative: not submitted 2026-11-18. Its guidelines ask for 250+ stars under 6 months old, 50+
   after (PDkef: 9). Shlomi has an account; submit once the repo is past 6 months and 50 stars.
 - 2026-11-18, Bing Webmaster Tools: pdkef.com imported from Search Console (Shlomi signed in with Google
