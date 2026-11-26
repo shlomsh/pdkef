@@ -6,6 +6,7 @@ import { openNewerStore } from '#lib/drafts/newerStore.test-helper.ts';
 import { DRIVE_SAVE_CHANNEL, DRIVE_TOKEN_KEY } from '#lib/handoff/driveSaveLink.ts';
 import { reportResult, reportToolLifecycleEvent as report, resetUsageEventsForTests } from '#lib/telemetry/productAnalytics.ts';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
+import { setScreen } from '../../test/support/screen.ts';
 import { waitUntil } from '../../test/support/waitUntil.ts';
 import { driveSavePayload, useSaveToDrive } from './useSaveToDrive.ts';
 
@@ -56,16 +57,19 @@ describe('useSaveToDrive', () => {
     act(() => render(<Probe {...full} />, container));
   };
   const build = async () => ({ blob: pdf, fileName: 'a.pdf' });
-  beforeEach(() => {
-    container = document.createElement('div');
-    harness = installToolHarness({ trackIndexedDb: true });
-    tabs.length = 0;
-    // Forced: jsdom has no popups.
+  // Forced: jsdom opens nothing and returns undefined, which the product reads as a blocked popup; the open path needs a tab.
+  const allowPopups = () => {
     open = vi.spyOn(window, 'open').mockImplementation(() => {
       const tab: Tab = { closed: false, close() { this.closed = true; } };
       tabs.push(tab);
       return tab as unknown as Window;
     });
+  };
+  beforeEach(() => {
+    container = document.createElement('div');
+    harness = installToolHarness({ trackIndexedDb: true });
+    tabs.length = 0;
+    allowPopups();
     vi.mocked(saveHandoff).mockReset();
     vi.mocked(report).mockClear();
     vi.mocked(reportResult).mockClear();
@@ -94,17 +98,21 @@ describe('useSaveToDrive', () => {
   });
 
   it('is available only on a hover and fine pointer device', () => {
-    // Forced: a phone, where the hover and fine pointer query is false
-    vi.stubGlobal('matchMedia', () => ({ matches: false }));
+    // The device is read once when the hook mounts, so each answer gets a fresh mount.
+    const remount = (generation: number) => { act(() => render(null, container)); mount({ generation }); };
     mount();
+    expect(latest.available).toBe(true);
+    setScreen({ hover: 'none', pointer: 'coarse' });
+    remount(2);
     expect(latest.available).toBe(false);
+    setScreen({ hover: 'hover', pointer: 'fine' });
     // Forced: a browser with no matchMedia
     vi.stubGlobal('matchMedia', undefined);
-    mount({ generation: 2 });
+    remount(3);
     expect(latest.available).toBe(false);
     // Forced: a matchMedia that throws
     vi.stubGlobal('matchMedia', () => { throw new Error('no'); });
-    mount({ generation: 3 });
+    remount(4);
     expect(latest.available).toBe(false);
   });
 
@@ -134,10 +142,11 @@ describe('useSaveToDrive', () => {
   });
 
   it('reports failed on a failed answer, a blocked tab and a parking failure', async () => {
-    open.mockReturnValueOnce(null); // Forced: a blocked popup
+    open.mockRestore(); // jsdom's own window.open opens nothing and returns undefined: a blocked popup, for real
     mount();
     act(() => latest.save());
     expect(events()).toEqual(['tool_drive_shown', 'tool_drive_tapped', 'tool_drive_failed']);
+    allowPopups();
     vi.mocked(report).mockClear();
     await openNewerStore(); // the store now refuses the file for real: a VersionError
     mount({ generation: 2 });
@@ -171,7 +180,7 @@ describe('useSaveToDrive', () => {
   });
 
   it('fails when the browser blocks the tab', () => {
-    open.mockReturnValue(null); // Forced: a blocked popup
+    open.mockRestore(); // jsdom's own window.open opens nothing and returns undefined: a blocked popup, for real
     mount();
     act(() => latest.save());
     expect(latest.state).toBe('failed');

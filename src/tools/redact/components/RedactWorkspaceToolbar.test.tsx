@@ -22,6 +22,7 @@ import type { FinishFacts } from '../lib/finishState.ts';
 import { englishRedactMessages as t } from '../messages.ts';
 import { onAction } from '#lib/telemetry/actionTrail.ts';
 import { getAppStyle } from '#editor/workspace/preferenceStore.ts';
+import { setScreen } from '../../../test/support/screen.ts';
 
 type Exp = ReturnType<typeof useRedactExport>;
 
@@ -74,8 +75,6 @@ describe('RedactWorkspaceToolbar wiring', () => {
     stopHearing();
     act(() => render(null, root));
     root.remove();
-    // Forced: the other tests run with no matchMedia at all (the hover hints off), which setup.js's would turn on.
-    delete (window as { matchMedia?: unknown }).matchMedia;
   });
 
   function mount({ elements = [], patch = (state) => state, exp = makeExp(), finish = makeFinish(), overrideFind, coarse = false }: {
@@ -87,8 +86,7 @@ describe('RedactWorkspaceToolbar wiring', () => {
     coarse?: boolean;
   } = {}) {
     if (coarse) {
-      // Forced: touch is a media query that matches only 'coarse' (hover and fine must not match), and setup.js's matchMedia matches every query.
-      window.matchMedia = ((query: string) => ({ matches: query.includes('coarse'), addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} })) as unknown as typeof window.matchMedia;
+      setScreen({ pointer: 'coarse', hover: 'none' });
     }
     function Harness() {
       const [raw, dispatch] = useReducer(redactReducer, undefined, initialRedactStateFromPreferences);

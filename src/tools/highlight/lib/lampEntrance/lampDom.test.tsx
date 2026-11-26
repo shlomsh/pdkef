@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { setScreen } from '../../../../test/support/screen.ts';
 import { measureBefore, partsIn, planAfter } from './lampDom.ts';
 
 let root: HTMLElement;
@@ -10,8 +11,7 @@ function box(el: Element, left: number, top: number, width: number, height: numb
 }
 
 beforeEach(() => {
-  // Forced: setup.js's matchMedia matches every query; most tests need reduced motion off
-  vi.stubGlobal('matchMedia', () => ({ matches: false }));
+  setScreen({ reducedMotion: false });
   root = document.createElement('div');
   root.innerHTML = `
     <div data-lamp-part="site"><div id="shell"><div data-lamp-part="cord"><span data-lamp-bead></span></div></div></div>
@@ -28,7 +28,7 @@ beforeEach(() => {
   box(root.querySelector('#p0')!, 100, 300, 200, 280);
   box(root.querySelector('#p1')!, 100, 900, 200, 280);
 });
-afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+afterEach(() => { vi.restoreAllMocks(); });
 
 describe('lampDom', () => {
   it('finds the parts from the tool\'s parent, the site being what its wrapper holds', () => {
@@ -62,7 +62,7 @@ describe('lampDom', () => {
   });
 
   it('reduced motion is always the crossfade', () => {
-    vi.unstubAllGlobals(); // setup.js's matchMedia matches every query, so reduced motion is on
+    setScreen({ reducedMotion: true });
     expect(planAfter('enter', ws, measureBefore('enter', ws), null).plan.tracks.map((t) => t.part)).toEqual(['capsule']);
   });
 });

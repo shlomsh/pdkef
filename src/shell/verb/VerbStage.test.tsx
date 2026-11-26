@@ -1,20 +1,8 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { setScreen } from '../../test/support/screen.ts';
 import VerbStage from './VerbStage.tsx';
-
-// setup.js installs a matchMedia that matches every query, which is "reduce" here. Only the
-// no-preference answer needs a replacement.
-const installedMatchMedia = window.matchMedia;
-function noMotionPreference() {
-  // Forced: jsdom has no matchMedia, so a no-preference answer cannot be real
-  window.matchMedia = (query: string) => ({
-    matches: false,
-    media: query,
-    addEventListener() {},
-    removeEventListener() {},
-  }) as unknown as MediaQueryList;
-}
 
 function mount() {
   const sheet = document.createElement('div');
@@ -32,8 +20,6 @@ function mount() {
 describe('VerbStage replay listeners', () => {
   afterEach(() => {
     vi.restoreAllMocks();
-    // Forced: puts setup.js's matchMedia back
-    window.matchMedia = installedMatchMedia;
     document.body.innerHTML = '';
   });
 
@@ -45,7 +31,7 @@ describe('VerbStage replay listeners', () => {
   });
 
   it('adds both with no preference, and removes them on unmount', () => {
-    noMotionPreference();
+    setScreen({ reducedMotion: false });
     const m = mount();
     expect(m.names(m.sheetAdd)).toContain('pointerenter');
     expect(m.names(m.docAdd)).toContain('visibilitychange');

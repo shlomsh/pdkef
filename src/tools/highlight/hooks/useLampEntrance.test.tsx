@@ -2,6 +2,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { useRef, useState } from 'preact/hooks';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { setScreen } from '../../../test/support/screen.ts';
 import { useLampEntrance } from './useLampEntrance.ts';
 
 interface Played { part: string | null; frames: Keyframe[]; cancel: ReturnType<typeof vi.fn>; finish(): void }
@@ -62,8 +63,7 @@ beforeEach(() => {
     },
   });
   stubLayout();
-  // Forced: setup.js's matchMedia matches every query; the normal-motion tests need reduced motion off
-  vi.stubGlobal('matchMedia', () => ({ matches: false, addEventListener() {}, removeEventListener() {} }));
+  setScreen({ reducedMotion: false });
   container = document.createElement('div');
   document.body.appendChild(container);
   act(() => render(<Harness />, container!));
@@ -73,7 +73,6 @@ afterEach(() => {
   container!.remove();
   vi.restoreAllMocks();
   delete (Element.prototype as { animate?: unknown }).animate;
-  vi.unstubAllGlobals();
 });
 
 const parts = () => played.map((p) => p.part);
@@ -126,7 +125,7 @@ describe('useLampEntrance', () => {
   });
 
   it('with reduced motion nothing travels: the capsule fades in', async () => {
-    vi.unstubAllGlobals(); // setup.js's matchMedia matches every query, so reduced motion is on
+    setScreen({ reducedMotion: true });
     act(() => api.toggle());
     await flush();
     expect(parts()).toEqual(['capsule']);
@@ -141,7 +140,7 @@ describe('useLampEntrance', () => {
 
   it('reduced motion leaves no ghost capsule behind on the way out', async () => {
     await pressExit();
-    vi.unstubAllGlobals(); // setup.js's matchMedia matches every query, so reduced motion is on
+    setScreen({ reducedMotion: true });
     act(() => api.toggle());
     await flush();
     expect(container!.querySelector('[data-lamp-part="ghost"]')!.childElementCount).toBe(0);

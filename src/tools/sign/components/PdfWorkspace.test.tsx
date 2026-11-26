@@ -3,6 +3,7 @@ import type { ComponentChildren, ComponentProps } from 'preact';
 import { useReducer } from 'preact/hooks';
 import { act } from 'preact/test-utils';
 import { describe, it, expect, vi, afterEach } from 'vitest';
+import { setScreen } from '../../../test/support/screen.ts';
 import PdfWorkspace from './PdfWorkspace.tsx';
 import { rememberRecentWhiteoutColor } from '#editor/workspace/preferenceStore.ts';
 import { samplePageColor } from '../lib/whiteoutPageColor.ts';
@@ -1129,12 +1130,9 @@ describe('PdfWorkspace Component', () => {
     // reducer, rather than only combPlacement.test.ts's unit tests on
     // topKeepingInkCentre in isolation.
     it('re-tops a text element on a font change, and undo restores the exact top', () => {
-      // Forces the desktop popover path (`[data-font-name]`), not the phone
-      // sheet SNG-17 added - see DraggableWrapper.interaction.test.tsx's own
-      // matchMedia override for why the blanket setup stub needs this.
-      const query = { matches: false, media: '(pointer: coarse)', addEventListener: () => {}, removeEventListener: () => {} };
-      // Forced: jsdom has no pointer media; the setup's matchMedia answers every query the same
-      Object.defineProperty(window, 'matchMedia', { value: vi.fn(() => query), configurable: true, writable: true });
+      // The desktop popover path (`[data-font-name]`), not the phone sheet:
+      // the test screen is a desktop with a fine pointer.
+      setScreen({ pointer: 'fine', hover: 'hover' });
 
       const stateRef: { current: SignToolState } = { current: testState() };
       const dispatchRef: { current: (action: SignToolAction) => void } = { current: () => {} };
@@ -1176,8 +1174,6 @@ describe('PdfWorkspace Component', () => {
       expect(reverted.fontFamily).toBe('Arimo');
       expect(reverted.top).toBe(initialTop);
 
-      // Forced: puts jsdom back to no matchMedia, as the test found it
-      delete (window as any).matchMedia;
     });
   });
 });

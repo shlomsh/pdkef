@@ -2,6 +2,7 @@ import { render } from 'preact';
 import { useState } from 'preact/hooks';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { setScreen } from '../../../test/support/screen.ts';
 import { englishHighlightMessages as t } from '../messages.ts';
 import PrintMenu, { PrintDropdown } from './PrintMenu.tsx';
 
@@ -88,8 +89,7 @@ describe('PrintMenu', () => {
 describe('PrintDropdown hover', () => {
   function hoverMount(over: { fine?: boolean }) {
     vi.useFakeTimers();
-    // Forced: setup.js's matchMedia matches every query; a fine pointer needs a query that does not match
-    window.matchMedia = ((q: string) => ({ matches: !(over.fine ?? true), media: q, addEventListener() {}, removeEventListener() {} })) as unknown as typeof window.matchMedia;
+    setScreen({ pointer: (over.fine ?? true) ? 'fine' : 'coarse' });
     const onOpenChange = vi.fn();
     container = document.createElement('div');
     document.body.appendChild(container);
@@ -115,8 +115,7 @@ describe('PrintDropdown hover', () => {
   });
 
   function stateful(fine: boolean) {
-    // Forced: setup.js's matchMedia matches every query; a fine pointer needs a query that does not match
-    window.matchMedia = ((q: string) => ({ matches: !fine, media: q, addEventListener() {}, removeEventListener() {} })) as unknown as typeof window.matchMedia;
+    setScreen({ pointer: fine ? 'fine' : 'coarse' });
     vi.useFakeTimers();
     const calls: boolean[] = [];
     function Harness() {

@@ -5,28 +5,16 @@
 // element — rather than re-testing FontPickerMenu's own logic in isolation.
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { describe, expect, it, afterEach, beforeEach, vi } from 'vitest';
+import { describe, expect, it, afterEach, vi } from 'vitest';
 import ElementToolbar from './ElementToolbar.tsx';
 
 describe('ElementToolbar font picker wiring', () => {
   let container: HTMLDivElement | null;
 
   // These tests are about the desktop popover path (FontPickerMenu.tsx's
-  // `[data-font-picker-menu]`), not the phone sheet SNG-17 added. Without
-  // this, src/test/support/setup.js's blanket `matchMedia` stub (matches: true for
-  // any query, tuned for ArmHint's `pointer: fine` query) would also make
-  // `(pointer: coarse)` match, and the font trigger would open the sheet
-  // instead - see FontPickerMenu.test.tsx's own `installMatchMedia` for the
-  // same fix.
-  beforeEach(() => {
-    const query = { matches: false, media: '(pointer: coarse)', addEventListener: () => {}, removeEventListener: () => {} };
-    // Forced: setup.js's matchMedia always matches, so a fine pointer has no real input in jsdom
-    Object.defineProperty(window, 'matchMedia', { value: vi.fn(() => query), configurable: true, writable: true });
-  });
-
+  // `[data-font-picker-menu]`), not the phone sheet: the test screen is a
+  // desktop with a fine pointer, so the font trigger opens the popover.
   afterEach(() => {
-    // Forced: undoes the stub above, leaving no matchMedia, which reads as a fine pointer
-    delete (window as any).matchMedia;
     if (container) {
       act(() => render(null, container as any));
       container.remove();

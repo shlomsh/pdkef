@@ -2,6 +2,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { waitUntil } from '../../test/support/waitUntil.ts';
 import { drainPromises } from '../../test/support/drainPromises.ts';
+import { setScreen } from '../../test/support/screen.ts';
 import { holdDraftStore } from './heldStore.test-helper.ts';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import 'fake-indexeddb/auto';
@@ -313,20 +314,14 @@ describe('useDraftPersistence - save outcome reporting', () => {
 
 // SIGN-06 follow-up: the 'unpersisted' warning line. Scoped to an installed/
 // home-screen app (see useDraftPersistence.js's isInstalledStandalone
-// comment for why), so every test here controls window.matchMedia and
-// navigator.standalone explicitly rather than relying on src/test/support/setup.js's
-// default matchMedia stub (which answers 'matches' to every query, i.e. the
-// desktop/standalone-looking path - see its own comment).
+// comment for why), so every test here sets the screen's display mode explicitly;
+// jsdom has no navigator.standalone, so the display-mode query is the only reader that answers.
 describe('useDraftPersistence - unpersisted-storage warning', () => {
   let container;
   let apiRef;
-  let originalMatchMedia;
-  let originalStandalone;
 
-  function stubStandalone(isStandalone) {
-    // Forced: jsdom cannot be told it runs as an installed app.
-    window.matchMedia = vi.fn(() => ({ matches: isStandalone }));
-    Object.defineProperty(navigator, 'standalone', { configurable: true, value: undefined });
+  function setStandalone(isStandalone) {
+    setScreen({ displayMode: isStandalone ? 'standalone' : 'browser' });
   }
 
   beforeEach(() => {
@@ -334,18 +329,12 @@ describe('useDraftPersistence - unpersisted-storage warning', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     apiRef = { current: null };
-    originalMatchMedia = window.matchMedia;
-    originalStandalone = Object.getOwnPropertyDescriptor(navigator, 'standalone');
   });
 
   afterEach(() => {
     act(() => render(null, container));
     container.remove();
     vi.useRealTimers();
-    // Forced: puts the setup's matchMedia back.
-    window.matchMedia = originalMatchMedia;
-    if (originalStandalone) Object.defineProperty(navigator, 'standalone', originalStandalone);
-    else delete navigator.standalone;
   });
 
   // The persistence check is one more async hop, queued once the save has settled to 'saved'.
@@ -358,7 +347,7 @@ describe('useDraftPersistence - unpersisted-storage warning', () => {
   }
 
   it('never appears before a save has succeeded', async () => {
-    stubStandalone(true);
+    setStandalone(true);
     vi.mocked(isStoragePersisted).mockResolvedValue(false); // forced: the browser says storage is not persisted
     // A real write held open for the whole test, so the save never finishes.
     await holdDraftStore();
@@ -374,7 +363,7 @@ describe('useDraftPersistence - unpersisted-storage warning', () => {
   });
 
   it('shows the warning after a successful save, in an installed/standalone context, when storage is not persisted', async () => {
-    stubStandalone(true);
+    setStandalone(true);
     vi.mocked(isStoragePersisted).mockResolvedValue(false); // forced: the browser says storage is not persisted
     const props = baseProps();
     mount(props);
@@ -384,7 +373,7 @@ describe('useDraftPersistence - unpersisted-storage warning', () => {
   });
 
   it('never warns outside an installed/standalone context, even when storage is not persisted', async () => {
-    stubStandalone(false);
+    setStandalone(false);
     vi.mocked(isStoragePersisted).mockResolvedValue(false); // forced: the browser says storage is not persisted
     const props = baseProps();
     mount(props);
@@ -395,7 +384,7 @@ describe('useDraftPersistence - unpersisted-storage warning', () => {
   });
 
   it('never warns on an "unknown" answer - a browser that cannot tell us is not evidence of anything', async () => {
-    stubStandalone(true);
+    setStandalone(true);
     // The real answer here: jsdom has no navigator.storage, so the store says 'unknown'.
     const props = baseProps();
     mount(props);
@@ -407,7 +396,7 @@ describe('useDraftPersistence - unpersisted-storage warning', () => {
   });
 
   it('lets a later real error win over an earlier unpersisted warning', async () => {
-    stubStandalone(true);
+    setStandalone(true);
     vi.mocked(isStoragePersisted).mockResolvedValue(false); // forced: the browser says storage is not persisted
     const props = baseProps();
     mount(props);

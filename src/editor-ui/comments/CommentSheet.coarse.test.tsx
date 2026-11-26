@@ -1,8 +1,9 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { englishSignMessages } from '#editor/registry/signMessages.ts';
 import type { EditorElement } from '#editor/model/editorModel.ts';
+import { setScreen } from '../../test/support/screen.ts';
 import { CommentSheet } from './CommentSheet.tsx';
 
 const comment = (text: string): EditorElement => ({
@@ -11,7 +12,7 @@ const comment = (text: string): EditorElement => ({
 });
 
 let host: HTMLDivElement | null = null;
-afterEach(() => { if (host) render(null, host); host?.remove(); host = null; vi.unstubAllGlobals(); });
+afterEach(() => { if (host) render(null, host); host?.remove(); host = null; });
 
 /** A finger on an element: the event order a touch screen produces. */
 const tap = (el: Element) => {
@@ -22,8 +23,7 @@ const tap = (el: Element) => {
 const button = (name: string) => [...host!.querySelectorAll('button')].filter((b) => b.textContent === name).pop()!;
 
 function mountPhone(text: string) {
-  // Forced: setup.js's matchMedia matches every query, so a coarse pointer is set by hand.
-  vi.stubGlobal('matchMedia', (query: string) => ({ matches: query.includes('coarse'), media: query, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} }));
+  setScreen({ pointer: 'coarse', hover: 'none' });
   host = document.createElement('div');
   document.body.appendChild(host);
   let elements = [comment(text)];

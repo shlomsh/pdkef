@@ -8,6 +8,7 @@ import { reportHandedOn, resetUsageEventsForTests } from '#lib/telemetry/product
 import { recentActions, resetActionTrailForTests } from '#lib/telemetry/actionTrail.ts';
 import { openNewerStore } from '#lib/drafts/newerStore.test-helper.ts';
 import { holdDraftStore } from '#lib/drafts/heldStore.test-helper.ts';
+import { setScreen } from '../../test/support/screen.ts';
 import { decideDownloadState, deliverParts, useDownloadFlow, type DownloadFlowInput } from './useDownloadFlow.ts';
 
 vi.mock('#lib/telemetry/productAnalytics.ts', { spy: true });
@@ -90,7 +91,6 @@ const described = async (files: File[]) => Promise.all(files.map(async (file) =>
 describe('useDownloadFlow', () => {
   let container: HTMLElement;
   let flow: ReturnType<typeof useDownloadFlow>;
-  let wide: boolean;
   const announce = vi.fn();
   const onDelivered = vi.fn();
   const base = (prepared: Prepared, blocked: DownloadFlowInput['blocked'] = null): DownloadFlowInput => ({
@@ -111,13 +111,7 @@ describe('useDownloadFlow', () => {
   beforeEach(() => {
     container = document.createElement('div');
     document.body.appendChild(container);
-    wide = false;
-    // Forced: a phone and a desktop width differ by one query answer; setup.js answers every query the same.
-    window.matchMedia = ((query: string) => ({
-      matches: !wide && query.includes('max-width'),
-      addEventListener: () => {},
-      removeEventListener: () => {},
-    })) as unknown as typeof window.matchMedia;
+    setScreen({ width: 600 }); // a phone
     vi.clearAllMocks();
     vi.mocked(saveHandoff).mockReset();
     vi.mocked(reportHandedOn).mockClear();
@@ -208,7 +202,8 @@ describe('useDownloadFlow', () => {
     mount(base(ready()));
     expect(flow.showStrip).toBe(true);
 
-    wide = true;
+    act(() => setScreen({ width: 1280 }));
+    expect(flow.showStrip).toBe(false); // the window widened past the bar that holds the strip
     mount(base(pending()));
     act(() => flow.reset());
     act(() => flow.onQuietPreparingTap());

@@ -1,28 +1,17 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { setScreen } from '../test/support/screen.ts';
 import ArmHint from './ArmHint.tsx';
 import { useAutoArmHint } from './hooks/toolArming.js';
 
 /* SIGN-31: the one-time lock hint, taught by touch as well as by mouse. The
-   test setup's matchMedia answers "matches" to every query (the desktop path);
-   these tests pin it to one device or the other. */
+   test screen is a desktop by default; these tests set it to one device or the other. */
 describe('ArmHint and useAutoArmHint', () => {
   let container: HTMLDivElement;
-  const realMatchMedia = window.matchMedia;
 
   const pretendDevice = (touch: boolean) => {
-    // Forced: setup.js's matchMedia matches every query and cannot be flipped.
-    window.matchMedia = ((query: string) => ({
-      matches: query.includes('coarse') ? touch : !touch,
-      media: query,
-      onchange: null,
-      addListener() {},
-      removeListener() {},
-      addEventListener() {},
-      removeEventListener() {},
-      dispatchEvent() { return false; },
-    })) as unknown as typeof window.matchMedia;
+    setScreen(touch ? { pointer: 'coarse', hover: 'none' } : { pointer: 'fine', hover: 'hover' });
   };
 
   let noteArmed: (tool: string | null) => void = () => {};
@@ -49,8 +38,6 @@ describe('ArmHint and useAutoArmHint', () => {
   afterEach(() => {
     act(() => { render(null, container); });
     container.remove();
-    // Forced: puts the real matchMedia back.
-    window.matchMedia = realMatchMedia;
     vi.useRealTimers();
   });
 

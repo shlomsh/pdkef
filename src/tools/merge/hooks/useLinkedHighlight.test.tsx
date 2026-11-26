@@ -2,6 +2,7 @@ import { render } from 'preact';
 import { useState } from 'preact/hooks';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { setScreen } from '../../../test/support/screen.ts';
 import { useLinkedHighlight, useMergeMoment, linkKind } from './useLinkedHighlight.ts';
 
 let host: HTMLDivElement;
@@ -37,16 +38,10 @@ const focusVisibly = (id: string) => act(() => { q(id).focus(); });
 const linked = () => [...document.querySelectorAll('[data-linked]')].map((el) => el.id).sort();
 const root = () => host.firstElementChild as HTMLElement;
 
-// Forced: jsdom has no matchMedia (setup.js installs one that always matches); each test needs its own answers.
-function mockMedia(matches: string[]) {
-  // Cast 1 of 1: only matches and media are read, a full MediaQueryList has no smaller type.
-  window.matchMedia = vi.fn((query: string) => ({ matches: matches.includes(query), media: query }) as unknown as MediaQueryList);
-}
-
 beforeEach(() => {
   host = document.createElement('div');
   document.body.appendChild(host);
-  mockMedia([]);
+  setScreen({ reducedMotion: false });
   act(() => render(<Harness />, host));
 });
 
@@ -107,7 +102,7 @@ describe('useLinkedHighlight', () => {
   });
 
   it('focus links and blur clears, even where hover is unavailable', () => {
-    mockMedia(['(hover: none)']);
+    setScreen({ hover: 'none' });
     focusVisibly('row-btn');
     expect(root().dataset.linking).toBe('row');
     act(() => { q('row-btn').dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: q('outside') })); });
@@ -115,7 +110,7 @@ describe('useLinkedHighlight', () => {
   });
 
   it('ignores pointer events where hover is unavailable', () => {
-    mockMedia(['(hover: none)']);
+    setScreen({ hover: 'none' });
     fire('row-a', 'pointerover');
     expect(linked()).toEqual([]);
   });
@@ -182,7 +177,7 @@ describe('useMergeMoment', () => {
   });
 
   it('does nothing under reduced motion', () => {
-    mockMedia(['(prefers-reduced-motion: reduce)']);
+    setScreen({ reducedMotion: true });
     act(() => moment());
     expect(root().hasAttribute('data-merge-moment')).toBe(false);
   });

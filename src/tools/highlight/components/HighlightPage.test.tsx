@@ -11,6 +11,7 @@ import { PDFDocument, rgb } from '@cantoo/pdf-lib';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { pointAtLegacyWorker } from '../../../test/support/realPdfjs.ts';
 import { DEFAULT_MARKER } from '../lib/marker/markerState.ts';
+import { useHighlightMarks } from '../hooks/useHighlightMarks.ts';
 
 // Spy-through: the real swipe gesture runs on the real events and the spy shows what the page handed it. readScanUnit
 // reads the pixels of a displayed canvas that real pdf.js painted from a real PDF.
@@ -532,13 +533,6 @@ describe('HighlightPage click marks on a digital page (R10 to R12)', () => {
     act(() => { target.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, detail, clientX: at.x, clientY: at.y })); });
   }
 
-  /** The press's swipe lays ink, as a press that drifted a few pixels does. */
-  function layInk() {
-    const [deps, target] = vi.mocked(startHighlightSwipe).mock.calls.at(-1)!;
-    act(() => deps.dispatch({ type: 'UPDATE_ELEMENT', payload: { id: target.id, changes: { left: 5, top: 22, width: 20, height: 3, bands: [{ left: 0, top: 0, width: 100, height: 100 }] } } }));
-    return target.id as string;
-  }
-
   const added = () => dispatch.mock.calls.map(([a]) => a).filter((a) => a.type === 'ADD_ELEMENT' && a.payload.bands.length > 0).map((a) => a.payload as HighlightElement);
 
   it('sees the click a mouse swipe swallows, because it listens from the press on', async () => {
@@ -565,24 +559,6 @@ describe('HighlightPage click marks on a digital page (R10 to R12)', () => {
     await mountText();
     clickAt(2, overlay, { x: 20, y: 300 });
     expect(added()).toHaveLength(0);
-  });
-
-  it('a double-click whose press laid ink undoes that ink first, then adds the word, so there is never a second mark', async () => {
-    await mountText();
-    // Forced: dispatch is a recorder here, so a real swipe's element is never drawn and its release would take the ink away again.
-    vi.mocked(startHighlightSwipe).mockImplementationOnce(() => {});
-    // The press of the second click lays ink before its click arrives.
-    const down = new MouseEvent('pointerdown', { bubbles: true, cancelable: true, button: 0, clientX: WORD.x, clientY: WORD.y });
-    Object.defineProperty(down, 'pointerType', { value: 'mouse' });
-    act(() => { overlay.dispatchEvent(down); });
-    act(() => { window.dispatchEvent(new MouseEvent('mousemove', { clientX: WORD.x + 6, clientY: WORD.y })); });
-    layInk();
-    dispatch.mockClear();
-    act(() => { window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true })); });
-    act(() => { overlay.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 2, clientX: WORD.x, clientY: WORD.y })); });
-    const types = dispatch.mock.calls.map(([a]) => a.type);
-    expect(types.indexOf('UNDO')).toBeGreaterThanOrEqual(0);
-    expect(types.indexOf('UNDO')).toBeLessThan(types.indexOf('ADD_ELEMENT'));
   });
 
   it('never removes an existing highlight: a double-click on one does nothing', async () => {
@@ -777,6 +753,40 @@ describe('HighlightPage click marks on a scan (R10)', () => {
     expect(vi.mocked(readScanUnit)).toHaveBeenCalledTimes(1);
     expect(vi.mocked(readScanUnit).mock.results[0].value).toBeNull();
     expect(added()).toHaveLength(0);
+  });
+
+  it('a double-click whose press laid ink undoes that ink first, then adds the word, so there is never a second mark', async () => {
+    const doc = await openScan();
+    // The real marks reducer under the page: the dispatch is a spy-through, so the real swipe draws its ink and its release behaves.
+    function Live() {
+      const marks = useHighlightMarks();
+      return (
+        <HighlightPage
+          pdfDocument={doc} pageIndex={0} widthPx={600} elements={marks.state.elements} marker={DEFAULT_MARKER}
+          dispatch={(action) => { dispatch(action); marks.dispatch(action); }} logAction={marks.logAction} rearm={rearm} setAnnouncement={() => {}} cardRef={() => {}} onRotate={() => {}} onClear={() => {}}
+        />
+      );
+    }
+    act(() => render(<Live />, container));
+    overlay = container.querySelector<HTMLElement>('[data-page-overlay]')!;
+    // Forced: jsdom has no layout, so the overlay's rect is given.
+    overlay.getBoundingClientRect = () => ({ left: 0, top: 0, right: 600, bottom: 800, width: 600, height: 800, x: 0, y: 0, toJSON: () => ({}) });
+    await painted();
+    // The press of the second click lays ink before its click arrives.
+    const down = new MouseEvent('pointerdown', { bubbles: true, cancelable: true, button: 0, clientX: 60, clientY: 200 });
+    Object.defineProperty(down, 'pointerType', { value: 'mouse' });
+    act(() => { overlay.dispatchEvent(down); });
+    // The first move starts the swipe, the second one draws it along the line.
+    act(() => { window.dispatchEvent(new MouseEvent('mousemove', { clientX: 66, clientY: 200 })); });
+    act(() => { window.dispatchEvent(new MouseEvent('mousemove', { clientX: 150, clientY: 200 })); });
+    dispatch.mockClear();
+    act(() => { window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true })); });
+    expect(dispatch.mock.calls.some(([a]) => a.type === 'UPDATE_ELEMENT' && 'bands' in a.payload.changes)).toBe(true);
+    act(() => { overlay.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 2, clientX: 60, clientY: 200 })); });
+    const types = dispatch.mock.calls.map(([a]) => a.type);
+    expect(types.indexOf('UNDO')).toBeGreaterThanOrEqual(0);
+    expect(types.indexOf('UNDO')).toBeLessThan(types.indexOf('ADD_ELEMENT'));
+    expect(container.querySelectorAll('[data-element-id]')).toHaveLength(1);
   });
 
 });

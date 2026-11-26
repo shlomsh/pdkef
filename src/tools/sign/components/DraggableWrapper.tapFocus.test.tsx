@@ -1,6 +1,7 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, afterEach, beforeEach, vi } from 'vitest';
+import { setScreen } from '../../../test/support/screen.ts';
 import TextNode from './nodes/TextNode.tsx';
 import DraggableWrapper from './DraggableWrapper.tsx';
 // Fixture parent: production finds the page with closest() on this class, so the test must carry it.
@@ -14,15 +15,7 @@ import type { TextElement } from '#editor/model/editorModel.ts';
 // is the whole bug.
 
 function coarsePointer(matches: boolean) {
-  // Forced: setup.js's matchMedia always matches, so a fine pointer has no real input in jsdom
-  vi.stubGlobal('matchMedia', (query: string) => ({
-    matches: matches && query.includes('coarse'),
-    media: query,
-    addEventListener: () => {},
-    removeEventListener: () => {},
-    addListener: () => {},
-    removeListener: () => {},
-  }));
+  setScreen(matches ? { pointer: 'coarse', hover: 'none' } : { pointer: 'fine', hover: 'hover' });
 }
 
 const element: TextElement = { id: 't1', type: 'text', pageIndex: 0, left: 20, top: 10, text: 'Hi', fontSize: 12 };
@@ -70,7 +63,6 @@ function tap(target: EventTarget) {
 describe('DraggableWrapper tap-to-edit focus (MOBI-24)', () => {
   beforeEach(() => { document.body.innerHTML = ''; });
   afterEach(() => {
-    vi.unstubAllGlobals();
     document.body.innerHTML = '';
   });
 

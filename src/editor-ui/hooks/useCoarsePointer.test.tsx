@@ -14,37 +14,7 @@ function Harness({ apiRef }: { apiRef: { current: { coarse: boolean } } }) {
 const COARSE = { pointer: 'coarse', hover: 'none' } as const;
 const FINE = { pointer: 'fine', hover: 'hover' } as const;
 
-/**
- * The screen's pointer, on a real matchMedia. `modern: false` removes addEventListener from the
- * lists, because the hook has to work on a Safari old enough to have only addListener.
- */
-function installScreen({ coarse = false, modern = true } = {}) {
-  setScreen(coarse ? COARSE : FINE);
-  const live = new Set<EventListenerOrEventListenerObject>();
-  const real = window.matchMedia;
-  const subscribe = (list: MediaQueryList, fn: EventListenerOrEventListenerObject, type = 'change') => { live.add(fn); EventTarget.prototype.addEventListener.call(list, type, fn); };
-  const unsubscribe = (list: MediaQueryList, fn: EventListenerOrEventListenerObject, type = 'change') => { live.delete(fn); EventTarget.prototype.removeEventListener.call(list, type, fn); };
-  const matchMedia = vi.fn((query: string) => {
-    const list = real(query);
-    // Counts the listeners the hook leaves on the list, through whichever API it used.
-    list.addListener = (fn) => subscribe(list, fn as EventListenerOrEventListenerObject);
-    list.removeListener = (fn) => unsubscribe(list, fn as EventListenerOrEventListenerObject);
-    if (modern) {
-      list.addEventListener = ((type: string, fn: EventListenerOrEventListenerObject) => subscribe(list, fn, type)) as typeof list.addEventListener;
-      list.removeEventListener = ((type: string, fn: EventListenerOrEventListenerObject) => unsubscribe(list, fn, type)) as typeof list.removeEventListener;
-    } else {
-      // Forced: an old Safari's MediaQueryList has no addEventListener, and no test browser can be put in that state.
-      Object.defineProperty(list, 'addEventListener', { value: undefined });
-    }
-    return list;
-  });
-  window.matchMedia = matchMedia as unknown as typeof window.matchMedia;
-  return {
-    matchMedia,
-    listenerCount: () => live.size,
-    emit: (next: boolean) => setScreen(next ? COARSE : FINE),
-  };
-}
+const pointer = (coarse: boolean) => setScreen(coarse ? COARSE : FINE);
 
 function mount() {
   const host = document.createElement('div');
@@ -57,15 +27,14 @@ function mount() {
 }
 
 describe('useCoarsePointer', () => {
-  const installed = window.matchMedia;
   afterEach(() => {
     document.body.innerHTML = '';
     vi.restoreAllMocks();
-    window.matchMedia = installed;
+    vi.unstubAllGlobals();
   });
 
   it('reports the query the browser actually matches', () => {
-    installScreen({ coarse: true });
+    pointer(true);
     const { apiRef } = mount();
     expect(apiRef.current.coarse).toBe(true);
   });
@@ -73,47 +42,73 @@ describe('useCoarsePointer', () => {
   it('asks for pointer coarseness, not a width breakpoint', () => {
     // The bug this hook answers is the iOS keyboard moving the visual viewport,
     // which a phone in landscape has too - and landscape is wider than any
-    // phone breakpoint in the stylesheets.
-    const media = installScreen();
-    mount();
-    expect(media.matchMedia).toHaveBeenCalledWith('(pointer: coarse)');
+    // phone breakpoint in the stylesheets. A wide screen with a coarse pointer
+    // is that phone, and a narrow one with a fine pointer is not.
+    setScreen({ width: 1200, pointer: 'coarse', hover: 'none' });
+    const wide = mount();
+    expect(wide.apiRef.current.coarse).toBe(true);
+    wide.unmount();
+    setScreen({ width: 320, ...FINE });
+    expect(mount().apiRef.current.coarse).toBe(false);
   });
 
   it('follows the pointer type changing under it', () => {
-    const media = installScreen();
+    pointer(false);
     const { apiRef } = mount();
     expect(apiRef.current.coarse).toBe(false);
-    act(() => media.emit(true));
+    act(() => pointer(true));
     expect(apiRef.current.coarse).toBe(true);
+    act(() => pointer(false));
+    expect(apiRef.current.coarse).toBe(false);
   });
 
   it('unsubscribes on unmount', () => {
-    const media = installScreen({ coarse: true });
-    const { unmount } = mount();
-    expect(media.listenerCount()).toBe(1);
+    // Spies through: the real matchMedia answers, and the lists it hands out are kept to see what the hook leaves on them.
+    const asked = vi.spyOn(window, 'matchMedia');
+    pointer(true);
+    const { apiRef, unmount } = mount();
+    const list = asked.mock.results.at(-1)!.value as MediaQueryList;
+    const removed = vi.spyOn(list, 'removeEventListener');
     unmount();
-    expect(media.listenerCount()).toBe(0);
+    expect(removed).toHaveBeenCalledWith('change', expect.any(Function));
+    act(() => pointer(false));
+    expect(apiRef.current.coarse).toBe(true);
   });
 
   it('uses the deprecated listener API when that is all the browser has', () => {
-    const media = installScreen({ modern: false });
+    pointer(false);
+    const realMatchMedia = window.matchMedia;
+    const added = vi.fn();
+    const removed = vi.fn();
+    // Forced: an old Safari's MediaQueryList has no addEventListener, and no test browser can be put in that state.
+    vi.spyOn(window, 'matchMedia').mockImplementation((query) => {
+      const list = realMatchMedia(query);
+      const events = EventTarget.prototype;
+      return Object.assign(list, {
+        addEventListener: undefined,
+        addListener: (fn: EventListener) => { added(); events.addEventListener.call(list, 'change', fn); },
+        removeListener: (fn: EventListener) => { removed(); events.removeEventListener.call(list, 'change', fn); },
+      });
+    });
     const { apiRef, unmount } = mount();
-    expect(media.listenerCount()).toBe(1);
-    act(() => media.emit(true));
+    expect(added).toHaveBeenCalledTimes(1);
+    act(() => pointer(true));
     expect(apiRef.current.coarse).toBe(true);
     unmount();
-    expect(media.listenerCount()).toBe(0);
+    expect(removed).toHaveBeenCalledTimes(1);
+    act(() => pointer(false));
+    expect(apiRef.current.coarse).toBe(true);
   });
 
   it('stays false where there is no matchMedia at all, rather than throwing', () => {
     // Forced: matchMedia absent is the state under test.
-    Object.defineProperty(window, 'matchMedia', { value: undefined, configurable: true, writable: true });
+    vi.stubGlobal('matchMedia', undefined);
     const { apiRef } = mount();
     expect(apiRef.current.coarse).toBe(false);
   });
 
   it('is right on the very first render, with no flip after the effect', () => {
-    installScreen({ coarse: true });
+    pointer(true);
     const seen: boolean[] = [];
     function Probe() {
       seen.push(useCoarsePointer());

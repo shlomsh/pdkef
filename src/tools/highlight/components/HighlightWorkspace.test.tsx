@@ -1,6 +1,6 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import workspaceStyles from '#editor-ui/Workspace.module.css';
 import toolbarStyles from '#editor-ui/SignToolbar.module.css';
@@ -14,6 +14,7 @@ import { NOTES_W } from '../lib/zoom/fit.ts';
 // Spy-through: the real print hook runs and mounts the real sheets; the spy shows which notes choice reached them.
 vi.mock('./PrintSheets.tsx', { spy: true });
 import PrintSheets from './PrintSheets.tsx';
+import { setScreen } from '../../../test/support/screen.ts';
 const printedWith = () => vi.mocked(PrintSheets).mock.calls.at(-1)?.[0].notes;
 
 type WorkspaceProps = Parameters<typeof HighlightWorkspace>[0];
@@ -27,6 +28,7 @@ function Harness(props: Omit<WorkspaceProps, 'comments' | 'dispatch'>) {
 
 let container: HTMLElement | null = null;
 afterEach(() => {
+  vi.unstubAllGlobals(); // the ResizeObserver mountNoted installs
   if (container) { act(() => render(null, container!)); container.remove(); container = null; }
 });
 
@@ -101,32 +103,26 @@ describe('HighlightWorkspace', () => {
   });
 
   it('on touch, a file opens armed with the hint in the card\'s identity row, Marker toggles arming, and the lamp shows no hint', () => {
-    // Forced: setup.js's matchMedia matches every query; touch needs coarse true and the rest false
-    vi.stubGlobal('matchMedia', (q: string) => ({ matches: q.includes('coarse'), media: q, addEventListener() {}, removeEventListener() {} }));
-    try {
-      mount({ fullscreen: false, pseudoFullscreen: false });
-      const marker = () => container!.querySelector<HTMLButtonElement>('[data-editor-toolbar] button[aria-label="Marker"]')!;
-      const hint = () => [...container!.querySelectorAll('[data-tool-shell] *')].find((el) => el.children.length === 0 && el.textContent === 'Swipe to highlight');
-      expect(hint()).toBeDefined();
-      expect(container!.querySelector('[data-pen-hint] [data-marker-dot]')).not.toBeNull();
-      act(() => { marker().click(); });
-      expect(hint()).toBeUndefined();
-      act(() => { marker().click(); });
-      expect(hint()).toBeDefined();
-      act(() => render(null, container!));
-      const lamp = mount({ fullscreen: true, pseudoFullscreen: false });
-      expect(lamp.querySelector('[role="toolbar"][aria-label="Reading lamp"] button[aria-label="Marker"][data-armed]')).not.toBeNull();
-      expect(lamp.textContent).not.toContain('Swipe to highlight');
-    } finally { vi.unstubAllGlobals(); }
+    setScreen({ pointer: 'coarse', hover: 'none' });
+    mount({ fullscreen: false, pseudoFullscreen: false });
+    const marker = () => container!.querySelector<HTMLButtonElement>('[data-editor-toolbar] button[aria-label="Marker"]')!;
+    const hint = () => [...container!.querySelectorAll('[data-tool-shell] *')].find((el) => el.children.length === 0 && el.textContent === 'Swipe to highlight');
+    expect(hint()).toBeDefined();
+    expect(container!.querySelector('[data-pen-hint] [data-marker-dot]')).not.toBeNull();
+    act(() => { marker().click(); });
+    expect(hint()).toBeUndefined();
+    act(() => { marker().click(); });
+    expect(hint()).toBeDefined();
+    act(() => render(null, container!));
+    const lamp = mount({ fullscreen: true, pseudoFullscreen: false });
+    expect(lamp.querySelector('[role="toolbar"][aria-label="Reading lamp"] button[aria-label="Marker"][data-armed]')).not.toBeNull();
+    expect(lamp.textContent).not.toContain('Swipe to highlight');
   });
 
   it('on a fine pointer a file opens armed too, but the touch hint stays away', () => {
-    // Forced: setup.js's matchMedia matches every query; a fine pointer needs coarse false
-    vi.stubGlobal('matchMedia', (q: string) => ({ matches: !q.includes('coarse'), media: q, addEventListener() {}, removeEventListener() {} }));
-    try {
-      mount({ fullscreen: false, pseudoFullscreen: false });
-      expect(container!.querySelector('[data-pen-hint]')).toBeNull();
-    } finally { vi.unstubAllGlobals(); }
+    setScreen({ pointer: 'fine', hover: 'hover' });
+    mount({ fullscreen: false, pseudoFullscreen: false });
+    expect(container!.querySelector('[data-pen-hint]')).toBeNull();
   });
 
   it('the regular view offers a Feedback tile in the tool row, after Redo as in Sign, that opens a prefilled Highlight PDF issue; the lamp shows none', () => {
@@ -237,8 +233,6 @@ function mountNoted(elements: EditorElement[], workspaceWidth: number, extra: Re
 }
 
 describe('HighlightWorkspace notes (R28, R29)', () => {
-  beforeEach(() => { vi.unstubAllGlobals(); });
-  afterEach(() => { vi.unstubAllGlobals(); });
 
   it('a wide workspace with a saved comment draws the rail inside the page column, beside its page, and widens the column', () => {
     const { column, restore } = mountNoted([mark, note], 1200);
@@ -364,8 +358,6 @@ describe('HighlightWorkspace notes (R28, R29)', () => {
 });
 
 describe('HighlightWorkspace comment markers', () => {
-  beforeEach(() => { vi.unstubAllGlobals(); });
-  afterEach(() => { vi.unstubAllGlobals(); });
 
   it('a commented mark wears no comment marker on a phone either', () => {
     const { restore } = mountNoted([mark, note], 700);
@@ -375,8 +367,6 @@ describe('HighlightWorkspace comment markers', () => {
 });
 
 describe('HighlightWorkspace page header (Rotate and Clear page)', () => {
-  beforeEach(() => { vi.unstubAllGlobals(); });
-  afterEach(() => { vi.unstubAllGlobals(); });
 
   it('shows Rotate and Clear page, and each calls the marks with the page index; Rotate hands over the page as shown', async () => {
     const { dispatch, restore } = mountNoted([mark], 700, {}, { view: [0, 0, 600, 800], rotate: 0, getTextContent: () => Promise.resolve({ items: [] }) });

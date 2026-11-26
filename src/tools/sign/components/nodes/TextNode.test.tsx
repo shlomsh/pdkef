@@ -1,6 +1,7 @@
 import { render, type ComponentChildren, type ComponentProps } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { setScreen } from '../../../../test/support/screen.ts';
 import RawTextNode from './TextNode.tsx';
 import { WYSIWYG_STRING_CASES } from '../../../../test/support/fixtures/wysiwygStrings.js';
 import { cssNumber } from '../../../../test/support/cssNumber.ts';
@@ -789,17 +790,12 @@ describe('TextNode fill mode (SNG-15)', () => {
 // layout, only about what the node renders for a given element and pointer.
 describe('TextNode on a detected cell, and its closed placeholder', () => {
   let host = document.createElement('div');
-  const originalMatchMedia = window.matchMedia;
 
   function installPointer(coarse: boolean) {
-    const query = { matches: coarse, media: '(pointer: coarse)', addEventListener: () => {}, removeEventListener: () => {} };
-    // Forced: jsdom has no pointer media; the setup's matchMedia answers every query the same, so a mouse needs this
-    Object.defineProperty(window, 'matchMedia', { value: vi.fn(() => query), configurable: true, writable: true });
+    setScreen(coarse ? { pointer: 'coarse', hover: 'none' } : { pointer: 'fine', hover: 'hover' });
   }
 
   afterEach(() => {
-    // Forced: puts the setup's matchMedia back
-    Object.defineProperty(window, 'matchMedia', { value: originalMatchMedia, configurable: true, writable: true });
     if (host.isConnected) {
       act(() => render(null, host));
       document.body.removeChild(host);

@@ -15,10 +15,6 @@ const EL: RedactBoxElement = { id: 'a', type: 'blackout', left: 10, top: 10, wid
 
 describe('RedactBox floating middleware options (RED-53)', () => {
   it('reserves the gap vertically only, and tells the viewport clamp about it', () => {
-    // Forced: a fine pointer, where the coarse query does not match; setup.js's matchMedia matches every query.
-    window.matchMedia = ((q: string) => ({
-      matches: q.includes('fine'), media: q, addEventListener: () => {}, removeEventListener: () => {},
-    })) as any;
     const container = document.createElement('div');
     document.body.appendChild(container);
     const wrapper = document.createElement('div');

@@ -10,6 +10,7 @@ import { sampleRingColor } from '#editor-ui/whiteout/pageSampling.ts';
 import { recentActions, resetActionTrailForTests } from '#lib/telemetry/actionTrail.ts';
 import type { PercentBox } from '#editor-ui/whiteout/pageColor.ts';
 import type { RedactElement } from '../lib/redactElements.ts';
+import { setScreen } from '../../../test/support/screen.ts';
 import { mountRedactEditor, type MountedRedactEditor } from './redactEditor.test-helper.tsx';
 import type { RedactEditor } from './useRedactEditor.ts';
 
@@ -518,8 +519,8 @@ describe('useRedactEditor over the real reducer', () => {
       canvas.width = 20;
       canvas.height = 20;
       m.root.querySelector('[data-page-wrapper]')!.appendChild(canvas);
-      // Forced: the test environment prefers reduced motion, which skips the lift entirely
-      const motion = vi.spyOn(window, 'matchMedia').mockReturnValueOnce({ matches: false } as MediaQueryList);
+      // The test screen prefers reduced motion, which skips the lift entirely.
+      setScreen({ reducedMotion: false });
       act(() => m.editor().editing.deleteTool.markObject(object));
       act(() => {
         m.editor().findKit.find.setOpen(true);
@@ -536,7 +537,6 @@ describe('useRedactEditor over the real reducer', () => {
       expect(m.editor().findKit.find.open).toBe(false);
       expect(m.editor().findKit.find.term).toBe('');
       expect(m.editor().findKit.find.preset).toBeNull();
-      motion.mockRestore();
     });
   });
 });

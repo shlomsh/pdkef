@@ -158,22 +158,8 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
   describe('font picker preview', () => {
     // These tests are about the desktop popover path
     // (FontPickerMenu.tsx's mouseenter-hover preview and
-    // `[data-font-picker-menu]`), not the phone sheet SNG-17 added. Without
-    // this, src/test/support/setup.js's blanket `matchMedia` stub (matches: true for
-    // any query, tuned for ArmHint's `pointer: fine` query) would also make
-    // `(pointer: coarse)` match, and the font trigger would open the sheet
-    // instead - see FontPickerMenu.test.tsx's own `installMatchMedia` for the
-    // same fix.
-    beforeEach(() => {
-      const query = { matches: false, media: '(pointer: coarse)', addEventListener: () => {}, removeEventListener: () => {} };
-      // Forced: setup.js's matchMedia always matches, so a fine pointer has no real input in jsdom
-      Object.defineProperty(window, 'matchMedia', { value: vi.fn(() => query), configurable: true, writable: true });
-    });
-
-    afterEach(() => {
-      // Forced: undoes the stub above, leaving no matchMedia, which reads as a fine pointer
-      delete (window as any).matchMedia;
-    });
+    // `[data-font-picker-menu]`), not the phone sheet: the test screen is a
+    // desktop with a fine pointer, so the font trigger opens the popover.
 
     it('repaints the real text node after the hover delay without committing, then restores it when the menu closes', () => {
       vi.useFakeTimers();

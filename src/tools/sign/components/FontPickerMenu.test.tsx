@@ -1,6 +1,7 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { setScreen } from '../../../test/support/screen.ts';
 import Popover from '#shell/Popover.tsx';
 import FontPickerMenu, { FONT_PREVIEW_DELAY_MS } from './FontPickerMenu.tsx';
 import { resolveFontFamily, HANDWRITING_FONTS, TEXT_FONTS } from '#editor/text/fonts.js';
@@ -8,35 +9,19 @@ import { resolveFontFamily, HANDWRITING_FONTS, TEXT_FONTS } from '#editor/text/f
 // The real Popover runs; the spy only records the props the menu hands it.
 vi.mock('#shell/Popover.tsx', { spy: true });
 
-// SNG-17: a controllable MediaQueryList, same shape as
-// useCoarsePointer.test.tsx's own harness, since
-// useCoarsePointer (the local editor-ui copy of that same primitive) reads
-// `matchMedia('(pointer: coarse)')` on mount.
-function installMatchMedia(matches: boolean) {
-  const query = { matches, media: '(pointer: coarse)', addEventListener: () => {}, removeEventListener: () => {} };
-  // Forced: setup.js's matchMedia always matches, so a fine pointer has no real input in jsdom
-  Object.defineProperty(window, 'matchMedia', { value: vi.fn(() => query), configurable: true, writable: true });
+// SNG-17: the screen's pointer, which useCoarsePointer reads on mount.
+function setPointer(coarse: boolean) {
+  setScreen(coarse ? { pointer: 'coarse', hover: 'none' } : { pointer: 'fine', hover: 'hover' });
 }
 
 describe('FontPickerMenu', () => {
   let container: HTMLDivElement | null;
 
-  // src/test/support/setup.js stubs a missing `window.matchMedia` to always return
-  // `matches: true` (tuned for ArmHint's `(hover: hover) and (pointer: fine)`
-  // query), which - read for `(pointer: coarse)` too - would make every test
-  // here default to the phone sheet unless it says otherwise. Force the fine
-  // pointer as this suite's own default; the "on a phone" describe below
-  // overrides it per test.
-  beforeEach(() => {
-    installMatchMedia(false);
-  });
+  // The test screen is a desktop with a fine pointer; the "on a phone" describe
+  // below sets a coarse one per test.
 
   afterEach(() => {
     vi.useRealTimers();
-    // Undo any installMatchMedia() call so later tests get useCoarsePointer's
-    // own no-matchMedia default (fine pointer), same as jsdom's own default.
-    // Forced: undoes the stub above, leaving no matchMedia, which reads as a fine pointer
-    delete (window as any).matchMedia;
     if (container) {
       act(() => render(null, container as any));
       container.remove();
@@ -245,7 +230,7 @@ describe('FontPickerMenu', () => {
 
   describe('on a phone (coarse pointer)', () => {
     beforeEach(() => {
-      installMatchMedia(true);
+      setPointer(true);
       // jsdom has no real <dialog> behaviour; see FontSheet.test.tsx.
       // Forced: jsdom has no dialog showModal or close, so no real one to run
       HTMLDialogElement.prototype.showModal = vi.fn(function (this: HTMLDialogElement) { this.open = true; });
@@ -261,7 +246,7 @@ describe('FontPickerMenu', () => {
   });
 
   describe('on a mouse (fine pointer)', () => {
-    beforeEach(() => installMatchMedia(false));
+    beforeEach(() => setPointer(false));
 
     it('still renders the popover', () => {
       const menu = openMenu('Arimo', 'Hello');

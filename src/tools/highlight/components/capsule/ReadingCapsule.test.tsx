@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
+import { setScreen } from '../../../../test/support/screen.ts';
 import ReadingCapsule, { type ReadingCapsuleProps } from './ReadingCapsule.tsx';
 import { foldedItems, moreDisplay, FOLD_BELOW_PX } from './capsuleItems.ts';
 
@@ -10,8 +11,7 @@ function bus<A extends unknown[]>() {
 }
 
 function setup(over: Partial<ReadingCapsuleProps> = {}, width = 1024) {
-  // Forced: jsdom has no layout, its window is 1024 px wide unless a test says otherwise
-  (window as { innerWidth: number }).innerWidth = width;
+  setScreen({ width });
   const scroll = bus<[number]>();
   const press = bus<[]>();
   const props: ReadingCapsuleProps = {
