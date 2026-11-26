@@ -9,6 +9,7 @@ export class HeldFile extends File {
   private gate = Promise.withResolvers<void>();
   private seen = Promise.withResolvers<void>();
   private isHeld: boolean;
+  private wasSeen = false;
   private passLeft: number;
 
   constructor(bytes: Uint8Array<ArrayBuffer>, name: string, { held = true, passReads = 0 }: { held?: boolean; passReads?: number } = {}) {
@@ -17,14 +18,17 @@ export class HeldFile extends File {
     this.isHeld = held && passReads === 0;
   }
 
-  /** Resolves once a read is waiting on the hold; hold() renews it. */
+  /** Resolves once a read is waiting on the hold; hold() renews it once a read has used it. */
   get started(): Promise<void> { return this.seen.promise; }
 
   hold(): void {
     if (this.isHeld) return;
     this.isHeld = true;
     this.gate = Promise.withResolvers<void>();
-    this.seen = Promise.withResolvers<void>();
+    if (this.wasSeen) {
+      this.seen = Promise.withResolvers<void>();
+      this.wasSeen = false;
+    }
   }
 
   release(): void {
@@ -40,6 +44,7 @@ export class HeldFile extends File {
     }
     if (this.isHeld) {
       this.seen.resolve();
+      this.wasSeen = true;
       await this.gate.promise;
     }
     return super.arrayBuffer();

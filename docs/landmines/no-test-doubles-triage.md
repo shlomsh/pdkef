@@ -15,9 +15,11 @@ held up; `no` and `unsure` sites were mostly tried, and a false reason usually m
 | Stays: cannot be real in any test | 54 |
 | Goes with the site it puts back | 34 |
 
-Done since (2026-11-26): waves 17 (the "now" sites), 18 (a real `matchMedia` for jsdom, `src/test/support/screen.ts`) and
-19 (page measures, Scan's corner trace and camera shot policy, and the comment rail's stacking as pure functions) and 20 (dead
-catches, Scan's worker supervision, and small decisions as pure inputs) took the count to 314 in 129 files. A few "now" sites stayed after all: their tries are noted in the LAND-04 wave lines.
+Done since (2026-11-26): waves 17 (the "now" sites), 18 (a real `matchMedia` for jsdom, `src/test/support/screen.ts`),
+19 (page measures, Scan's corner trace and camera shot policy, and the comment rail's stacking as pure functions), 20 (dead
+catches, Scan's worker supervision, and small decisions as pure inputs) and 21 (held and broken files) took the count to
+302 in 126 files. The "loader takes a Blob" rows were mostly stale: no loader needed a product change, a real `HeldFile` or
+broken PDF reached each one that could be made real. A few "now" sites stayed after all: their tries are noted in the LAND-04 wave lines.
 
 Open before the next wave:
 

@@ -56,6 +56,17 @@ describe('HeldFile', () => {
     expect(new Uint8Array(await third)).toEqual(bytes);
   });
 
+  it('started, read before the reads at once, still answers the held read after them', async () => {
+    const file = new HeldFile(bytes, 'a.pdf', { passReads: 1 });
+    const started = file.started;
+    await file.arrayBuffer();
+    const held = file.arrayBuffer();
+    expect(await settled(started)).toBe(true);
+    expect(await settled(held)).toBe(false);
+    file.release();
+    await held;
+  });
+
   it('release lets every waiting read through', async () => {
     const file = new HeldFile(bytes, 'a.pdf');
     const reads = [file.arrayBuffer(), file.arrayBuffer()];

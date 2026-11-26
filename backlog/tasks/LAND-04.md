@@ -397,10 +397,15 @@ count). The rule is off meanwhile.
   entry type, the hand-off store error and the in-flight Scan result went back to their kept doubles, with true reasons; the
   browser language and the swipe reader's arguments got tests. Never caught in any version: Scan's adopt terms, the sink's page
   fields, the page answer's cloning, and Redact's list-objects report.
+- Held and broken files (2026-11-26, wave 21): loader mocks give way to a real `HeldFile` (which can now let its first reads
+  through and hold the next), real broken PDFs, a real refused store (`openNewerStore`) and Chromium's own refusal of full
+  screen. A destroyed page's read gets a lower test on a real destroyed document. 314 sites down to 302 in 126 files. Kept:
+  the page loaders of the page workspace and Split, which run on bytes already read; the draft restore's realm copy, which
+  only jsdom needs (a real browser has one realm, so no product change); Merge's 200 MB draft, whose real read costs 430 MB.
 
 ## What is left (2026-11-26)
 
-Every site left carries its `// Forced:` reason, 314 in 129 files:
+Every site left carries its `// Forced:` reason, 302 in 126 files:
 
 - The largest part is what jsdom and Node do not have: the share sheet,
   fullscreen, dialogs, the visual viewport, the clipboard, workers, observers that report, a service worker and its windows.

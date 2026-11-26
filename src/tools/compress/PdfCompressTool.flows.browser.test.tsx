@@ -140,7 +140,8 @@ const makeImageFile = (name: string, key = 'landscape') => new File([PHOTOS[key]
 
 // forced: holds the next call to `fn` open until the test releases it, then runs the real one. Only the
 // calls no file read can hold still use it: two consumers of one file released in a chosen order, a page
-// rendered from a Blob the product makes, and a photo decode (createImageBitmap reads no arrayBuffer).
+// rendered from a Blob the product makes, a photo decode (createImageBitmap reads no arrayBuffer), and a build
+// whose file the analysis reads too, in an order that races, so no one read of the file is the build's.
 function hold<A extends unknown[], R>(fn: (...args: A) => R, original: (...args: A) => R) {
   const started = Promise.withResolvers<void>();
   const gate = Promise.withResolvers<void>();
@@ -452,13 +453,9 @@ describe('PdfCompressTool flows in a real browser', () => {
 
   it('a file replaced mid-run by a locked PDF never compresses, a level click during the probe builds nothing, and a file with no PDF header is skipped', async () => {
     mount();
-    // A's run is held open by its file, until the test lets it finish
-    const runA = heldPdf('photo', 'run_a.pdf', { passReads: 2 });
-    await act(async () => { setInputFiles(fileInput, [runA]); });
-    // The run starts once the password check has answered; the page shows it as processing from then on.
-    await waitUntil(() => statusOf() === 'processing');
-    await drain();
-    expect(imagesLib.compressPdfImages).toHaveBeenCalledTimes(1);
+    // A's run is held open by hold() until the test lets it finish: the file's reads race the analysis, so no one read is the build's.
+    const runA = hold(imagesLib.compressPdfImages, actualImages.compressPdfImages);
+    await pick(makePdfFile('run_a.pdf'), runA.started);
     await act(async () => { radio('Smallest').click(); });
     await pick(makePdfFile('locked.pdf', 'needsPassword'), () => $('[data-needs-unlock]') !== null);
     await act(async () => {
@@ -512,12 +509,9 @@ describe('PdfCompressTool flows in a real browser', () => {
 
   it('Exact size lands real sizes at both targets, and the Hebrew page points the arrow left and isolates the size', async () => {
     mount({ messages: hebrewCompressMessages });
-    // The first run is held open by its file, so no result exists yet
-    const run = heldPdf('photo', 'big_scan.pdf', { passReads: 2 });
-    await act(async () => { setInputFiles(fileInput, [run]); });
-    await waitUntil(() => statusOf() === 'processing');
-    await drain();
-    const file = run;
+    // The first run is held open by hold(), so no result exists yet
+    const run = hold(imagesLib.compressPdfImages, actualImages.compressPdfImages);
+    const file = await pick(makePdfFile('big_scan.pdf'), run.started);
     expect($('[data-compress-sizes]')!.textContent).toBe(formatBytes(file.size));
     await act(async () => { run.release(); });
     await settled();
