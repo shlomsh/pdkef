@@ -35,6 +35,12 @@ describe('matchesMediaQuery', () => {
     expect(m('(prefers-color-scheme: dark)')).toBe(false);
   });
 
+  it('takes a unitless zero and matches an empty query, as CSS does', () => {
+    expect(m('(min-width: 0)')).toBe(true);
+    expect(m('(max-width: 0)')).toBe(false);
+    expect(m('')).toBe(true);
+  });
+
   it('handles media types, not, only and comma lists', () => {
     expect(m('all')).toBe(true);
     expect(m('screen')).toBe(true);

@@ -64,6 +64,20 @@ describe('flipChanges recovers the swipe from the bands', () => {
     const out = flipChanges(highlightOver([[40, 100, 90, 14], [20, 140, 90, 14]]), readerFor('rtl'));
     expect(bandsInPx(out)).toEqual([[20, 40], [110, 20]]);
   });
+  it('reads each end at the middle of its row, so a band taller than its line still finds it', () => {
+    // Bands 34 px tall reach into the gap below each line: their middles sit on the lines, their bottom edges do not.
+    const out = flipChanges(highlightOver([[20, 100, 80, 34], [50, 140, 80, 34]], 'rtl'), readerFor('ltr'));
+    expect(bandsInPx(out)).toEqual([[100, 30], [20, 40]]);
+  });
+});
+
+describe('flipChanges probe', () => {
+  it('probe', () => {
+    const tall = flipChanges(highlightOver([[20, 100, 80, 34], [50, 140, 80, 34]], 'rtl'), readerFor('ltr'));
+    console.log('TALL', JSON.stringify(bandsInPx(tall)), JSON.stringify(tall));
+    const out = flipChanges(highlightOver([[40, 100, 90, 14], [20, 140, 90, 14]]), readerFor('rtl'));
+    console.log('BOX', JSON.stringify(out), (100 / H) * 100, (54 / H) * 100);
+  });
 });
 
 describe('flipChanges', () => {
@@ -73,6 +87,8 @@ describe('flipChanges', () => {
     const box = out as { left: number; width: number };
     expect(box.left).toBeCloseTo((20 / W) * 100, 6);
     expect(box.width).toBeCloseTo((110 / W) * 100, 6);
+    // The rows the reader found, from the first line's top to the last line's bottom, in page percent.
+    expect(out).toMatchObject({ top: expect.closeTo(24.475, 6), height: expect.closeTo(14.55, 6) });
     expect('bands' in out && out.bands).toHaveLength(2);
   });
   it('flips ltr to rtl', () => {

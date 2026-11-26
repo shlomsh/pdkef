@@ -27,6 +27,7 @@ function fail(query: string, why: string): never {
 }
 
 function pxValue(query: string, raw: string): number {
+  if (raw === '0') return 0; // CSS takes a unitless zero
   const m = /^(-?\d+(?:\.\d+)?)px$/.exec(raw);
   if (!m) fail(query, `unsupported length "${raw}"`);
   return Number(m[1]);
@@ -97,6 +98,7 @@ function evalClause(query: string, clause: string, s: Screen): boolean {
 }
 
 export function matchesMediaQuery(query: string, state: Screen): boolean {
+  if (!query.trim()) return true; // an empty query matches everything
   return query.split(',').some((clause) => evalClause(query, clause, state));
 }
 
@@ -113,12 +115,13 @@ class ScreenMediaQueryList extends EventTarget {
   removeListener(listener: EventListenerOrEventListenerObject | null) { this.removeEventListener('change', listener); }
 }
 
-type LiveList = { ref: WeakRef<ScreenMediaQueryList>; last: boolean };
-const live = new Set<LiveList>();
+// Every list a test made, held for the worker's life: a real browser keeps a list alive while it has listeners,
+// and `matchMedia(q).addEventListener(...)` keeps no reference of its own.
+const live = new Map<ScreenMediaQueryList, boolean>();
 
 export function matchMedia(query: string): MediaQueryList {
   const list = new ScreenMediaQueryList(query);
-  live.add({ ref: new WeakRef(list), last: list.matches });
+  live.set(list, list.matches);
   return list as unknown as MediaQueryList;
 }
 
@@ -129,12 +132,10 @@ export function setScreen(change: Partial<Screen>): void {
   window.innerWidth = screen.width;
   window.innerHeight = screen.height;
   if (sizeChanged) window.dispatchEvent(new Event('resize'));
-  for (const entry of [...live]) {
-    const list = entry.ref.deref();
-    if (!list) { live.delete(entry); continue; }
+  for (const [list, last] of live) {
     const now = list.matches;
-    if (now === entry.last) continue;
-    entry.last = now;
+    if (now === last) continue;
+    live.set(list, now);
     const event = Object.assign(new Event('change'), { matches: now, media: list.media });
     list.onchange?.(event);
     list.dispatchEvent(event);
@@ -147,8 +148,5 @@ export function resetScreen(): void {
     window.innerWidth = screen.width;
     window.innerHeight = screen.height;
   }
-  for (const entry of live) {
-    const list = entry.ref.deref();
-    if (list) entry.last = list.matches;
-  }
+  for (const list of live.keys()) live.set(list, list.matches);
 }

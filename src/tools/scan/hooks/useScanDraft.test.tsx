@@ -36,13 +36,11 @@ let host: HTMLDivElement;
 let out: ReturnType<typeof useScanDraft>;
 let restoredPages: ScanPage[];
 let work: { pages: ScanPage[] };
-// The tool's restore is a handler the hook is given; a recorder of the pages it is handed is the test's input.
-let restoreCalls = 0;
-const restorePages = (restore: ScanDraftRestore) => {
-  restoreCalls += 1;
+// Forced: the tool's restore, which only the Scan island passes; here a recorder of the pages it is given.
+const restorePages = vi.fn((restore: ScanDraftRestore) => {
   restoredPages = restore.files.map((file) => newPage(file, 'document'));
   return restoredPages;
-};
+});
 
 function Probe({ pages }: { pages: ScanPage[] }) {
   out = useScanDraft({
@@ -83,7 +81,7 @@ describe('useScanDraft', () => {
     vi.mocked(loadDraft).mockReset();
     vi.mocked(deleteDraft).mockClear();
     vi.mocked(clearCurrentEntry).mockClear();
-    restoreCalls = 0;
+    restorePages.mockClear();
     work = { pages: [] };
   });
   afterEach(() => {
@@ -97,7 +95,7 @@ describe('useScanDraft', () => {
     await seedScan();
     await show([]);
     await restoreChecked();
-    expect(restoreCalls).toBe(1);
+    expect(restorePages).toHaveBeenCalledTimes(1);
     expect(await restoredPages[0].file.text()).toBe('seeded photo');
     expect(out.checking).toBe(false);
     expect(document.documentElement.hasAttribute('data-draft-hint')).toBe(false);
@@ -109,7 +107,7 @@ describe('useScanDraft', () => {
     work.pages = [page('picked.jpg')];
     await restoreChecked();
     expect(loadDraft).toHaveBeenCalledTimes(1);
-    expect(restoreCalls).toBe(0);
+    expect(restorePages).not.toHaveBeenCalled();
   });
 
   it('lets go of a pointer at an entry with no photos', async () => {
@@ -121,7 +119,7 @@ describe('useScanDraft', () => {
     await restoreChecked();
     expect(clearCurrentEntry).toHaveBeenCalledWith('scan-to-pdf');
     expect(readCurrentEntryId('scan-to-pdf')).toBeNull();
-    expect(restoreCalls).toBe(0);
+    expect(restorePages).not.toHaveBeenCalled();
   });
 
   it('skips the load while a hand-off is pending', async () => {

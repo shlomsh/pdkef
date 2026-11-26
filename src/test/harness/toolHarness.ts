@@ -53,6 +53,8 @@ export interface ToolHarness {
   resetUsage(): void;
   /** Resolves once every beacon sent so far has been read; `await` it before asserting on beacons. */
   flush(): Promise<void>;
+  /** Resolves with the first beacon whose payload is named `name`, as each beacon is sent; rejects, naming it, if none comes in `within` ms. */
+  beaconNamed(name: string, within?: number): Promise<BeaconRecord>;
   /** The blobs passed to `URL.createObjectURL` so far, in order: what a download or preview was built from. */
   createdBlobs(): Blob[];
   /** The blob behind a `blob:` URL that `URL.createObjectURL` handed out (for example a download link's `href`). */
@@ -151,6 +153,24 @@ export function installToolHarness({ trackIndexedDb = false }: { trackIndexedDb?
     clearBeacons: () => { recorder.calls.length = 0; },
     resetUsage,
     flush: async () => { records(); await Promise.all(reading.values()); },
+    beaconNamed: async (name, within = 5000) => {
+      const named = () => records().find((r) => (r.payload as { name?: unknown } | undefined)?.name === name);
+      let late: ReturnType<typeof setTimeout> | undefined;
+      const deadline = new Promise<never>((_, fail) => { late = setTimeout(() => fail(new Error(`no "${name}" beacon was sent within ${within} ms`)), within); });
+      try {
+        for (;;) {
+          const seen = recorder.calls.length;
+          records();
+          await Promise.all(reading.values());
+          const hit = named();
+          if (hit) return hit;
+          // Wait for the next beacon only if none came while these were read.
+          if (recorder.calls.length === seen) await Promise.race([recorder.next(), deadline]);
+        }
+      } finally {
+        clearTimeout(late);
+      }
+    },
     createdBlobs: () => { remember(); return [...blobs]; },
     blobForUrl: (url) => { remember(); return url ? blobsByUrl.get(url) : undefined; },
     storedDraft: (tool) => loadDraft(tool),

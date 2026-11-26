@@ -278,7 +278,7 @@ describe('PdfSignTool UI flow', () => {
       setInputFiles(input, [makePdfFile('kind.pdf', imageLetter)]);
     });
     await loaded(container);
-    await waitUntil(() => harness.beacons().some((beacon) => (beacon.payload as { name?: string } | undefined)?.name === 'sign_form_detection'));
+    await harness.beaconNamed('sign_form_detection');
     const success = (await maintenanceEvents('sign_form_detection')).find((event) => event.properties.outcome === 'success');
     expect(Object.keys(required(success, 'a success event').properties)).toEqual(['outcome', 'field_count_bucket', 'page_kind']);
     expect(success?.properties).toMatchObject({ page_kind: 'image' });

@@ -4,7 +4,7 @@ import { IDBFactory } from 'fake-indexeddb';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { cacheRecentFile, loadRecentFile, peekHandoff, readRecentFiles, saveHandoff } from '../drafts/draftStore.ts';
 
-// The real store runs on fake-indexeddb; a spy lets a test see what the recents write answered.
+// The real store runs on fake-indexeddb; only the one test that needs the cache write to throw replaces it.
 vi.mock('../drafts/draftStore.ts', { spy: true });
 
 import { settleHandoff } from './settleHandoff.ts';
@@ -45,12 +45,10 @@ describe('settleHandoff', () => {
   });
 
   it('commits even when the cache write throws', async () => {
-    // A record whose bytes are not an ArrayBuffer cannot be hashed, so the real recents write answers false.
-    const unhashable = { fileName: 'a.pdf', fileBytes: new Uint8Array(bytes()) as never };
-    await saveHandoff('sign', unhashable);
-    await settleHandoff('sign', unhashable);
-    expect(await vi.mocked(cacheRecentFile).mock.results[0].value).toBe(false);
-    expect(readRecentFiles()).toEqual([]);
+    await saveHandoff('sign', { fileName: 'a.pdf', fileBytes: bytes() });
+    // Forced: the real write catches its own failures and answers false, it never rejects; this guards the commit if it ever does.
+    vi.mocked(cacheRecentFile).mockRejectedValueOnce(new Error('quota'));
+    await settleHandoff('sign', { fileName: 'a.pdf', fileBytes: bytes() });
     expect(await peekHandoff('sign')).toBeNull();
   });
 });

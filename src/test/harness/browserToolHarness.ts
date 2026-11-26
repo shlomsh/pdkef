@@ -8,7 +8,7 @@ import { ERROR_REPORT_PATH } from '#lib/telemetry/errorReportSchema.ts';
 import { loadDraft, readRecentFiles, takeHandoff } from '#lib/drafts/draftStore.ts';
 import type { BeaconRecord, ToolHarness } from './toolHarness.ts';
 
-export type BrowserToolHarness = Omit<ToolHarness, 'settle' | 'blobForUrl' | 'restore'> & {
+export type BrowserToolHarness = Omit<ToolHarness, 'settle' | 'blobForUrl' | 'restore' | 'beaconNamed'> & {
   /** The blob behind a `blob:` URL the page made (a download link's `href`), read back from Chromium itself. */
   blobForUrl(url: string | null | undefined): Promise<Blob | undefined>;
   /** Waits for every beacon sent so far to land, then puts reporting back; `await` it from `afterEach`. */
