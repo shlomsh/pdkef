@@ -96,7 +96,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ### Honest tests: adopt landmines
 
-- [DEBT-80](backlog/tasks/DEBT-80.md) P3 · Unit tests that fail only when the file's tests run in another order (in progress)
 - [LAND-05](backlog/tasks/LAND-05.md) P3 · Tests live beside what they test (in progress)
 
 ### Polish

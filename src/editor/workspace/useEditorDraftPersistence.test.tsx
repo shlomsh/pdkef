@@ -342,8 +342,10 @@ describe('useEditorDraftPersistence - HERO-02 hand-off marker', () => {
     expect(root.hasAttribute('data-handoff-pending')).toBe(true);
     act(() => render(null, container));
     expect(root.hasAttribute('data-handoff-pending')).toBe(false);
-    // Let the read finish so nothing outlives the test.
-    await act(async () => { await vi.mocked(peekHandoff).mock.results[0].value; await drainPromises(); });
+    // Unmounting does not stop the restore: it goes on to settle the hand-off into recents and hand the file to the
+    // loader. Wait for that real end, or its writes land in the next test's store.
+    await act(async () => { await props.loadPdf.reached; });
+    await act(async () => { await drainPromises(); });
   });
 });
 
