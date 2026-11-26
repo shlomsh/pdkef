@@ -15,7 +15,9 @@ type OnTrace = (id: number, quad: Quad, pins?: Pins | null) => Promise<Sides | n
 
 let container: HTMLElement | null = null;
 let shown: Sides | null = null;
+let renders = 0;
 function Probe({ selected, onTrace }: { selected: ScanPage; onTrace: OnTrace }) {
+  renders += 1;
   shown = useCornerTrace(selected, onTrace);
   return null;
 }
@@ -30,6 +32,7 @@ const flush = () => act(async () => { await Promise.resolve(); await Promise.res
 afterEach(() => {
   if (container) { act(() => render(null, container!)); container.remove(); container = null; }
   shown = null;
+  renders = 0;
 });
 
 describe('useCornerTrace', () => {
@@ -76,6 +79,22 @@ describe('useCornerTrace', () => {
     onTrace.mockImplementationOnce(() => new Promise(() => {}));
     act(() => render(view(page(Q1, pins), onTrace), container!));
     expect(onTrace).toHaveBeenLastCalledWith(1, Q1, pins);
+    expect(shown).toBeNull();
+  });
+
+  it('renders again only when an answer lands, not when a trace is asked for or let go', async () => {
+    let answer: (sides: Sides | null) => void = () => {};
+    // Forced: onTrace is always traceCorners, which needs a decoded photo and jsdom decodes none
+    const onTrace = vi.fn((): Promise<Sides | null> => new Promise((done) => { answer = done; }));
+    mount(page(Q1), onTrace);
+    await flush();
+    expect(renders).toBe(1);
+    answer(SIDES);
+    await flush();
+    expect(renders).toBe(2);
+    expect(shown).toBe(SIDES);
+    act(() => render(view(page(Q1, null, false), onTrace), container!));
+    expect(renders).toBe(3);
     expect(shown).toBeNull();
   });
 });

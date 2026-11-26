@@ -31,7 +31,7 @@ export function timeBucket(ms: number | undefined): TimeBucket | undefined {
  */
 export function navigationType(entries: readonly PerformanceEntry[], first: boolean): NavigationType | undefined {
   if (!first) return undefined;
-  
+
   const type = (entries[0] as PerformanceNavigationTiming | undefined)?.type;
   return (NAVIGATION_TYPES as readonly string[]).includes(type as string) ? (type as NavigationType) : undefined;
 }
