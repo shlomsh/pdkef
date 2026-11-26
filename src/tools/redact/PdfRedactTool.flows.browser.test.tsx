@@ -329,10 +329,10 @@ describe('PdfRedactTool flows', () => {
   it('a valid PDF is shared, and a file that can no longer be read still exports twice from the held bytes', async () => {
     const originalShare = navigator.share;
     const originalCanShare = navigator.canShare;
-    // forced: the OS share sheet exists only on devices with one
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: the OS share sheet exists only on devices with one
     const share = vi.fn((_data?: ShareData) => Promise.resolve());
     Object.defineProperty(navigator, 'share', { configurable: true, value: share });
-    // forced: as above, canShare answers yes only where a share sheet exists
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: as above, canShare answers yes only where a share sheet exists
     Object.defineProperty(navigator, 'canShare', { configurable: true, value: vi.fn(() => true) });
     try {
       const shareArea = await loadFileAndGetDrawArea(new File([await (await fetch(numOneUrl)).arrayBuffer()], 'num-1.pdf', { type: 'application/pdf' }));
@@ -389,7 +389,7 @@ describe('PdfRedactTool flows', () => {
   it('a piece of the export that will not load (a tab left open across a deploy) asks for a reload, not a retry', async () => {
     const drawArea = await loadFileAndGetDrawArea();
     await drawBox(drawArea, 50, 200, 200, 500);
-    // Forced: the module is already loaded in this page, so no request for the export's chunk is ever made to fail; a fresh import cannot be had.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: the module is already loaded in this page, so no request for the export's chunk is ever made to fail; a fresh import cannot be had.
     vi.mocked(applyPageEdits).mockRejectedValueOnce(new TypeError('Failed to fetch dynamically imported module: https://pdkef.com/_astro/applyPageEdits.x.js'));
     await act(async () => { downloadButton().click(); });
     await settleUntil('the failure', () => s.container.textContent.includes('The download stopped.'));
@@ -402,7 +402,7 @@ describe('PdfRedactTool flows', () => {
   it('RED-50: a download that throws shows the error and no Saved line, and Download again completes', async () => {
     const drawArea = await loadFileAndGetDrawArea();
     await drawBox(drawArea, 50, 200, 200, 500);
-    // forced: the browser refuses to make the download link.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: the browser refuses to make the download link.
     vi.mocked(URL.createObjectURL).mockImplementationOnce(() => { throw new Error('blocked'); });
     await act(async () => { downloadButton().click(); });
     await settleUntil('the failure', () => s.container.textContent.includes('The download stopped.'));
@@ -469,7 +469,7 @@ describe('PdfRedactTool flows', () => {
     // Hold the replacement's document open, so the assertions land while the new file is still being read.
     const replacementRead = Promise.withResolvers<void>();
     const releaseReplacement = Promise.withResolvers<void>();
-    // forced: the replacement's pdf.js load is held open until the test releases it.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: the replacement's pdf.js load is held open until the test releases it.
     vi.mocked(getPdfjs).mockImplementationOnce(async () => {
       replacementRead.resolve();
       await releaseReplacement.promise;
@@ -571,7 +571,7 @@ describe('PdfRedactTool flows', () => {
 
     const navigate = vi.fn();
     const sent = Promise.withResolvers<void>();
-    // forced: a real navigation would take the test page away, so the hand-off gets a navigate callback.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: a real navigation would take the test page away, so the hand-off gets a navigate callback.
     vi.mocked(sendHandoff).mockImplementationOnce(async (target, payload, options) => {
       try { return await realSendHandoff(target, payload, { ...options, navigate }); } finally { sent.resolve(); }
     });

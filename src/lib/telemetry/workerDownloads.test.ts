@@ -47,6 +47,7 @@ describe('watchWorkerDownloads', () => {
   };
   // Forced: navigator.serviceWorker does not exist in Node, so the page's service worker is a mock.
   const install = (controller: unknown) =>
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: navigator.serviceWorker does not exist in Node, so the page's service worker is a mock.
     vi.stubGlobal('navigator', {
       serviceWorker: { controller, addEventListener: (_t: string, fn: (e: unknown) => void) => (listener = fn) },
     });

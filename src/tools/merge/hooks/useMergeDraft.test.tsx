@@ -462,7 +462,7 @@ describe('useMergeDraft', () => {
     // A fake byteLength, not a real 200MB allocation: saveMultiFileDraft sums
     // fileBytes.byteLength before it ever hashes the bytes, exactly like
     // draftStore.test.js's own "over MERGE_DRAFT_MAX_BYTES" case.
-    // Forced: a real 200MB+1 file builds in ~85ms but holds ~800MB of memory (three copies), too heavy.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: a real 200MB+1 file builds in ~85ms but holds ~800MB of memory (three copies), too heavy.
     vi.spyOn(entry.file, 'arrayBuffer').mockResolvedValue(fakeBuffer(MERGE_DRAFT_MAX_BYTES + 1));
     const apiRef: Ref<UseMergeDraftResult> = { current: null };
     await mount(apiRef, baseOptions({ entries: [entry], plan: planForFile(1, 1), autosaveDebounceMs: 40 }));
@@ -475,7 +475,7 @@ describe('useMergeDraft', () => {
 
   it('holds an update only while a save has failed, and releases once a later save succeeds (MEM-10)', async () => {
     const huge = baseEntry(1, 'huge.pdf', 1);
-    // Forced: a real 200MB+1 file holds ~800MB of memory, too heavy.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: a real 200MB+1 file holds ~800MB of memory, too heavy.
     vi.spyOn(huge.file, 'arrayBuffer').mockResolvedValue(fakeBuffer(MERGE_DRAFT_MAX_BYTES + 1));
     const apiRef: Ref<UseMergeDraftResult> = { current: null };
     await mount(apiRef, baseOptions({ entries: [huge], plan: planForFile(1, 1), autosaveDebounceMs: 40 }));

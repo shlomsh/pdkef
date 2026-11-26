@@ -59,6 +59,7 @@ describe('useSaveToDrive', () => {
   const build = async () => ({ blob: pdf, fileName: 'a.pdf' });
   // Forced: jsdom opens nothing and returns undefined, which the product reads as a blocked popup; the open path needs a tab.
   const allowPopups = () => {
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom opens nothing and returns undefined, which the product reads as a blocked popup; the open path needs a tab.
     open = vi.spyOn(window, 'open').mockImplementation(() => {
       const tab: Tab = { closed: false, close() { this.closed = true; } };
       tabs.push(tab);
@@ -106,11 +107,11 @@ describe('useSaveToDrive', () => {
     remount(2);
     expect(latest.available).toBe(false);
     setScreen({ hover: 'hover', pointer: 'fine' });
-    // Forced: a browser with no matchMedia
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: a browser with no matchMedia
     vi.stubGlobal('matchMedia', undefined);
     remount(3);
     expect(latest.available).toBe(false);
-    // Forced: a matchMedia that throws
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: a matchMedia that throws
     vi.stubGlobal('matchMedia', () => { throw new Error('no'); });
     remount(4);
     expect(latest.available).toBe(false);

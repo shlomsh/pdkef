@@ -18,6 +18,7 @@ const setup = (state: CaptureState) => ({
   pending: { current: null as string | null },
   shotHashes: new WeakMap<File, string>(),
   onTaken: vi.fn(),
+  // oxlint-disable-next-line landmines/no-test-doubles -- Forced: the island's failure handler, here the real shot policy's answer, recorded so a test can see it was asked.
   onFailed: vi.fn((cameraLive: boolean) => nextShotPolicy(INITIAL_SHOT_POLICY, { type: 'photoFailed', cameraLive }).effects),
   running: () => true,
 });

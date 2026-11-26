@@ -23,7 +23,7 @@ describe('openAssessor', () => {
   });
 
   it('says the worker was lost when it dies holding a sheet, and reads on the main thread after', async () => {
-    // forced: a worker that dies holding a sheet
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: a worker that dies holding a sheet
     vi.stubGlobal('Worker', FakeWorker);
     const assessor = openAssessor();
     const asked = assessor.assess({ ...SHEET, data: new Uint8ClampedArray(SHEET.data) });
@@ -33,7 +33,7 @@ describe('openAssessor', () => {
   });
 
   it('passes on a failure the worker reports', async () => {
-    // forced: a worker that reports a failure
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: a worker that reports a failure
     vi.stubGlobal('Worker', FakeWorker);
     const asked = openAssessor().assess({ ...SHEET, data: new Uint8ClampedArray(SHEET.data) });
     const worker = FakeWorker.last;

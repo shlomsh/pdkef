@@ -133,9 +133,11 @@ describe('FileDropzone', () => {
       const link = container.querySelector('a[href^="/drive/"]');
       // Forced: jsdom cannot go offline
       const onLine = vi.spyOn(navigator, 'onLine', 'get');
+      // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom cannot go offline
       onLine.mockReturnValue(false);
       act(() => { window.dispatchEvent(new Event('offline')); });
       expect(link.hidden).toBe(true);
+      // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom cannot go offline
       onLine.mockReturnValue(true);
       act(() => { window.dispatchEvent(new Event('online')); });
       expect(link.hidden).toBe(false);

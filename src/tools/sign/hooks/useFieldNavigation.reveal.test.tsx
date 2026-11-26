@@ -18,7 +18,7 @@ function installViewport(props: Partial<FakeViewport>): FakeViewport {
   const vv = Object.assign(new EventTarget(), {
     scale: 1, width: 402, height: 714, offsetLeft: 0, offsetTop: 0, pageLeft: 0, pageTop: 0, ...props,
   }) as FakeViewport;
-  // Forced: jsdom has no visualViewport, so no real one to read
+  // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no visualViewport, so no real one to read
   Object.defineProperty(window, 'visualViewport', { value: vv, configurable: true, writable: true });
   return vv;
 }
@@ -61,7 +61,7 @@ describe('revealFieldAfterKeyboard', () => {
     scrollTo.mockRestore();
     vi.useRealTimers();
     document.body.innerHTML = '';
-    // Forced: jsdom has no visualViewport, so no real one to read
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no visualViewport, so no real one to read
     Object.defineProperty(window, 'visualViewport', { value: undefined, configurable: true, writable: true });
     setScrollY(0);
   });

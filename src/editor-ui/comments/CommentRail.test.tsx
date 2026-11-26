@@ -52,7 +52,7 @@ describe('CommentRail', () => {
   });
 
   it('without a railHeight, cards are placed from the rail\'s measured height and the next follows', () => {
-    // Forced: jsdom has no layout, so a card's measured height is given
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no layout, so a card's measured height is given
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ height: 1000 } as DOMRect);
     mount([hl('a', 10, 'one'), hl('b', 10.5, 'two')]);
     const [a, b] = cards();

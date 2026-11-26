@@ -146,15 +146,16 @@ describe('anonymous maintenance telemetry', () => {
   it('does not invoke the transport while offline', () => {
     const transport = vi.fn();
     const originalOnline = Object.getOwnPropertyDescriptor(navigator, 'onLine');
-    // forced: a browser that reports it is offline cannot be put in that state on cue
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: a browser that reports it is offline cannot be put in that state on cue
     Object.defineProperty(navigator, 'onLine', { configurable: true, value: false });
 
     try {
       expect(reportMaintenanceEvent(signExportSucceeded(10), transport)).toBe(false);
       expect(transport).not.toHaveBeenCalled();
     } finally {
-      // Forced: puts back the real answer, or the rest of the file stays offline
+      // oxlint-disable-next-line landmines/no-test-doubles -- Forced: puts back the real answer, or the rest of the file stays offline
       if (originalOnline) Object.defineProperty(navigator, 'onLine', originalOnline);
+      // oxlint-disable-next-line landmines/no-test-doubles -- Forced: puts back the real answer, or the rest of the file stays offline
       else delete (navigator as { onLine?: boolean }).onLine;
     }
   });

@@ -113,7 +113,7 @@ describe('useOpenPageDocument', () => {
     let releaseOld: (v: never) => void = () => {};
     let oldReachedLoad: () => void = () => {};
     const oldLoadStarted = new Promise<void>((r) => { oldReachedLoad = r; });
-    // Forced: the page loader takes bytes, not a file, so only its answer can wait; the newer pick loads for real.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: the page loader takes bytes, not a file, so only its answer can wait; the newer pick loads for real.
     vi.mocked(loadPdfWithPages).mockImplementationOnce(() => new Promise((r) => { releaseOld = r; oldReachedLoad(); }));
     mount();
     const older = await pdfOfPages('old.pdf', 2);

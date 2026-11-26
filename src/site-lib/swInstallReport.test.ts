@@ -22,9 +22,9 @@ function fakeCaches(initial: Record<string, string> = {}, opts: { exists?: boole
     delete: async (k: unknown) => store.delete(abs(k)),
   };
   const caches = {
-    // Forced: jsdom and Node have no CacheStorage.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom and Node have no CacheStorage.
     has: vi.fn(async () => exists),
-    // Forced: jsdom and Node have no CacheStorage.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom and Node have no CacheStorage.
     open: vi.fn(async () => { exists = true; return cache; }),
   };
   return { caches, store };
@@ -47,13 +47,13 @@ afterEach(() => {
 
 // The browser is offline: reportMaintenanceEvent makes no attempt and says so.
 function goOffline() {
-  // Forced: jsdom has no way to take the browser offline.
+  // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no way to take the browser offline.
   Object.defineProperty(navigator, 'onLine', { configurable: true, get: () => false });
   expect(navigator.onLine).toBe(false);
 }
 
 function comeOnline() {
-  // Forced: undoes the offline override above.
+  // oxlint-disable-next-line landmines/no-test-doubles -- Forced: undoes the offline override above.
   Reflect.deleteProperty(navigator, 'onLine');
 }
 

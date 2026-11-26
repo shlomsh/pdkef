@@ -60,11 +60,11 @@ describe('createSwipeReader', () => {
     const noCtx = document.createElement('canvas');
     noCtx.width = W;
     noCtx.height = H;
-    // Forced: jsdom canvases always give a 2d context
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom canvases always give a 2d context
     vi.spyOn(noCtx, 'getContext').mockReturnValue(null);
     expect(createSwipeReader(noCtx, 400)).toBeNull();
     const throwing = pageCanvas();
-    // Forced: jsdom canvases are never tainted, so no real read throws
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom canvases are never tainted, so no real read throws
     vi.spyOn(throwing.getContext('2d')!, 'getImageData').mockImplementation(() => { throw new Error('tainted'); });
     expect(createSwipeReader(throwing, 400)!.bandsBetween(px(30, 107), px(120, 107))).toEqual([]);
   });

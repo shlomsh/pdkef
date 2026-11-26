@@ -79,9 +79,9 @@ beforeEach(() => {
   idle = []; shown = 'unset';
   vi.mocked(readScan).mockClear();
   vi.mocked(reportError).mockClear(); vi.mocked(reportMaintenanceEvent).mockClear(); resetMaintenanceEventsForTests();
-  // Forced: jsdom has no requestIdleCallback; this one queues the task for the test to run when the page "idles".
+  // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no requestIdleCallback; this one queues the task for the test to run when the page "idles".
   vi.stubGlobal('requestIdleCallback', (run: () => void) => { idle.push(run); return run; });
-  // Forced: the pair of the line above.
+  // oxlint-disable-next-line landmines/no-test-doubles -- Forced: the pair of the line above.
   vi.stubGlobal('cancelIdleCallback', (run: () => void) => { idle = idle.filter((queued) => queued !== run); });
   container = document.createElement('div');
 });
@@ -124,7 +124,7 @@ describe('useScanCheck', () => {
 
   it('reports nothing for a file that was replaced before the read ended', async () => {
     let finish: (v: 'spread' | null) => void = () => {};
-    // Forced: real readScan checks liveness only after getPage and after each sheet, so a file replaced during the last page's operator-list read still returns a verdict; real pdf.js cannot be timed to land there.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: real readScan checks liveness only after getPage and after each sheet, so a file replaced during the last page's operator-list read still returns a verdict; real pdf.js cannot be timed to land there.
     vi.mocked(readScan).mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
     mount(await openPlain());
     await startIdle();

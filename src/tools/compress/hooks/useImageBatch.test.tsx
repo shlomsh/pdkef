@@ -41,7 +41,7 @@ describe('useImageBatch', () => {
     // Spy-through: Node's real object URLs, only watched.
     createUrl = vi.spyOn(URL, 'createObjectURL');
     revokeUrl = vi.spyOn(URL, 'revokeObjectURL');
-    // Forced: the real compressor decodes the photo with createImageBitmap or a blob: Image, which jsdom lacks.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: the real compressor decodes the photo with createImageBitmap or a blob: Image, which jsdom lacks.
     vi.mocked(compressImageToTarget).mockReset().mockImplementation(() => Promise.resolve(result()));
     act(() => render(<Harness apiRef={api} />, root));
   });
@@ -78,7 +78,7 @@ describe('useImageBatch', () => {
 
   it('lands nothing and starts nothing once the island is gone', async () => {
     const first = deferred<ReturnType<typeof result>>();
-    // Forced: the first photo's compress is held until the test lets it finish, and the real decode cannot run here.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: the first photo's compress is held until the test lets it finish, and the real decode cannot run here.
     vi.mocked(compressImageToTarget).mockImplementationOnce(() => first.promise);
     act(() => api.current!.choose([photo('a.jpg'), photo('b.jpg')], 50));
     await flush();

@@ -3,10 +3,10 @@ import { vi } from 'vitest';
 export function mockNativeFileShare() {
   const originalShare = navigator.share;
   const originalCanShare = navigator.canShare;
-  // Forced: jsdom has no navigator.share or canShare
+  // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no navigator.share or canShare
   const share = vi.fn(() => Promise.resolve());
   Object.defineProperty(navigator, 'share', { configurable: true, value: share });
-  // Forced: jsdom has no navigator.share or canShare
+  // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no navigator.share or canShare
   Object.defineProperty(navigator, 'canShare', { configurable: true, value: vi.fn(() => true) });
 
   return {

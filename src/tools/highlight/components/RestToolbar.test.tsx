@@ -100,7 +100,7 @@ describe('RestToolbar', () => {
 
   it('Delete deletes, and says where the row stood so its Undo can stand there too', () => {
     const bar = mount();
-    // Forced: jsdom has no layout, so the bar's box is given numbers
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no layout, so the bar's box is given numbers
     vi.spyOn(bar, 'getBoundingClientRect').mockReturnValue({ left: 100, top: 40, width: 300, height: 46 } as DOMRect);
     click(button('Delete'));
     expect(onDelete).toHaveBeenCalledTimes(1);
@@ -229,11 +229,11 @@ describe('MarkHint', () => {
   describe('clamp to the page card', () => {
     const rect = (left: number, right: number) => ({ left, right, top: 0, bottom: 20, width: right - left, height: 20, x: left, y: 0, toJSON: () => ({}) }) as DOMRect;
     function place(hint: [number, number], wrapper: [number, number]) {
-      // Forced: jsdom has no layout, so the boxes and the page width are given numbers
+      // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no layout, so the boxes and the page width are given numbers
       vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
         return this.hasAttribute('data-mark-hint') ? rect(...hint) : rect(...wrapper);
       });
-      // Forced: jsdom has no page width
+      // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no page width
       vi.spyOn(document.documentElement, 'clientWidth', 'get').mockReturnValue(1000);
       act(() => render(<MarkHint anchor={{ x: 40, bottom: 12, rtl: false }} text="Rest" />, host));
       return host.querySelector<HTMLElement>('[data-mark-hint]')!;

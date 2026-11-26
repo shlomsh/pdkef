@@ -29,7 +29,7 @@ describe('an open tab whose file was removed', () => {
     indexedDB = new IDBFactory();
     reload.mockClear();
     forgetTabEntry();
-    // Forced: jsdom cannot reload a page
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom cannot reload a page
     vi.stubGlobal('location', { ...window.location, reload });
   });
   afterEach(() => vi.unstubAllGlobals());

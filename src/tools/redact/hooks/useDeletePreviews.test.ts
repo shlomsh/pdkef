@@ -140,8 +140,7 @@ describe('useDeletePreviews', () => {
     const onPreviews = () => {};
     let cancelledRebuild!: () => void;
     const cancelled = new Promise<void>((resolve) => { cancelledRebuild = resolve; });
-    // Forced: timing. The marks change right after the page is rewritten and before pdf.js has parsed it,
-    // so that rebuild is cancelled while its parse is open.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: timing. The marks change right after the page is rewritten and before pdf.js has parsed it, so that rebuild is cancelled while its parse is open.
     vi.mocked(buildDeletePreviewPage).mockImplementationOnce(async (...args) => {
       const built = await actual.buildDeletePreviewPage(...args);
       act(() => { render(h(Harness, { fileBytes, elements: [], onPreviews }), container!); });

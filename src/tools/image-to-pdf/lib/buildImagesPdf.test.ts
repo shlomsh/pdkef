@@ -25,7 +25,7 @@ describe('buildImagesPdf (DEBT-75)', () => {
 
   it('names nothing for a build that was replaced meanwhile', async () => {
     const controller = new AbortController();
-    // Forced: buildImagesPdf's own guard needs an abort after the last picture, but the real imagesToPdf throws at its end, so only an abort inside pdf.save() reaches it, which a test cannot time.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: buildImagesPdf's own guard needs an abort after the last picture, but the real imagesToPdf throws at its end, so only an abort inside pdf.save() reaches it, which a test cannot time.
     vi.mocked(imagesToPdf).mockImplementation(async (_files, _progress, _signal, options) => {
       options?.onSkip?.('cut.png');
       controller.abort();

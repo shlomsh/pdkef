@@ -80,7 +80,7 @@ describe('useCoarsePointer', () => {
     const realMatchMedia = window.matchMedia;
     const added = vi.fn();
     const removed = vi.fn();
-    // Forced: an old Safari's MediaQueryList has no addEventListener, and no test browser can be put in that state.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: an old Safari's MediaQueryList has no addEventListener, and no test browser can be put in that state.
     vi.spyOn(window, 'matchMedia').mockImplementation((query) => {
       const list = realMatchMedia(query);
       const events = EventTarget.prototype;
@@ -101,7 +101,7 @@ describe('useCoarsePointer', () => {
   });
 
   it('stays false where there is no matchMedia at all, rather than throwing', () => {
-    // Forced: matchMedia absent is the state under test.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: matchMedia absent is the state under test.
     vi.stubGlobal('matchMedia', undefined);
     const { apiRef } = mount();
     expect(apiRef.current.coarse).toBe(false);

@@ -278,7 +278,7 @@ describe('useMarkSwipe off the text', () => {
   const touch = (type: string, touches: Array<{ clientX: number; clientY: number }>) =>
     window.dispatchEvent(Object.assign(new Event(type, { cancelable: true }), { touches }));
   // The browser's zoom: only a zoomed page can move sideways under one finger, so only then is a line's move claimed.
-  // Forced: jsdom has no visualViewport, so the zoom is a viewport that reports its scale.
+  // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no visualViewport, so the zoom is a viewport that reports its scale.
   const zoom = (scale: number) => Object.defineProperty(window, 'visualViewport', { value: { scale }, configurable: true });
   beforeEach(() => zoom(2));
   afterEach(() => zoom(1));

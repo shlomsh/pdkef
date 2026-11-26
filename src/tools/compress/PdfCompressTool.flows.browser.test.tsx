@@ -145,6 +145,7 @@ const makeImageFile = (name: string, key = 'landscape') => new File([PHOTOS[key]
 function hold<A extends unknown[], R>(fn: (...args: A) => R, original: (...args: A) => R) {
   const started = Promise.withResolvers<void>();
   const gate = Promise.withResolvers<void>();
+  // oxlint-disable-next-line landmines/no-test-doubles -- Forced: holds the next call to `fn` open until the test releases it, then runs the real one. Only the calls no file read can hold still use it: two consumers of one file released in a chosen order, a page rendered from a Blob the product makes, a photo decode (createImageBitmap reads no arrayBuffer), and a build whose file the analysis reads too, in an order that races, so no one read of the file is the build's.
   vi.mocked(fn).mockImplementationOnce((async (...args: A) => {
     started.resolve();
     await gate.promise;
@@ -398,7 +399,7 @@ describe('PdfCompressTool flows in a real browser', () => {
     ['failed', new Error('no share target'), englishCompressMessages.shareError],
   ])('a share that is %s says so in the live region and records no share', async (_name, rejection, expected) => {
     nativeShare = mockNativeFileShare();
-    // forced: the share sheet is closed, or fails, without sharing
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: the share sheet is closed, or fails, without sharing
     nativeShare.share.mockImplementationOnce(() => Promise.reject(rejection));
     await loadPdf('test_doc.pdf');
     await act(async () => { shareButton()!.click(); });
@@ -587,7 +588,7 @@ describe('PdfCompressTool flows in a real browser', () => {
   it('one photo shows its skeleton until it has decoded, then lands a real JPEG at the target with Share only', async () => {
     nativeShare = mockNativeFileShare();
     const decode = Promise.withResolvers<void>();
-    // forced: the browser's image decode is held open until the test lets it finish
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: the browser's image decode is held open until the test lets it finish
     vi.spyOn(HTMLImageElement.prototype, 'decode').mockImplementation(() => decode.promise);
     // forced: the run is held open until the test lets it finish
     const run = hold(compressImageLib.compressImageToTarget, actualPhoto.compressImageToTarget);
@@ -791,6 +792,7 @@ describe('PdfCompressTool flows in a real browser', () => {
       // forced: a real navigation would take the test page away, so the hand-off gets a navigate callback
       const navigate = vi.fn();
       const sent = Promise.withResolvers<void>();
+      // oxlint-disable-next-line landmines/no-test-doubles -- Forced: a real navigation would take the test page away, so the hand-off gets a navigate callback
       vi.mocked(handoff.sendHandoff).mockImplementationOnce(async (target, payload, options) => {
         try { return await actualHandoff.sendHandoff(target, payload, { ...options, navigate }); } finally { sent.resolve(); }
       });

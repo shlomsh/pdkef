@@ -129,7 +129,9 @@ export function setScreen(change: Partial<Screen>): void {
   const sizeChanged = (change.width !== undefined && change.width !== screen.width)
     || (change.height !== undefined && change.height !== screen.height);
   screen = { ...screen, ...change };
+  // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom's window has a fixed size; this is the screen a test sets.
   window.innerWidth = screen.width;
+  // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom's window has a fixed size; this is the screen a test sets.
   window.innerHeight = screen.height;
   if (sizeChanged) window.dispatchEvent(new Event('resize'));
   for (const [list, last] of live) {
@@ -145,7 +147,9 @@ export function setScreen(change: Partial<Screen>): void {
 export function resetScreen(): void {
   screen = { ...DEFAULT_SCREEN };
   if (typeof window !== 'undefined') {
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom's window has a fixed size; this puts back the default screen.
     window.innerWidth = screen.width;
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom's window has a fixed size; this puts back the default screen.
     window.innerHeight = screen.height;
   }
   for (const list of live.keys()) live.set(list, list.matches);

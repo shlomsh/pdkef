@@ -61,7 +61,7 @@ const revokeObjectURL = () => vi.spyOn(URL, 'revokeObjectURL');
 
 const onTheMainThread = () => {
   resetPageWorker();
-  // Forced: a browser with no module worker (older Safari), where every page is processed on the main thread
+  // oxlint-disable-next-line landmines/no-test-doubles -- Forced: a browser with no module worker (older Safari), where every page is processed on the main thread
   vi.stubGlobal('Worker', undefined);
 };
 
@@ -165,7 +165,7 @@ describe('a page worker that dies mid-job', () => {
     setReportingEnabledForTests(true);
     resetErrorReportingForTests();
     const reports = answerInTurn('post', '/api/report', ...Array.from({ length: 3 }, () => () => new HttpResponse(null, { status: 204 })));
-    // Forced: a worker that answers its probe, then crashes on the first job
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: a worker that answers its probe, then crashes on the first job
     vi.stubGlobal('Worker', DyingWorker);
     const made = createObjectURL();
     const inspected = await inspectPhoto(await photo(300, 400));

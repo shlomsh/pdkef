@@ -94,8 +94,9 @@ describe('PinnedNotes', () => {
   });
 
   it('folds a comment that does not fit and opens the whole note on click, and leaves a short one alone', () => {
-    // Forced: jsdom has no layout, so scrollHeight and clientHeight are always 0
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no layout, so scrollHeight and clientHeight are always 0
     const tall = vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockReturnValue(200);
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no layout, so scrollHeight and clientHeight are always 0
     vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(60);
     mount([note('redact', 'a long story '.repeat(30)), note('merge', 'also long '.repeat(30))]);
     const [first, second] = [...container!.querySelectorAll('li')];
@@ -110,7 +111,7 @@ describe('PinnedNotes', () => {
     act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); });
     expect(second!.querySelector('button')!.getAttribute('aria-expanded')).toBe('false');
     act(() => render(null, container!));
-    // Forced: the same missing layout, a note that fits
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: the same missing layout, a note that fits
     tall.mockReturnValue(60);
     mount([note('redact', 'Short')]);
     expect(container!.querySelector('button')).toBeNull();

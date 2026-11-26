@@ -148,7 +148,7 @@ describe('useRedactFinish', () => {
     });
 
     it('builds the file it saves from the island export, and starts over when the document changes', async () => {
-      // Forced: the Drive tab opens in a new window, which jsdom cannot
+      // oxlint-disable-next-line landmines/no-test-doubles -- Forced: the Drive tab opens in a new window, which jsdom cannot
       const opened = vi.spyOn(window, 'open').mockReturnValue({ closed: false } as Window);
       const show = mount(stateWith([box('a', 0)]));
       await act(async () => { latest.drive.save(); });

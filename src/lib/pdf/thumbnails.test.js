@@ -241,7 +241,7 @@ describe('thumbnails.js', () => {
       const { openThumbnailSource } = await import('./thumbnails.js');
       const source = await openThumbnailSource(pdfFile);
       const controller = new AbortController();
-      // Forced: pdf.js gives a test no moment between a finished render and its caller; the real render runs, the abort is first on its promise.
+      // oxlint-disable-next-line landmines/no-test-doubles -- Forced: pdf.js gives a test no moment between a finished render and its caller; the real render runs, the abort is first on its promise.
       renderCall.mockImplementationOnce(function render(...args) {
         const task = realRender.apply(this, args);
         task.promise.then(() => controller.abort(), () => {});
@@ -309,7 +309,7 @@ describe('thumbnails.js', () => {
 
     beforeEach(() => {
       closeSpy.mockClear();
-      // Forced: jsdom has no createImageBitmap, so the decode cannot be real (its bitmap is a real canvas)
+      // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no createImageBitmap, so the decode cannot be real (its bitmap is a real canvas)
       decodeSpy = vi.fn(() => Promise.resolve(decoded()));
       globalThis.createImageBitmap = decodeSpy;
     });
@@ -385,7 +385,7 @@ describe('thumbnails.js', () => {
 
     it('falls back to a plain decode when the engine rejects the resize options', async () => {
       const { renderThumbnailWithMeta } = await import('./thumbnails.js');
-      // Forced: jsdom has no createImageBitmap, so an engine that rejects the resize options cannot happen for real
+      // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no createImageBitmap, so an engine that rejects the resize options cannot happen for real
       decodeSpy.mockImplementationOnce(() => Promise.reject(new TypeError('unsupported')));
       const result = await renderThumbnailWithMeta(photo(), { width: 100 });
       expect(decodeSpy).toHaveBeenLastCalledWith(expect.any(File), { imageOrientation: 'from-image' });

@@ -264,7 +264,7 @@ describe('RatingPrompt', () => {
   describe('Share', () => {
     // Forced: jsdom has no navigator.share or clipboard, so there is no real one to run
     const nav = navigator as unknown as Record<string, unknown>;
-    // Forced: removes the share and clipboard mocks again
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: removes the share and clipboard mocks again
     afterEach(() => { delete nav.share; delete nav.clipboard; document.head.querySelectorAll('link[rel=canonical]').forEach((l) => l.remove()); });
     const tapShare = () => {
       showAfterDelay();
@@ -279,7 +279,7 @@ describe('RatingPrompt', () => {
       link.href = 'https://pdkef.com/compress/';
       document.head.appendChild(link);
       document.title = 'Compress PDF';
-      // Forced: no navigator.share in jsdom
+      // oxlint-disable-next-line landmines/no-test-doubles -- Forced: no navigator.share in jsdom
       const share = vi.fn(() => Promise.resolve());
       nav.share = share;
       await tapShare();
@@ -287,16 +287,16 @@ describe('RatingPrompt', () => {
     });
 
     it('swallows a rejected share', async () => {
-      // Forced: no navigator.share in jsdom
+      // oxlint-disable-next-line landmines/no-test-doubles -- Forced: no navigator.share in jsdom
       nav.share = vi.fn(() => Promise.reject(new DOMException('x', 'AbortError')));
       await expect(tapShare()).resolves.toBeUndefined();
       expect(buttons().map((b) => b.textContent)).toEqual(['Share', 'Send']);
     });
 
     it('copies the link when share is missing', async () => {
-      // Forced: no navigator.clipboard in jsdom
+      // oxlint-disable-next-line landmines/no-test-doubles -- Forced: no navigator.clipboard in jsdom
       const writeText = vi.fn(() => Promise.resolve());
-      // Forced: no navigator.clipboard in jsdom
+      // oxlint-disable-next-line landmines/no-test-doubles -- Forced: no navigator.clipboard in jsdom
       nav.clipboard = { writeText };
       await tapShare();
       expect(writeText).toHaveBeenCalledWith(location.origin + location.pathname);
@@ -304,7 +304,7 @@ describe('RatingPrompt', () => {
     });
 
     it('falls back to a plain link when the clipboard fails too', async () => {
-      // Forced: no navigator.clipboard in jsdom
+      // oxlint-disable-next-line landmines/no-test-doubles -- Forced: no navigator.clipboard in jsdom
       nav.clipboard = { writeText: vi.fn(() => Promise.reject(new Error('no'))) };
       await tapShare();
       const links = [...container.querySelectorAll('a')];

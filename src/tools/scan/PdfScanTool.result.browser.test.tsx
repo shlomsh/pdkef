@@ -78,7 +78,7 @@ describe('PdfScanTool result and remembered scan', () => {
     expect(pinned()).toEqual(expect.arrayContaining(['Sign', 'Highlight', 'Redact', 'Compress']));
     await openPage(1);
     expect(pinned()).toEqual(expect.arrayContaining(['Sign', 'Highlight', 'Redact', 'Compress']));
-    // Forced: the real build runs and only metTarget is overridden; the search's floor (0.3 scale, 0.3 quality) keeps a page of pure noise near 0.26 bytes a pixel, so 1 MB takes over ten full-size noise pages, past the 8 s page wait.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: the real build runs and only metTarget is overridden; the search's floor (0.3 scale, 0.3 quality) keeps a page of pure noise near 0.26 bytes a pixel, so 1 MB takes over ten full-size noise pages, past the 8 s page wait.
     step('buildScanPdf').mockImplementationOnce(async (...args: Parameters<typeof realPipeline.buildScanPdf>) => {
       const built = await realPipeline.buildScanPdf(...args);
       return { ...built, metTarget: false };

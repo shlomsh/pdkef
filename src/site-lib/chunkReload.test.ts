@@ -78,7 +78,7 @@ function setup(opts: { held?: boolean; online?: boolean; heldAfterFlush?: boolea
     : opts.storage;
   const win = {
     addEventListener: (type: string, fn: (event: any) => void) => { listeners.set(type, fn); },
-    // Forced: location.reload cannot run in a test, the mock records the order
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: location.reload cannot run in a test, the mock records the order
     location: { reload: vi.fn(() => { calls.push('reload'); }) },
   };
   // The real reportError, reached through the default lazy import; its calls are what the tests read.

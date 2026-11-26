@@ -69,7 +69,8 @@ const BLACK_INK = solidPng(2, [0, 0, 0]);
 vi.mock('../text/imageTint.js', { spy: true });
 
 beforeEach(() => {
-  vi.mocked(tintImageDataUrl).mockImplementation(async (_dataUrl: string, hex: string) => solidPng(2, [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)))); // forced, every test: replaces the whole tint function with a stand-in that repaints the whole image in the requested colour
+  // oxlint-disable-next-line landmines/no-test-doubles -- Forced: every test: replaces the whole tint function with a stand-in that repaints the whole image in the requested colour
+  vi.mocked(tintImageDataUrl).mockImplementation(async (_dataUrl: string, hex: string) => solidPng(2, [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16))));
 });
 
 const signature = (overrides: Partial<SignatureElement> = {}): SignatureElement => ({

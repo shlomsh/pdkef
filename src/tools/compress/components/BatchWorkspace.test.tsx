@@ -62,7 +62,7 @@ let api: { current: Api | null };
 beforeEach(() => {
   held = new Map();
   api = { current: null };
-  // Forced: the real compressor decodes the photo with createImageBitmap or a blob: Image, which jsdom lacks; some photos are held until a test lets them finish.
+  // oxlint-disable-next-line landmines/no-test-doubles -- Forced: the real compressor decodes the photo with createImageBitmap or a blob: Image, which jsdom lacks; some photos are held until a test lets them finish.
   vi.mocked(compressImageToTarget).mockReset().mockImplementation((file) => held.get((file as File).name)?.promise ?? Promise.resolve(compressed()));
 });
 

@@ -25,7 +25,7 @@ afterEach(() => {
 });
 
 function mount() {
-  // Forced: jsdom has no layout, so a box reports no client rects unless the test says it is rendered
+  // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no layout, so a box reports no client rects unless the test says it is rendered
   vi.spyOn(Element.prototype, 'getClientRects').mockImplementation(() => (rendered ? [{}] : []) as unknown as DOMRectList);
   host = document.createElement('div');
   document.body.appendChild(host);

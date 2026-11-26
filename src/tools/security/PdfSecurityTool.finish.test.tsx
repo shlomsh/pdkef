@@ -64,7 +64,7 @@ describe('PdfSecurityTool finish', () => {
   describe('Share through the shared download flow', () => {
     const shareDone = async (shareRejection?: Error) => {
       const nativeShare = nativeFileShare();
-      // Forced: jsdom has no navigator.share, so the share sheet's own refusal cannot happen for real.
+      // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no navigator.share, so the share sheet's own refusal cannot happen for real.
       if (shareRejection) nativeShare.share.mockRejectedValueOnce(shareRejection);
       s.mount();
       await s.load(realFile('needs-password'));

@@ -15,7 +15,7 @@ describe('cameraPacer', () => {
   };
 
   it('steps a slow phone down and keeps the zoom it had', () => {
-    // Forced: Chromium's fake camera has no zoom capability and refuses a zoom constraint
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: Chromium's fake camera has no zoom capability and refuses a zoom constraint
     const applyConstraints = vi.fn().mockResolvedValue(undefined);
     const track = { applyConstraints, getConstraints: () => ({ advanced: [{ zoom: 2 }] }) } as unknown as MediaStreamTrack;
     slowChecks(cameraPacer(() => track, vi.fn()), 0, 5);

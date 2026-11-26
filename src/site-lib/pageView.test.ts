@@ -41,12 +41,15 @@ describe('reportPageView (MEM-45)', () => {
     // Blocked storage: reading localStorage itself throws, as in a locked-down private window.
     // Forced: jsdom's localStorage always opens; blocking it is a browser setting a test cannot turn on.
     const own = Object.getOwnPropertyDescriptor(window, 'localStorage');
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom's localStorage always opens; blocking it is a browser setting a test cannot turn on.
     Object.defineProperty(window, 'localStorage', { configurable: true, get: () => { throw new Error('storage'); } });
     try {
       expect(() => reportPageView()).not.toThrow();
       expect(sendToSink).toHaveBeenCalledExactlyOnceWith({ name: 'page_viewed', properties: {} });
     } finally {
+      // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom's localStorage always opens; blocking it is a browser setting a test cannot turn on.
       if (own) Object.defineProperty(window, 'localStorage', own);
+      // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom's localStorage always opens; blocking it is a browser setting a test cannot turn on.
       else Reflect.deleteProperty(window, 'localStorage');
     }
   });

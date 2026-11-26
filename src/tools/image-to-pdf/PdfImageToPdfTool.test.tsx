@@ -627,7 +627,7 @@ describe('PdfImageToPdfTool UI flow', () => {
     it('says the PDF is still ready when the share sheet is canceled, and records nothing', async () => {
       resetActionTrailForTests();
       const nativeShare = mockNativeFileShare();
-      // Forced: jsdom has no navigator.share, so the share sheet is a mock the person cancels or that fails to open.
+      // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no navigator.share, so the share sheet is a mock the person cancels or that fails to open.
       nativeShare.share.mockRejectedValueOnce(Object.assign(new Error('cancel'), { name: 'AbortError' }));
       mount();
       await loadFiles(['a.png', 'b.png']);
@@ -642,7 +642,7 @@ describe('PdfImageToPdfTool UI flow', () => {
     it('says the sheet could not open when sharing fails, and records nothing', async () => {
       resetActionTrailForTests();
       const nativeShare = mockNativeFileShare();
-      // Forced: jsdom has no navigator.share, so the share sheet is a mock the person cancels or that fails to open.
+      // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no navigator.share, so the share sheet is a mock the person cancels or that fails to open.
       nativeShare.share.mockRejectedValueOnce(new Error('boom'));
       mount();
       await loadFiles(['a.png', 'b.png']);

@@ -72,10 +72,10 @@ describe('pageSettled', () => {
   // The answer without waiting for anything else to happen.
   const now = (settled: ReturnType<typeof pageSettled>) => Promise.race([settled, drainPromises().then(() => 'waiting')]);
   const hide = () => {
-    // Forced: jsdom never hides a page
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom never hides a page
     Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' });
   };
-  // Forced: undoes hide
+  // oxlint-disable-next-line landmines/no-test-doubles -- Forced: undoes hide, putting back jsdom's own visibilityState
   const show = () => Reflect.deleteProperty(document, 'visibilityState');
 
   afterEach(async () => {

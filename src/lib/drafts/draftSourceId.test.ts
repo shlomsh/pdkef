@@ -49,7 +49,7 @@ describe('without Web Crypto (a page that is not a secure context)', () => {
 
   it('sourceIdForBytes returns the same id as with subtle present', async () => {
     const withSubtle = await sourceIdForBytes(bytes);
-    // Forced: vitest always has Web Crypto
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: vitest always has Web Crypto
     vi.stubGlobal('crypto', { subtle: undefined });
     // A copy: ids are remembered per buffer, so the same buffer would not be hashed again.
     expect(await sourceIdForBytes(bytes.slice(0))).toBe(withSubtle);
@@ -59,7 +59,7 @@ describe('without Web Crypto (a page that is not a secure context)', () => {
 
   it('sourceIdForFiles returns the same id as with subtle present', async () => {
     const withSubtle = await sourceIdForFiles(files);
-    // Forced: vitest always has Web Crypto
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: vitest always has Web Crypto
     vi.stubGlobal('crypto', { subtle: undefined });
     expect(await sourceIdForFiles(files)).toBe(withSubtle);
     expect(withSubtle).toBe('sha256:760e858f118b1efb08c6d8545eb8da2cba7c6024d2f5ae8a80e046dd1312de5b');

@@ -96,7 +96,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ### Honest tests: adopt landmines
 
-- [LAND-04](backlog/tasks/LAND-04.md) P3 · Fewer replaced dependencies in unit tests (in progress)
 - [LAND-05](backlog/tasks/LAND-05.md) P3 · Tests live beside what they test (in progress)
 
 ### Polish
@@ -151,6 +150,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [SEO-44](backlog/tasks/SEO-44.md) · The 2026-11-07 Search Console export: the /split/ and /he/split/ rows
 - [SEO-51](backlog/tasks/SEO-51.md) · Search Console, Performance, page /redact/, query containing "redact", last 3 months: impressions, clicks and position per query, plus the same for "blur"
 - [COMP-03](backlog/tasks/COMP-03.md) · A check on your iPhone
+- [DEBT-79](backlog/tasks/DEBT-79.md) · Shlomi's call on the product fix
 - [MERGE-28](backlog/tasks/MERGE-28.md) · Evidence that people want it, and your sign-off on a wider Google exception
 - [READ-07](backlog/tasks/READ-07.md) · An iPhone check
 - [SCAN-64](backlog/tasks/SCAN-64.md) · A decision on each

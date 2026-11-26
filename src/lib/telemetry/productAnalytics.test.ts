@@ -164,7 +164,7 @@ describe('reportToolLifecycleEvent', () => {
   });
 
   it('never throws when sendBeacon does', () => {
-    // Forced: a sendBeacon that throws cannot be produced on cue
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: a sendBeacon that throws cannot be produced on cue
     vi.spyOn(navigator, 'sendBeacon').mockImplementation(() => {
       throw new Error('boom');
     });
@@ -380,14 +380,14 @@ describe('performance measures (MEM-45)', () => {
   });
 
   it('the sent bodies carry nav and the build commit off the navigation entry, and net, local and lcp off the page load', async () => {
-    // Forced: jsdom's performance has no navigation, resource or paint entries
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom's performance has no navigation, resource or paint entries
     vi.spyOn(performance, 'getEntriesByType').mockImplementation((type: string) =>
       (type === 'navigation'
         ? [{ type: 'reload', transferSize: 0, decodedBodySize: 4000, serverTiming: [{ name: 'build', description: '08e10cf' }] }]
         : type === 'resource'
           ? [{ transferSize: 0, decodedBodySize: 90000 }, { transferSize: 1200, decodedBodySize: 1200 }]
           : []) as unknown as PerformanceEntryList);
-    // Forced: jsdom's performance has no navigation, resource or paint entries
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom's performance has no navigation, resource or paint entries
     vi.stubGlobal('PerformanceObserver', class {
       static supportedEntryTypes = ['largest-contentful-paint'];
       constructor(private cb: (l: { getEntries: () => { startTime: number }[] }) => void) {}

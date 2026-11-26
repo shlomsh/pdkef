@@ -26,7 +26,7 @@ const readerFor = (direction: 'ltr' | 'rtl', canvas = pageCanvas()) => {
 // A reader that finds nothing: the page's pixels cannot be read.
 const unreadableReader = (direction: 'ltr' | 'rtl') => {
   const canvas = pageCanvas();
-  // Forced: jsdom canvases are never tainted, so no real read throws; the only real way a reader answers with no bands.
+  // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom canvases are never tainted, so no real read throws; the only real way a reader answers with no bands.
   vi.spyOn(canvas.getContext('2d')!, 'getImageData').mockImplementation(() => { throw new Error('tainted'); });
   return readerFor(direction, canvas);
 };

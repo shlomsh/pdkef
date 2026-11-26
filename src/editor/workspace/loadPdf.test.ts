@@ -89,7 +89,7 @@ describe('loadPdf lifecycle', () => {
       return task;
     };
     const { getDocument: realGetDocument } = await vi.importActual<typeof import('pdfjs-dist')>('pdfjs-dist');
-    // Forced: the first load's document arrives late (a held real task); pdf.js has no way to be slow on demand
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: the first load's document arrives late (a held real task); pdf.js has no way to be slow on demand
     vi.mocked(getDocument).mockImplementationOnce((params) => holdOpen(realGetDocument(params as never)));
     const shared = options({ bytes: toBuffer(await buildPdf([page(['first']), page(['second'])])) });
     const first = loadPdf(shared);

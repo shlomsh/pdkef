@@ -19,6 +19,7 @@ const fakeTrack = (zoom?: { min: number; max: number; step?: number }) => ({
   getCapabilities: () => (zoom ? { zoom } : {}),
   getSettings: () => ({ zoom: 1 }),
   getConstraints: () => ({ width: { ideal: 1920 } }),
+  // oxlint-disable-next-line landmines/no-test-doubles -- Forced: Chromium's fake camera has no zoom capability, so only a double can offer one
   applyConstraints: vi.fn().mockResolvedValue(undefined),
 });
 function mount(track: ReturnType<typeof fakeTrack> | undefined) {

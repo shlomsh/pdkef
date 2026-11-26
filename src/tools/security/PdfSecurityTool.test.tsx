@@ -170,7 +170,7 @@ describe('PdfSecurityTool', () => {
 
   it('reports what made a file unreadable, not the wrapper that says so', async () => {
     const prepare = Error.prepareStackTrace;
-    // Forced: the reported stack is read through the engine's own prepareStackTrace, the one hook for the stack's text.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: the reported stack is read through the engine's own prepareStackTrace, the one hook for the stack's text.
     Error.prepareStackTrace = (error) => `${error.name}: ${error.message}\n    at run (https://pdkef.com/_astro/${error.constructor.name}.js:1:1)`;
     try {
       s.mount();

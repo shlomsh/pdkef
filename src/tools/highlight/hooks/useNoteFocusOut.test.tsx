@@ -95,7 +95,7 @@ describe('useNoteFocusOut', () => {
     const { onClose, q } = mount();
     q('inside').focus();
     q('inside').blur();
-    // Forced: jsdom's document.hasFocus() is always true, even after the window blurs; this is a window that lost focus.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom's document.hasFocus() is always true, even after the window blurs; this is a window that lost focus.
     vi.spyOn(document, 'hasFocus').mockReturnValue(false);
     act(() => { vi.runAllTimers(); });
     expect(onClose).not.toHaveBeenCalled();

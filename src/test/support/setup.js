@@ -11,6 +11,7 @@ import { sameFile } from './fileEquality.ts';
 // sufficient — the components' one-shot synchronous measure still runs; only the
 // ongoing "notify on resize" behavior (which jsdom can't produce anyway) is stubbed.
 if (typeof globalThis.ResizeObserver === 'undefined') {
+  // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no ResizeObserver, used by DraggableOverlayElement to keep overlay scaling in sync with the page's rendered size. jsdom has no layout engine, so a no-op stub is sufficient — the components' one-shot synchronous measure still runs; only the ongoing "notify on resize" behavior (which jsdom can't produce anyway) is stubbed.
   globalThis.ResizeObserver = class ResizeObserver {
     observe() {}
     unobserve() {}
@@ -23,6 +24,7 @@ if (typeof globalThis.ResizeObserver === 'undefined') {
 // components that use it mountable; tests that care about the callback
 // behavior install their own controllable mock instead.
 if (typeof globalThis.IntersectionObserver === 'undefined') {
+  // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no IntersectionObserver, used by useCurrentPage.js to track the fullscreen page indicator. Same reasoning as ResizeObserver above - a no-op keeps components that use it mountable; tests that care about the callback behavior install their own controllable mock instead.
   globalThis.IntersectionObserver = class IntersectionObserver {
     observe() {}
     unobserve() {}
@@ -34,7 +36,7 @@ if (typeof globalThis.IntersectionObserver === 'undefined') {
 // setScreen (src/test/support/screen.ts), a desktop by default. A real browser (the browser project
 // loads this file too) keeps its own.
 if (typeof window !== 'undefined' && typeof window.matchMedia === 'undefined') {
-  // Forced: jsdom has no matchMedia at all.
+  // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no matchMedia at all.
   window.matchMedia = matchMedia;
   afterEach(() => resetScreen());
 }

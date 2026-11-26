@@ -6,10 +6,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FrameObservation } from '../lib/capture/types.ts';
 import { useCamera } from './useCamera.ts';
 
-vi.mock('../lib/camera/frameGrab.ts', () => ({ frameGrabber: () => () => null, snapshot: async () => null })); // forced: jsdom's video has no frames
+// oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom's video has no frames
+vi.mock('../lib/camera/frameGrab.ts', () => ({ frameGrabber: () => () => null, snapshot: async () => null }));
 const camera = vi.hoisted(() => ({ openCamera: vi.fn(), takePhoto: vi.fn() }));
-vi.mock('../lib/camera/cameraStream.ts', async (importOriginal) => ({ ...(await importOriginal<object>()), ...camera, attachStream: () => {} })); // forced: jsdom has no camera, and no real one refuses or holds a photo on cue
+// oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no camera, and no real one refuses or holds a photo on cue
+vi.mock('../lib/camera/cameraStream.ts', async (importOriginal) => ({ ...(await importOriginal<object>()), ...camera, attachStream: () => {} }));
 
+// oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no camera, and no real one refuses or holds a photo on cue
 const track = () => ({ readyState: 'live', stop: vi.fn(function (this: { readyState: string }) { this.readyState = 'ended'; }), addEventListener: vi.fn() });
 let running: ReturnType<typeof track>;
 let worker: { onmessage: ((e: { data: FrameObservation }) => void) | null };
@@ -34,10 +37,11 @@ const close = () => act(() => { if (container) render(null, container); containe
 
 beforeEach(async () => {
   vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
-  vi.stubGlobal('Worker', class { onmessage = null; onerror = null; constructor() { worker = this; } postMessage() {} terminate() {} }); // forced: jsdom has no Worker
+  // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no Worker
+  vi.stubGlobal('Worker', class { onmessage = null; onerror = null; constructor() { worker = this; } postMessage() {} terminate() {} });
   now = 0;
   running = track();
-  // Forced: no camera in jsdom, a stream with one live track
+  // oxlint-disable-next-line landmines/no-test-doubles -- Forced: no camera in jsdom, a stream with one live track
   camera.openCamera.mockReset().mockImplementation(async () => ({ getVideoTracks: () => [running], getTracks: () => [running] }));
   camera.takePhoto.mockReset();
   onTaken.mockReset();
@@ -59,7 +63,7 @@ afterEach(() => {
 
 describe('a refused photo', () => {
   it('is told, and auto shoots no more until a photo lands', async () => {
-    // Forced: takePhoto cannot be refused or held on cue by a real camera here
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: takePhoto cannot be refused or held on cue by a real camera here
     camera.takePhoto.mockImplementation(refuse);
     await hold(10_000);
     expect(camera.takePhoto).toHaveBeenCalledTimes(1);
@@ -68,14 +72,14 @@ describe('a refused photo', () => {
   });
 
   it('leaves the page for the shutter, with no word of turning it', async () => {
-    // Forced: takePhoto cannot be refused or held on cue by a real camera here
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: takePhoto cannot be refused or held on cue by a real camera here
     camera.takePhoto.mockImplementation(refuse);
     await hold(4000);
     expect(handle.live.hint).toBe('tap');
   });
 
   it('asked for again by the shutter and refused again is told again, with no automatic shot after it', async () => {
-    // Forced: takePhoto cannot be refused or held on cue by a real camera here
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: takePhoto cannot be refused or held on cue by a real camera here
     camera.takePhoto.mockImplementation(refuse);
     await hold(4000);
     act(() => handle.shoot());
@@ -87,7 +91,7 @@ describe('a refused photo', () => {
   });
 
   it('that then lands by the shutter lets auto go on', async () => {
-    // Forced: takePhoto cannot be refused or held on cue by a real camera here
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: takePhoto cannot be refused or held on cue by a real camera here
     camera.takePhoto.mockImplementationOnce(refuse).mockResolvedValue(new Blob(['x']));
     await hold(2000);
     act(() => handle.shoot());
@@ -101,7 +105,7 @@ describe('a refused photo', () => {
   });
 
   it('lets auto go on once the person turns Auto on again, on the page still in view', async () => {
-    // Forced: takePhoto cannot be refused or held on cue by a real camera here
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: takePhoto cannot be refused or held on cue by a real camera here
     camera.takePhoto.mockImplementationOnce(refuse).mockResolvedValue(new Blob(['x']));
     await hold(4000);
     act(() => handle.setAuto(false));
@@ -116,7 +120,7 @@ describe('a refused photo', () => {
 describe('the camera closing while a photo is taken', () => {
   it('waits for the photo, and the page lands', async () => {
     const photo = Promise.withResolvers<Blob>();
-    // Forced: takePhoto cannot be refused or held on cue by a real camera here
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: takePhoto cannot be refused or held on cue by a real camera here
     camera.takePhoto.mockReturnValue(photo.promise);
     act(() => handle.shoot());
     close();
@@ -129,10 +133,11 @@ describe('the camera closing while a photo is taken', () => {
 
   it('waits when the page is hidden too', async () => {
     const photo = Promise.withResolvers<Blob>();
-    // Forced: takePhoto cannot be refused or held on cue by a real camera here
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: takePhoto cannot be refused or held on cue by a real camera here
     camera.takePhoto.mockReturnValue(photo.promise);
     act(() => handle.shoot());
-    vi.spyOn(document, 'hidden', 'get').mockReturnValue(true); // forced: a jsdom page is never hidden
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: a jsdom page is never hidden
+    vi.spyOn(document, 'hidden', 'get').mockReturnValue(true);
     act(() => { document.dispatchEvent(new Event('visibilitychange')); });
     expect(running.stop).not.toHaveBeenCalled();
     photo.resolve(new Blob(['x']));

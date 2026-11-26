@@ -73,7 +73,7 @@ describe('PdfEditPagesTool opening a file', () => {
       // Preact hands every error from a render or an effect to this hook; the spy lets the real one run.
       const caught = vi.spyOn(preactOptions, '__e');
       const realDestroy = Sortable.prototype.destroy;
-      // Forced: destroy throws on a detached grid in a browser, as it did in production; jsdom's real one does not
+      // oxlint-disable-next-line landmines/no-test-doubles -- Forced: destroy throws on a detached grid in a browser, as it did in production; jsdom's real one does not
       vi.spyOn(Sortable.prototype, 'destroy').mockImplementation(function (this: Sortable) {
         if (!this.el.isConnected) throw new TypeError("Cannot set properties of null (setting 'sortable')");
         return realDestroy.call(this);

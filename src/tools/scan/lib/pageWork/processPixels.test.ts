@@ -103,7 +103,7 @@ describe('processPixels', () => {
     expect(bend.value).toBe(FLAT_PAGE);
     expect(bentPx(bend.value, 0, 394, 295)).toBe(0);
     expect(settle(() => 7, 0)).toEqual({ value: 7, error: null });
-    // Forced: no real photo makes measureBend throw while the rest of the page still flattens
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: no real photo makes measureBend throw while the rest of the page still flattens
     vi.mocked(measureBend).mockImplementationOnce(() => { throw error; });
     const flat = processPixels(rgbaOf(400, 300), null, FULL_QUAD, 'original', true, null);
     expect(flat.measureError).toBe(error);

@@ -6,14 +6,14 @@ import type { Plan } from './timeline.ts';
 function fakeElement() {
   const animations: { cancel: ReturnType<typeof vi.fn>; finish(): void; cancelled: boolean }[] = [];
   const el = {
-    // Forced: jsdom has no Web Animations
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no Web Animations
     animate: vi.fn((frames: Keyframe[], options: KeyframeAnimationOptions) => {
       let resolve!: () => void;
       let reject!: (e: unknown) => void;
       const finished = new Promise<void>((res, rej) => { resolve = res; reject = rej; });
       const a = {
         frames, options, finished, cancelled: false,
-        // Forced: jsdom has no Web Animations
+        // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no Web Animations
         cancel: vi.fn(() => { a.cancelled = true; reject(new Error('AbortError')); }),
         finish: () => resolve(),
       };

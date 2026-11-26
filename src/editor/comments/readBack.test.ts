@@ -31,7 +31,7 @@ describe('readBackAnnotations', () => {
 
   it('opens the file untouched when reading fails', async () => {
     const bytes = new ArrayBuffer(1);
-    // Forced: the real importer never throws (it catches every read error itself), so only a chunk that cannot load reaches the catch.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: the real importer never throws (it catches every read error itself), so only a chunk that cannot load reaches the catch.
     vi.mocked(importStandardAnnotations).mockRejectedValueOnce(new Error('chunk failed'));
     expect(await readBackAnnotations(bytes)).toEqual({ bytes, elements: [] });
   });

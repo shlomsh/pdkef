@@ -52,7 +52,7 @@ describe('beaconMaintenanceTransport', () => {
     expect(await beacons.bodies()).toEqual([{ control: 'control_step' }]);
   });
   it('does not throw when sendBeacon throws', () => {
-    // forced: a sendBeacon that throws cannot be produced on cue
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: a sendBeacon that throws cannot be produced on cue
     vi.spyOn(navigator, 'sendBeacon').mockImplementation(() => {
       throw new Error('blocked');
     });

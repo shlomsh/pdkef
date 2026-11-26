@@ -96,7 +96,7 @@ export function useScanSuite<H extends SuiteHarness>({ Tool, installToolHarness,
     const gate = Promise.withResolvers<void>();
     let result: Promise<unknown> | undefined;
     gates.push(gate.resolve);
-    // forced: the step is held at its start, then runs for real.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: the step is held at its start, then runs for real.
     step(name).mockImplementationOnce(async (...args: unknown[]) => {
       started.resolve();
       await gate.promise;

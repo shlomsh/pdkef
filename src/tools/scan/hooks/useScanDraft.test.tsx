@@ -36,7 +36,7 @@ let host: HTMLDivElement;
 let out: ReturnType<typeof useScanDraft>;
 let restoredPages: ScanPage[];
 let work: { pages: ScanPage[] };
-// Forced: the tool's restore, which only the Scan island passes; here a recorder of the pages it is given.
+// oxlint-disable-next-line landmines/no-test-doubles -- Forced: the tool's restore, which only the Scan island passes; here a recorder of the pages it is given.
 const restorePages = vi.fn((restore: ScanDraftRestore) => {
   restoredPages = restore.files.map((file) => newPage(file, 'document'));
   return restoredPages;

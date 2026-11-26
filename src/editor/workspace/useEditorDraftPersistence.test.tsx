@@ -310,8 +310,7 @@ describe('useEditorDraftPersistence - HERO-02 hand-off marker', () => {
     const real = await vi.importActual<typeof import('#lib/drafts/draftStore.ts')>('#lib/drafts/draftStore.ts');
     const writeStarted = Promise.withResolvers<void>();
     const releaseWrite = Promise.withResolvers<void>();
-    // Forced: a real held transaction on the one draft store would also block the window's own reads (peekHandoff),
-    // so the write is held here while the store stays readable and the window a reload lands in can be seen.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: a real held transaction on the one draft store would also block the window's own reads (peekHandoff), so the write is held here while the store stays readable and the window a reload lands in can be seen.
     vi.mocked(cacheRecentFile).mockImplementationOnce(async (...args) => {
       writeStarted.resolve();
       await releaseWrite.promise;

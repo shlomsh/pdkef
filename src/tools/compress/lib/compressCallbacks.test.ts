@@ -20,7 +20,7 @@ vi.mock('./compressImage.js', { spy: true });
 vi.mock('./compress.js', { spy: true });
 vi.mock('./compressImages.js', { spy: true });
 
-// Forced: the real compressor decodes the photo with createImageBitmap or a blob: Image, which jsdom lacks.
+// oxlint-disable-next-line landmines/no-test-doubles -- Forced: the real compressor decodes the photo with createImageBitmap or a blob: Image, which jsdom lacks.
 vi.mocked(compressImageToTarget).mockImplementation((async (file: File) => ({
   blob: new Blob([new Uint8Array(10)], { type: 'image/jpeg' }),
   metTarget: true,

@@ -8,14 +8,14 @@ afterEach(() => {
   vi.restoreAllMocks();
   history.pushState(null, '', '/');
   document.documentElement.className = '';
-  // Forced: undoes the service worker the first test defined
+  // oxlint-disable-next-line landmines/no-test-doubles -- Forced: undoes the service worker the first test defined
   Reflect.deleteProperty(navigator, 'serviceWorker');
 });
 
 describe('readPageContext', () => {
   it('reads the page facts', () => {
     history.pushState(null, '', '/he/sign/');
-    // Forced: a service worker controlling the page, which cannot be set per test
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: a service worker controlling the page, which cannot be set per test
     Object.defineProperty(navigator, 'serviceWorker', { configurable: true, value: { controller: {} } });
     setScreen({ displayMode: 'standalone' });
     expect(readPageContext()).toMatchObject({ tool: '/he/sign/', installed: true, sw: true });
@@ -32,7 +32,7 @@ describe('readPageContext', () => {
   });
   it('falls back for that one fact when matchMedia throws, keeping the others', () => {
     history.pushState(null, '', '/sign/');
-    // Forced: a matchMedia that throws, which no test browser can be put in
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: a matchMedia that throws, which no test browser can be put in
     vi.stubGlobal('matchMedia', () => {
       throw new Error('no');
     });
@@ -44,7 +44,7 @@ describe('build in the page context and report', () => {
   const stubBuild = (content: string | null) => {
     const timing = content === null ? [] : [{ name: 'build', description: content }];
     vi.restoreAllMocks();
-    // Forced: jsdom's performance has no navigation entry
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom's performance has no navigation entry
     vi.spyOn(performance, 'getEntriesByType').mockImplementation(() => [{ serverTiming: timing }] as unknown as PerformanceEntryList);
   };
   it('readPageContext includes build only when the tag is valid', () => {

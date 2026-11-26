@@ -154,7 +154,7 @@ describe('PdfScanTool corners', () => {
   });
 
   it('finds the page on request from the corners view, and drops an Auto-detect result for a page removed while it waited', async () => {
-    // Forced: the first look and Auto-detect read the same preview bytes by design (inspectWith calls guessWith on them), so no real photo gets none from the first and a page from the second.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: the first look and Auto-detect read the same preview bytes by design (inspectWith calls guessWith on them), so no real photo gets none from the first and a page from the second.
     step('inspectPhoto').mockImplementationOnce(async (...args: Parameters<typeof realPipeline.inspectPhoto>) => ({ ...(await realPipeline.inspectPhoto(...args)), quad: null }));
     mount();
     await pick([await photoOfPage('a.jpg'), await photoOfPage('b.jpg')]);

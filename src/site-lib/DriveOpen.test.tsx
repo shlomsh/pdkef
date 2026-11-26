@@ -18,7 +18,7 @@ import { peekHandoff } from '#lib/drafts/draftStore.ts';
 // The Drive download is the real driveClient; MSW answers its two requests to googleapis. Everything else
 // runs for real: intent, route, saved token and redirect return on the page's own URL and localStorage, the
 // chooser, and the hand-off on fake-indexeddb. The spy sees the redirect.
-// Forced: Google's sign-in popup cannot open in a test
+// oxlint-disable-next-line landmines/no-test-doubles -- Forced: Google's sign-in popup cannot open in a test
 vi.mock('./drive/googleToken.ts', () => ({ requestDriveToken: vi.fn() }));
 vi.mock('./drive/driveSignIn.ts', { spy: true });
 
@@ -72,7 +72,7 @@ describe('DriveOpen', () => {
 
   it('starts one token request and one download when the Google button is tapped twice', async () => {
     let resolveToken!: (value: { ok: true; token: string; expiresInSeconds: number }) => void;
-    // Forced: the mocked Google popup answers
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: the mocked Google popup answers
     vi.mocked(requestDriveToken).mockReturnValue(new Promise((resolve) => { resolveToken = resolve; }));
     const seen = downloads();
     act(() => render(<DriveOpen />, container));
@@ -113,7 +113,7 @@ describe('DriveOpen', () => {
   });
 
   it('remembers the token from the popup so the next Open with needs no tap', async () => {
-    // Forced: the mocked Google popup answers
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: the mocked Google popup answers
     vi.mocked(requestDriveToken).mockResolvedValue({ ok: true, token: 'popped', expiresInSeconds: 3599 });
     const seen = downloads();
     act(() => render(<DriveOpen />, container));
@@ -127,7 +127,7 @@ describe('DriveOpen', () => {
   });
 
   it('hints the Drive account to the popup and remembers its token for that account', async () => {
-    // Forced: the mocked Google popup answers
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: the mocked Google popup answers
     vi.mocked(requestDriveToken).mockResolvedValue({ ok: true, token: 'popped', expiresInSeconds: 3599 });
     downloads();
     act(() => render(<DriveOpen />, container));

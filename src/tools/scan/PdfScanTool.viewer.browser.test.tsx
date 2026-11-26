@@ -136,7 +136,7 @@ describe('PdfScanTool viewer', () => {
   });
 
   it('names a page that could not be read, and holds Download back until it is removed', async () => {
-    // forced: processing fails, however often it is tried, for b.jpg whose photo was read well
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: processing fails, however often it is tried, for b.jpg whose photo was read well
     step('processPage').mockImplementation(async (...args: Parameters<typeof realPipeline.processPage>) => {
       if ((args[0] as File).name === 'b.jpg') throw new Error('decode failed');
       return realPipeline.processPage(...args);

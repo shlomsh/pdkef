@@ -87,7 +87,7 @@ describe('a protected PDF in Sign (ENC-07)', () => {
     await pick(fixture('owner-only.pdf'));
     await stateShown();
     const location = { href: '/sign/' };
-    // Forced: no navigation in jsdom, so location is replaced to see where the button sends the page
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: no navigation in jsdom, so location is replaced to see where the button sends the page
     vi.stubGlobal('location', location);
     await act(async () => { unlockButton().click(); });
     await waitUntil(() => location.href === '/unlock/');

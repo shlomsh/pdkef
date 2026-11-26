@@ -424,7 +424,7 @@ describe('hand-off survives a reload before it is stored (2026-11-12)', () => {
     const cacheStarted = Promise.withResolvers<void>();
     const releaseWrite = Promise.withResolvers<void>();
     const real = await vi.importActual<typeof import('../drafts/draftStore.ts')>('../drafts/draftStore.ts');
-    // Forced: hold the recents write open, then let the real one run, so the window a reload lands in can be observed. A real held store (holdDraftStore, measured) also blocks this test's own read of the record inside the window, so the test times out in 5000ms.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: hold the recents write open, then let the real one run, so the window a reload lands in can be observed. A real held store (holdDraftStore, measured) also blocks this test's own read of the record inside the window, so the test times out in 5000ms.
     vi.mocked(cacheRecentFile).mockImplementationOnce(async (...args) => {
       cacheStarted.resolve();
       await releaseWrite.promise;
@@ -451,7 +451,7 @@ describe('hand-off survives a reload before it is stored (2026-11-12)', () => {
 
   it('still commits when the recents write fails, so a stale record is not re-opened every visit', async () => {
     await saveHandoff('sign', { fileName: 'a.pdf', fileBytes: bytes('%PDF-1.7 quota') });
-    // Forced: the real write catches its own failures and answers false, it never rejects; this guards the commit if it ever does.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: the real write catches its own failures and answers false, it never rejects; this guards the commit if it ever does.
     vi.mocked(cacheRecentFile).mockRejectedValueOnce(new Error('quota'));
     const [onFiles, arrived] = arrivalSpy<[File[], string?]>();
     await act(async () => {

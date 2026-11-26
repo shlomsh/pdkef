@@ -21,7 +21,7 @@ describe('useAutoFontProvisioning', () => {
       container.remove();
       container = null;
     }
-    // forced: a test page is always online, so the offline branch has no real input
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: a test page is always online, so the offline branch has no real input
     Object.defineProperty(navigator, 'onLine', { configurable: true, value: originalOnline });
   });
 
@@ -63,7 +63,7 @@ describe('useAutoFontProvisioning', () => {
   });
 
   it('does not attempt to provision while offline', () => {
-    // forced: a test page is always online, so the offline branch has no real input
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: a test page is always online, so the offline branch has no real input
     Object.defineProperty(navigator, 'onLine', { configurable: true, value: false });
     const spy = vi.spyOn(fontOfflinePacks, 'provisionFontPack');
     mount([{ type: 'text', text: 'שלומי', fontFamily: 'Caveat' }]);

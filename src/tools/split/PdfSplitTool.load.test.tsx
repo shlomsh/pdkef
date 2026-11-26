@@ -50,8 +50,7 @@ describe('PdfSplitTool loading a file', () => {
   it('ignores a load that was replaced before it finished', async () => {
     let releaseFirst: (() => void) | undefined;
     const before = vi.mocked(loadPdfWithPages).mock.calls.length;
-    // Forced: the loader works on bytes already read, so nothing of the test's own can hold it. The first load (five pages) is
-    // held open, then runs for real; the replacement (three pages) is not held.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: the loader works on bytes already read, so nothing of the test's own can hold it. The first load (five pages) is held open, then runs for real; the replacement (three pages) is not held.
     vi.mocked(loadPdfWithPages).mockImplementationOnce(async (bytes) => {
       await new Promise<void>((resolve) => { releaseFirst = resolve; });
       const real = await vi.importActual<typeof import('#lib/pdf/loadPdfPages.ts')>('#lib/pdf/loadPdfPages.ts');

@@ -52,7 +52,7 @@ function makeWorker(status: Status = { ready: true, busy: 1 }) {
   const worker: any = new Emitter();
   worker.state = 'installed';
   worker.status = status;
-  // Forced: the worker's postMessage has no jsdom counterpart.
+  // oxlint-disable-next-line landmines/no-test-doubles -- Forced: the worker's postMessage has no jsdom counterpart.
   worker.postMessage = vi.fn((message: any, transfer: any[]) => {
     if (message.type === 'pdkef:update-status' && worker.status !== 'silent') transfer[0].postMessage({ ...worker.status });
   });
@@ -71,13 +71,13 @@ function makeTab(bus: Bus, opts: { controller?: boolean; waiting?: any; active?:
   reg.waiting = opts.waiting ?? null;
   reg.active = opts.active ?? null;
   reg.installing = null;
-  // Forced: a service worker registration has no jsdom counterpart.
+  // oxlint-disable-next-line landmines/no-test-doubles -- Forced: a service worker registration has no jsdom counterpart.
   reg.update = vi.fn(() => Promise.resolve());
   const sw: any = new Emitter();
   sw.controller = opts.controller === false ? null : {};
-  // Forced: jsdom has no service worker container.
+  // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no service worker container.
   sw.getRegistration = vi.fn(async () => (opts.active ? reg : undefined));
-  // Forced: jsdom has no service worker container.
+  // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no service worker container.
   sw.register = vi.fn(async () => {
     if (opts.activatesOnRegister) reg.active = opts.activatesOnRegister;
     return reg;
@@ -197,7 +197,7 @@ describe('busy answer', () => {
   });
 
   it('reports a recorded worker failure only after ready, and skips it without Cache Storage', async () => {
-    // Forced: Node and jsdom have no CacheStorage.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: Node and jsdom have no CacheStorage.
     const caches = { has: vi.fn(async () => false), open: vi.fn() };
     let release!: () => void;
     const tab = makeTab(new Bus());
@@ -443,7 +443,7 @@ describe('the line', () => {
     await tab.start();
     tab.doc.emit('visibilitychange');
     expect(tab.reg.update).not.toHaveBeenCalled();
-    // Forced: a service worker registration has no jsdom counterpart.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: a service worker registration has no jsdom counterpart.
     tab.reg.update = vi.fn(() => Promise.reject(new Error('offline')));
     tab.advanceClock(31 * 60_000);
     tab.doc.emit('visibilitychange');
@@ -457,7 +457,7 @@ describe('the line', () => {
 describe('registration', () => {
   it('returns quietly when registration is refused', async () => {
     const tab = makeTab(new Bus());
-    // Forced: jsdom has no service worker container.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no service worker container.
     tab.sw.register = vi.fn(async () => { throw new Error('SecurityError'); });
     await expect(tab.start()).resolves.toBeUndefined();
     expect(tab.line.hidden).toBe(true);
@@ -465,7 +465,7 @@ describe('registration', () => {
 
   it('returns quietly when registration resolves to nothing', async () => {
     const tab = makeTab(new Bus());
-    // Forced: jsdom has no service worker container.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no service worker container.
     tab.sw.register = vi.fn(async () => undefined);
     await expect(tab.start()).resolves.toBeUndefined();
     expect(tab.line.hidden).toBe(true);
@@ -909,7 +909,7 @@ describe('discovery', () => {
     await tab.start();
     const before = criticalChecks(worker);
     const errors = vi.spyOn(console, 'error');
-    // Forced: a service worker registration has no jsdom counterpart.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: a service worker registration has no jsdom counterpart.
     tab.reg.update = vi.fn(() => Promise.reject(new Error('offline')));
     tab.win.emit('online');
     await settle();
@@ -925,7 +925,7 @@ describe('discovery', () => {
     const tab = makeTab(new Bus(), { waiting: worker });
     await tab.start();
     const answer = worker.postMessage;
-    // Forced: the worker's postMessage has no jsdom counterpart.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: the worker's postMessage has no jsdom counterpart.
     worker.postMessage = vi.fn((message: any, transfer: any[]) => {
       if (message.type === CRITICAL_CHECK) throw new Error('redundant');
       answer(message, transfer);

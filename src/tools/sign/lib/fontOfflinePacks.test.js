@@ -10,10 +10,10 @@ const originalServiceWorker = navigator.serviceWorker;
 
 function installWorker(replyFor) {
   const worker = {
-    // forced: no page in a test is controlled by the real service worker
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: no page in a test is controlled by the real service worker
     postMessage: vi.fn((message, [replyPort]) => replyPort.postMessage(replyFor(message))),
   };
-  // forced: no page in a test is controlled by the real service worker
+  // oxlint-disable-next-line landmines/no-test-doubles -- Forced: no page in a test is controlled by the real service worker
   Object.defineProperty(navigator, 'serviceWorker', {
     configurable: true,
     value: { controller: worker },
@@ -22,7 +22,7 @@ function installWorker(replyFor) {
 }
 
 afterEach(() => {
-  // forced: no page in a test is controlled by the real service worker
+  // oxlint-disable-next-line landmines/no-test-doubles -- Forced: no page in a test is controlled by the real service worker
   Object.defineProperty(navigator, 'serviceWorker', {
     configurable: true,
     value: originalServiceWorker,

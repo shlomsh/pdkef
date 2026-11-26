@@ -400,6 +400,7 @@ describe('recent whiteout colours (RED-53)', () => {
 
   // Forced: no storage at all (Node) cannot show that no write was tried, and jsdom's storage cannot refuse reads
   it('falls back to current when getItem throws, and does not write', () => {
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: no storage at all (Node) cannot show that no write was tried, and jsdom's storage cannot refuse reads
     const spy = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('blocked'); });
     const set = vi.spyOn(Storage.prototype, 'setItem');
     try {

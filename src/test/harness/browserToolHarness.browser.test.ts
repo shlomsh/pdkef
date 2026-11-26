@@ -65,7 +65,8 @@ describe('installBrowserToolHarness', () => {
       return null;
     };
     const frame = window.requestAnimationFrame.bind(window);
-    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((run) => frame(() => frame(run))); // forced: a busy machine, whose frames come late
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: a busy machine, whose frames come late
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((run) => frame(() => frame(run)));
     render(h(Failing, {}), host);
     await harness.flush();
     expect(harness.usageEvents('tool_operation_failed')).toHaveLength(1);

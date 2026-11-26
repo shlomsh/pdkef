@@ -21,7 +21,7 @@ import { peekHandoff } from '#lib/drafts/draftStore.ts';
 // The Drive download is the real driveClient; MSW answers its two requests to googleapis. Everything else
 // runs for real: intent, route, saved token and redirect return on the page's own URL and localStorage, the
 // chooser, and the hand-off on fake-indexeddb. The two spies see the redirect and the hand-off.
-// Forced: the Picker loads Google's scripts, which cannot run in a test
+// oxlint-disable-next-line landmines/no-test-doubles -- Forced: the Picker loads Google's scripts, which cannot run in a test
 vi.mock('./drive/drivePicker.ts', () => ({ loadPicker: vi.fn(), openPicker: vi.fn() }));
 vi.mock('#lib/handoff/sendHandoff.ts', { spy: true });
 vi.mock('./drive/driveSignIn.ts', { spy: true });
@@ -123,9 +123,9 @@ describe('DriveOpen', () => {
   it('names Drive as the sender of a picked file', async () => {
     at('?pick=1&tool=sign&return=%2Fsign%2F');
     saved('saved');
-    // Forced: the mocked Google picker answers
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: the mocked Google picker answers
     vi.mocked(loadPicker).mockResolvedValue(true);
-    // Forced: the mocked Google picker answers
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: the mocked Google picker answers
     vi.mocked(openPicker).mockResolvedValue({ action: 'picked', docs: [{ id: 'f1' }] } as never);
     const seen = downloads();
     act(() => render(<DriveOpen />, container));

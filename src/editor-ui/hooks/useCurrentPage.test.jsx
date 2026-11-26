@@ -50,7 +50,7 @@ describe('useCurrentPage', () => {
   beforeEach(() => {
     originalIO = globalThis.IntersectionObserver;
     FakeIntersectionObserver.instances = [];
-    // Forced: jsdom never calls an IntersectionObserver back.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom never calls an IntersectionObserver back.
     globalThis.IntersectionObserver = FakeIntersectionObserver;
     container = document.createElement('div');
     document.body.appendChild(container);
@@ -60,7 +60,7 @@ describe('useCurrentPage', () => {
   afterEach(() => {
     act(() => render(null, container));
     container.remove();
-    // Forced: puts the real observer back.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: puts the real observer back.
     globalThis.IntersectionObserver = originalIO;
   });
 

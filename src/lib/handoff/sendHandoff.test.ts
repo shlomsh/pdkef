@@ -83,7 +83,8 @@ describe('sendHandoff', () => {
   });
 
   it('lets a store error through and does not navigate', async () => {
-    vi.mocked(saveHandoff).mockRejectedValueOnce(new Error('boom')); // Forced: the real store never rejects, it answers false
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: the real store never rejects, it answers false
+    vi.mocked(saveHandoff).mockRejectedValueOnce(new Error('boom'));
     await expect(sendHandoff('compress', payload(), { navigate })).rejects.toThrow('boom');
     expect(navigate).not.toHaveBeenCalled();
   });

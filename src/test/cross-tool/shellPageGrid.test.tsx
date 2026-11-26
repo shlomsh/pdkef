@@ -117,7 +117,7 @@ describe('PageGrid', () => {
     vi.mocked(getDocument).mockClear();
     observers = [];
     originalIO = globalThis.IntersectionObserver;
-    // Forced: jsdom has no IntersectionObserver
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no IntersectionObserver
     globalThis.IntersectionObserver = FakeIntersectionObserver;
   });
 
@@ -127,7 +127,7 @@ describe('PageGrid', () => {
       container.remove();
       container = null;
     }
-    // Forced: jsdom has no IntersectionObserver
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no IntersectionObserver
     globalThis.IntersectionObserver = originalIO;
     vi.restoreAllMocks();
   });
@@ -297,8 +297,7 @@ describe('PageGrid', () => {
     const entries = [{ id: 1, file: makeFile('one-page.pdf'), pageCount: 2, error: null }];
     const { openThumbnailSource: realOpen } = await vi.importActual<typeof import('#lib/pdf/thumbnails.js')>('#lib/pdf/thumbnails.js');
     const settled = Promise.withResolvers<void>();
-    // Forced: a failed thumbnail leaves only its placeholder, so the moment to wait on is the real render settling: the real source,
-    // run through, with a hook on its render promise (registered before the grid awaits it, so the grid's catch has not run yet).
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: a failed thumbnail leaves only its placeholder, so the moment to wait on is the real render settling: the real source, run through, with a hook on its render promise (registered before the grid awaits it, so the grid's catch has not run yet).
     vi.mocked(thumbnailsLib.openThumbnailSource).mockImplementation(async (...args) => {
       const source = await realOpen(...args);
       return {
@@ -317,6 +316,7 @@ describe('PageGrid', () => {
       await settled.promise;
       await act(async () => { await drainPromises(); });
     } finally {
+      // oxlint-disable-next-line landmines/no-test-doubles -- Forced: a failed thumbnail leaves only its placeholder, so the moment to wait on is the real render settling: the real source, run through, with a hook on its render promise (registered before the grid awaits it, so the grid's catch has not run yet).
       vi.mocked(thumbnailsLib.openThumbnailSource).mockImplementation(realOpen);
     }
     expect(vi.mocked(reportError).mock.calls.filter(([, , step]) => step === 'render_thumbnail').map(([area, error]) => [area, error.message])).toEqual([['pdf_render', 'Invalid page request.']]);
@@ -785,7 +785,7 @@ describe('PageGrid', () => {
     });
 
     it('marks each rendered cell from its place in the grid', () => {
-      // Forced: jsdom has no layout, so each cell gets the rect a grid would give it
+      // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no layout, so each cell gets the rect a grid would give it
       vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function () {
         if (this.hasAttribute('data-page-grid')) return grid;
         const index = Array.from(this.parentElement.children).indexOf(this);

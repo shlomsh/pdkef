@@ -44,7 +44,7 @@ describe('checking-draft placeholder (avoids the empty-dropzone flicker)', () =>
   beforeEach(() => {
     indexedDB = new IDBFactory();
     localStorage.clear();
-    // Forced: fake-indexeddb clones with Node's structuredClone, so a restored draft's bytes are a Node-realm ArrayBuffer that fails the shipped pdf.js's `instanceof ArrayBuffer` in jsdom ('Invalid PDF binary data', measured: `structuredClone(buffer) instanceof ArrayBuffer` is false); the real read runs and its bytes are copied into jsdom's realm, then pdf.js parses them for real.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: fake-indexeddb clones with Node's structuredClone, so a restored draft's bytes are a Node-realm ArrayBuffer that fails the shipped pdf.js's `instanceof ArrayBuffer` in jsdom ('Invalid PDF binary data', measured: `structuredClone(buffer) instanceof ArrayBuffer` is false); the real read runs and its bytes are copied into jsdom's realm, then pdf.js parses them for real.
     vi.mocked(loadDraft).mockImplementation(async (...args) => {
       const real = await vi.importActual<typeof import('#lib/drafts/draftStore.ts')>('#lib/drafts/draftStore.ts');
       const record = await real.loadDraft(...args);

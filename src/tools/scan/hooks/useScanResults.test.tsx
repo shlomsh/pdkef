@@ -70,7 +70,8 @@ describe('useScanResults adoptResult', () => {
     const setResults = vi.fn();
     const create = vi.spyOn(URL, 'createObjectURL');
     let finish!: (value: never) => void;
-    const processed = vi.fn(() => new Promise((resolve) => { finish = resolve as never; })); // Forced: `processed` is the island's own page-processing function (real pdf.js and canvas work), held here so the page can be removed mid-run, then finished by hand
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: `processed` is the island's own page-processing function (real pdf.js and canvas work), held here so the page can be removed mid-run, then finished by hand
+    const processed = vi.fn(() => new Promise((resolve) => { finish = resolve as never; }));
     function Host() {
       useScanResults({ pages: [page], work, processed: processed as never, unmountedRef: { current: false }, dispatch: vi.fn(), results: {}, setResults, turnedPreviews: {} });
       return null;

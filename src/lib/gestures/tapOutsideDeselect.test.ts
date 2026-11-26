@@ -150,7 +150,7 @@ describe('readTapSample', () => {
   });
 
   it('reads the zoomed visual viewport', () => {
-    // Forced: jsdom has no visualViewport to zoom
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no visualViewport to zoom
     vi.stubGlobal('window', { visualViewport: { scale: 2.5, offsetLeft: 40, offsetTop: 90 } });
     const s = readTapSample(touch, 1, 0);
     expect(s.viewportScale).toBe(2.5);

@@ -86,7 +86,7 @@ describe('useObjectPreviews', () => {
     const file = await openFile([{ lines: ['Hello world'] }, { lines: ['later'] }]);
     closers.push(file.close);
     const second = file.objects.find((o) => o.pageIndex === 1)!;
-    // Forced: a page whose text cannot be read is reported by the real reader, and this test is about a read that is not.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: a page whose text cannot be read is reported by the real reader, and this test is about a read that is not.
     vi.mocked(readGlyphs).mockResolvedValueOnce(null);
     vi.spyOn(errorReport, 'reportError');
     vi.spyOn(console, 'error');
@@ -108,7 +108,7 @@ describe('useObjectPreviews', () => {
     const filler: PageGlyph[] = Array.from({ length: GLYPH_BUDGET - own.length }, () => (
       { unicode: 'x', isSpace: false, matrix: [10, 0, 0, 10, 900, 100], width: 0.5 }
     ));
-    // Forced: a real page of 400,000 glyphs takes 1.5 s to list and read, and timed out on a loaded machine.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: a real page of 400,000 glyphs takes 1.5 s to list and read, and timed out on a loaded machine.
     vi.mocked(readGlyphs).mockResolvedValueOnce([...own, ...filler]);
     const getPage = vi.spyOn(file.doc, 'getPage');
     const seen = mount(file.doc, file.objects);

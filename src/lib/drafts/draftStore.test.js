@@ -789,8 +789,9 @@ describe('storage persistence request', () => {
   });
 
   it('asks the browser to keep this origin on the first successful save, and only asks once', async () => {
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no navigator.storage, a browser that grants persist()
     const persist = vi.fn(() => Promise.resolve(true));
-    // Forced: jsdom has no navigator.storage, a browser that grants persist()
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no navigator.storage, a browser that grants persist()
     vi.stubGlobal('navigator', { ...globalThis.navigator, storage: { persist } });
 
     vi.resetModules();
@@ -803,8 +804,9 @@ describe('storage persistence request', () => {
   });
 
   it('does not ask on a plain read-only open - loadDraft, cacheRecentFile - only ever on saveDraft', async () => {
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no navigator.storage, a browser that grants persist()
     const persist = vi.fn(() => Promise.resolve(true));
-    // Forced: jsdom has no navigator.storage, a browser that grants persist()
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no navigator.storage, a browser that grants persist()
     vi.stubGlobal('navigator', { ...globalThis.navigator, storage: { persist } });
 
     vi.resetModules();
@@ -836,7 +838,7 @@ describe('storage persistence request', () => {
   });
 
   it('still saves when persist() rejects or throws', async () => {
-    // forced: persist() that throws
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: persist() that throws
     vi.stubGlobal('navigator', {
       ...globalThis.navigator,
       storage: { persist: () => { throw new Error('denied'); } },
@@ -864,10 +866,11 @@ describe('isStoragePersisted', () => {
   });
 
   it('resolves the browser\'s own true/false answer', async () => {
-    // forced: a browser that granted persistence
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: a browser that granted persistence
     vi.stubGlobal('navigator', { ...globalThis.navigator, storage: { persisted: () => Promise.resolve(true) } });
     expect(await isStoragePersisted()).toBe(true);
 
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: a browser that granted persistence
     vi.stubGlobal('navigator', { ...globalThis.navigator, storage: { persisted: () => Promise.resolve(false) } });
     expect(await isStoragePersisted()).toBe(false);
   });
@@ -879,7 +882,7 @@ describe('isStoragePersisted', () => {
   });
 
   it('resolves \'unknown\' when persisted() throws', async () => {
-    // forced: persisted() that throws
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: persisted() that throws
     vi.stubGlobal('navigator', {
       ...globalThis.navigator,
       storage: { persisted: () => { throw new Error('denied'); } },
@@ -888,7 +891,7 @@ describe('isStoragePersisted', () => {
   });
 
   it('resolves \'unknown\' when persisted() rejects', async () => {
-    // forced: persisted() that rejects
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: persisted() that rejects
     vi.stubGlobal('navigator', {
       ...globalThis.navigator,
       storage: { persisted: () => Promise.reject(new Error('denied')) },

@@ -17,8 +17,7 @@ import Popover, { createPopoverMiddleware } from './Popover.tsx';
 // update) into an infinite render loop.
 const setPositionReferenceSpy = vi.fn();
 const patchedRefs = new WeakSet<object>();
-// Forced: setPositionReference is internal to useFloating, and Floating UI also measures the trigger itself,
-// so a real getBoundingClientRect spy cannot tell the two anchors apart
+// oxlint-disable-next-line landmines/no-test-doubles -- Forced: setPositionReference is internal to useFloating, and Floating UI also measures the trigger itself, so a real getBoundingClientRect spy cannot tell the two anchors apart
 vi.mock('@floating-ui/react', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@floating-ui/react')>();
   return {

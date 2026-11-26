@@ -34,7 +34,7 @@ function installVisualViewport(rect: { scale: number; offsetLeft: number; offset
     pageLeft: rect.pageLeft ?? rect.offsetLeft + window.scrollX,
     pageTop: rect.pageTop ?? rect.offsetTop + window.scrollY,
   };
-  // Forced: jsdom has no visualViewport.
+  // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no visualViewport.
   Object.defineProperty(window, 'visualViewport', { value, configurable: true, writable: true });
 }
 
@@ -47,7 +47,7 @@ function setScrollX(x: number) {
 }
 
 function removeVisualViewport() {
-  // Forced: jsdom has no visualViewport, so its absence is set by hand.
+  // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no visualViewport, so its absence is set by hand.
   Object.defineProperty(window, 'visualViewport', { value: undefined, configurable: true, writable: true });
 }
 

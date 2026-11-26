@@ -1,10 +1,9 @@
 ---
 id: "LAND-04"
 title: "Fewer replaced dependencies in unit tests"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "honest-tests"
-horizon: "now"
 depends_on: ["LAND-02"]
 ---
 
@@ -24,7 +23,8 @@ count). The rule is off meanwhile.
 - Waves land on main (the work branch `landmines-all` landed as 50cd7eba3 on 2026-11-25), our own modules replaced with `vi.mock` first.
 - Upstream: the rule accepts the same per-file `allow` map as `no-fixed-sleep`. Opened only after our
   PRs #21 and #33 are resolved, with Shlomi's OK.
-- pdkef then turns the rule on with the count left as an allow list that only shrinks.
+- pdkef then turns the rule on with the count left as an allow list that only shrinks. Done 2026-11-26 with a
+  disable per kept line instead (Shlomi's call), so it did not wait for the upstream option.
 
 ## Status
 
@@ -407,10 +407,14 @@ count). The rule is off meanwhile.
   of narrow browser tests merged, every assertion kept, so the browser count stays at 156. 302 sites down to 292 in 122
   files. The other 30 candidates keep their mocks: the service worker and the update flow are proved by e2e, the rest are
   covered by a real browser elsewhere or not core.
+- The rule is on (2026-11-26, Shlomi's call): each of the 292 sites left has its own
+  `// oxlint-disable-next-line landmines/no-test-doubles -- Forced: <why>` line (287 lines), written from its `// Forced:`
+  comment by a one-off script and checked by hand where the reason sat further up. `scripts/test-double-reasons.mjs` fails
+  the unit run on a disable wider than one line or one with no reason. A new double fails lint.
 
 ## What is left (2026-11-26)
 
-Every site left carries its `// Forced:` reason, 292 in 122 files:
+Every site left has its own disable line with its `-- Forced:` reason, 292 in 122 files:
 
 - The largest part is what jsdom and Node do not have: the share sheet,
   fullscreen, dialogs, the visual viewport, the clipboard, workers, observers that report, a service worker and its windows.
@@ -419,14 +423,11 @@ Every site left carries its `// Forced:` reason, 292 in 122 files:
 - Failures no real file, store or browser makes on demand, and moments held open to test an order.
 - Navigation, Google's sign-in and picker, popups, going offline, and what a browser reports about its own page load.
 
-Open:
+Carried on elsewhere:
 
-- The rule goes on with a per-file `allow` map once https://github.com/interfere-inc/landmines/pull/65 ships.
-- A refused maintenance beacon counts as sent, because `beaconMaintenanceTransport` returns nothing, so
-  `reportSwInstallFailures` never retries. A product fix, which needs Shlomi's call.
+- A refused maintenance beacon counts as sent: DEBT-79, which needs Shlomi's call.
 - Mutations no version of the tests caught are listed per wave above.
-- Some files failed shuffled before these waves: `prePickedFiles`, `PdfImageToPdfTool`, Redact's `DetailsSheet`,
-  `highlightSwipeGesture` and `useEditorDraftPersistence` tests.
+- Files that fail only shuffled, from before these waves: DEBT-80.
 - Triage (2026-11-26): every one of the 411 sites has a route in docs/landmines/no-test-doubles-triage.md: 45 can go now, 42 with a
   real `matchMedia` in the test setup, 32 with a new browser test core to a tool, 106 with a product change, 98 stay (a browser test
   for something not core), 54 cannot be real in any test, 34 go with the site they put back.

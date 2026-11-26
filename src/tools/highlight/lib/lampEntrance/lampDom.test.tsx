@@ -7,6 +7,7 @@ let ws: HTMLElement;
 
 // Forced: jsdom has no layout, so each box is given numbers
 function box(el: Element, left: number, top: number, width: number, height: number) {
+  // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no layout, so each box is given numbers
   vi.spyOn(el, 'getBoundingClientRect').mockReturnValue({ left, top, width, height, right: left + width, bottom: top + height, x: left, y: top, toJSON() {} } as DOMRect);
 }
 

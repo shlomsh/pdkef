@@ -100,7 +100,7 @@ describe('useSavedFileCheck read errors', () => {
 
   // RED-69: a tab left open across a deploy cannot load the check's chunk; a reload fixes it.
   it('asks for a reload, and still reports, when the check code cannot load', async () => {
-    // Forced: the real chunk loads here, so the one failure it cannot produce is the rejection itself.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: the real chunk loads here, so the one failure it cannot produce is the rejection itself.
     vi.mocked(runSavedFileCheck).mockRejectedValueOnce(new TypeError('Importing a module script failed.'));
     const saved = exportOf(savedPlain);
     const state = await run(saved);

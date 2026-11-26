@@ -38,9 +38,10 @@ function Harness() {
 
 function stubLayout() {
   // The bead is measured by its offset box (the drop-in's transform must not matter): 20 px at (-10, 10) from the cord at (720, 252).
-  // Forced: jsdom has no layout, so the boxes and offsets are given numbers
+  // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no layout, so the boxes and offsets are given numbers
   const offset = (prop: string, value: number) => vi.spyOn(HTMLElement.prototype, prop as 'offsetLeft', 'get').mockImplementation(function (this: HTMLElement) { return this.hasAttribute('data-lamp-bead') ? value : 0; });
   offset('offsetLeft', -10); offset('offsetTop', 10); offset('offsetWidth', 20); offset('offsetHeight', 20);
+  // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no layout, so the boxes and offsets are given numbers
   vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
     const key = this.hasAttribute('data-lamp-bead') ? 'bead' : this.getAttribute('data-lamp-part') === 'cord' ? 'cord' : this.hasAttribute('data-pill') ? 'pill' : null;
     const [left, top, width, height] = key ? BOXES[key] : this.hasAttribute('data-lamp-page') ? [100, 300, 200, 280] : [0, 0, 1000, 800];
@@ -56,7 +57,7 @@ beforeEach(() => {
     value(this: Element, frames: Keyframe[]) {
       let end!: () => void;
       const finished = new Promise<void>((resolve) => { end = resolve; });
-      // Forced: jsdom has no Web Animations, so each animation is recorded and finished by the test
+      // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no Web Animations, so each animation is recorded and finished by the test
       const a = { part: this.getAttribute('data-lamp-part'), frames, finished, cancel: vi.fn(() => end()), finish: () => end() };
       played.push(a);
       return a;

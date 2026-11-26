@@ -106,7 +106,7 @@ export function useRedactSuite<H extends SuiteHarness>({ Tool, checking, gesture
     const gate = Promise.withResolvers<void>();
     let reached = false;
     let result: Promise<unknown> | undefined;
-    // forced: the export is held at its start, then runs for real.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: the export is held at its start, then runs for real.
     vi.mocked(spy).mockImplementationOnce(async (...args: unknown[]) => {
       reached = true;
       started.resolve();
@@ -135,8 +135,9 @@ export function useRedactSuite<H extends SuiteHarness>({ Tool, checking, gesture
     s.harness = await installToolHarness();
     s.gestureCommitSpies = [];
     if (exportEntry) vi.mocked(exportEntry.spy).mockReset();
-    // Forced: the real controller runs; the page cannot show how many times a gesture committed, so its commit is counted.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: the real controller runs; the page cannot show how many times a gesture committed, so its commit is counted.
     vi.mocked(gestureEntry.spy).mockImplementation((options: any) => {
+      // oxlint-disable-next-line landmines/no-test-doubles -- Forced: the real controller runs; the page cannot show how many times a gesture committed, so its commit is counted.
       const commit: any = vi.fn(options.commit);
       s.gestureCommitSpies.push(commit);
       return gestureEntry.real({ ...options, commit });

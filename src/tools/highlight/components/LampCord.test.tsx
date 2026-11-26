@@ -53,7 +53,7 @@ describe('LampCord', () => {
     });
     const mount = (onPull: () => void) => {
       vi.useFakeTimers();
-      // Forced: jsdom has no layout, so every box reports no client rects
+      // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no layout, so every box reports no client rects
       vi.spyOn(Element.prototype, 'getClientRects').mockImplementation(() => [{}] as unknown as DOMRectList);
       scrollBy(0);
       container = document.createElement('div');

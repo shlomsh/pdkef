@@ -41,7 +41,7 @@ beforeEach(() => {
   process.env.KV_REST_API_URL = 'https://store.invalid';
   process.env.KV_REST_API_TOKEN = 'test-token';
   recorder = installBeaconRecorder();
-  // Forced: jsdom's performance has no navigation entry (Node neither), and the build commit comes from its Server-Timing
+  // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom's performance has no navigation entry (Node neither), and the build commit comes from its Server-Timing
   vi.spyOn(performance, 'getEntriesByType').mockImplementation(() => [{ serverTiming: [{ name: 'build', description: '08e10cf' }] }] as unknown as PerformanceEntryList);
   setReportingEnabledForTests(true);
   resetErrorReportingForTests();

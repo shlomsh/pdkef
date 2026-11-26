@@ -22,7 +22,7 @@ describe('sendToSink', () => {
   it('still sends when matchMedia, screen and document are missing', async () => {
     vi.stubEnv('PUBLIC_ANALYTICS_HOST', 'https://e.example.test');
     vi.stubEnv('PUBLIC_ANALYTICS_KEY', 'k');
-    // Forced: Node has no location, and the page address is read for every capture
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: Node has no location, and the page address is read for every capture
     vi.stubGlobal('location', { origin: 'https://pdkef.com', pathname: '/merge/', hostname: 'pdkef.com' });
     // Live control: Node really lacks all three
     expect(typeof matchMedia).toBe('undefined');

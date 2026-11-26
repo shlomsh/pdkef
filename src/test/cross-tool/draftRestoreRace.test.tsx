@@ -119,11 +119,13 @@ describe('draft-restore vs. manual file pick race', () => {
     // Forced: fake-indexeddb clones with Node's structuredClone, so a restored draft's or hand-off's bytes are a Node-realm ArrayBuffer that fails the shipped pdf.js's `instanceof ArrayBuffer` in jsdom ('Invalid PDF binary data', measured with the wrappers removed); the real reads run, their bytes are copied into jsdom's realm, and pdf.js parses them for real. A browser has one realm, so no product line changes for it.
     restoreRead = Promise.withResolvers();
     const real = await vi.importActual<typeof import('#lib/drafts/draftStore.ts')>('#lib/drafts/draftStore.ts');
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: fake-indexeddb clones with Node's structuredClone, so a restored draft's or hand-off's bytes are a Node-realm ArrayBuffer that fails the shipped pdf.js's `instanceof ArrayBuffer` in jsdom ('Invalid PDF binary data', measured with the wrappers removed); the real reads run, their bytes are copied into jsdom's realm, and pdf.js parses them for real. A browser has one realm, so no product line changes for it.
     vi.mocked(loadDraft).mockImplementation((...args) => {
       const record = real.loadDraft(...args).then(inJsdomRealm);
       restoreRead.resolve(record);
       return record;
     });
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: fake-indexeddb clones with Node's structuredClone, so a restored draft's or hand-off's bytes are a Node-realm ArrayBuffer that fails the shipped pdf.js's `instanceof ArrayBuffer` in jsdom ('Invalid PDF binary data', measured with the wrappers removed); the real reads run, their bytes are copied into jsdom's realm, and pdf.js parses them for real. A browser has one realm, so no product line changes for it.
     vi.mocked(peekHandoff).mockImplementation(async (...args) => {
       const real = await vi.importActual<typeof import('#lib/drafts/draftStore.ts')>('#lib/drafts/draftStore.ts');
       return inJsdomRealm(await real.peekHandoff(...args));

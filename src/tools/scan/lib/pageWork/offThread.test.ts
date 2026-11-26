@@ -33,9 +33,9 @@ beforeEach(() => {
   resetPageWorker();
   workers = [];
   answer = (request) => ({ ok: true, value: request.job.kind === 'probe' ? true : inspected });
-  // Forced: node has no module Worker, and no real browser worker answers its probe no or never answers it
+  // oxlint-disable-next-line landmines/no-test-doubles -- Forced: node has no module Worker, and no real browser worker answers its probe no or never answers it
   vi.stubGlobal('Worker', FakeWorker);
-  // Forced: node lacks OffscreenCanvas, and the tests need a browser that has it
+  // oxlint-disable-next-line landmines/no-test-doubles -- Forced: node lacks OffscreenCanvas, and the tests need a browser that has it
   vi.stubGlobal('OffscreenCanvas', class {});
 });
 
@@ -54,7 +54,7 @@ describe('offThread', () => {
   });
 
   it('needs no worker where the browser has no OffscreenCanvas', async () => {
-    // Forced: a browser that has a Worker but lacks OffscreenCanvas
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: a browser that has a Worker but lacks OffscreenCanvas
     vi.stubGlobal('OffscreenCanvas', undefined);
     expect(await offThread({ kind: 'inspect', photo })).toBe(NO_WORKER);
     expect(workers).toHaveLength(0);

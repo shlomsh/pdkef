@@ -232,9 +232,9 @@ describe('FontPickerMenu', () => {
     beforeEach(() => {
       setPointer(true);
       // jsdom has no real <dialog> behaviour; see FontSheet.test.tsx.
-      // Forced: jsdom has no dialog showModal or close, so no real one to run
+      // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no dialog showModal or close, so no real one to run
       HTMLDialogElement.prototype.showModal = vi.fn(function (this: HTMLDialogElement) { this.open = true; });
-      // Forced: jsdom has no dialog showModal or close, so no real one to run
+      // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no dialog showModal or close, so no real one to run
       HTMLDialogElement.prototype.close = vi.fn(function (this: HTMLDialogElement) { this.open = false; });
     });
 

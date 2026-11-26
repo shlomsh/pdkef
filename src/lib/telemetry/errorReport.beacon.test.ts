@@ -79,7 +79,7 @@ describe('reportError', () => {
     expect(sent.at(-1)).toMatchObject({ kind: 'dropped', step: CONTROL });
   });
   it('does nothing offline or outside production', async () => {
-    // forced: a browser that reports it is offline cannot be put in that state on cue
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: a browser that reports it is offline cannot be put in that state on cue
     const online = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
     reportError('drafts', errorAt('A.js:1:1'), 'save_draft');
     online.mockRestore();
@@ -90,7 +90,7 @@ describe('reportError', () => {
     expect((await bodies()).map((body) => body.step)).toEqual([CONTROL]);
   });
   it('sendBeacon returns false and posts nothing when offline', async () => {
-    // forced: a browser that reports it is offline cannot be put in that state on cue
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: a browser that reports it is offline cannot be put in that state on cue
     const online = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
     expect(sendBeacon({ a: 1 })).toBe(false);
     online.mockRestore();
@@ -98,7 +98,7 @@ describe('reportError', () => {
     expect(await bodies()).toEqual([{ control: CONTROL }]);
   });
   it('never throws', () => {
-    // forced: a sendBeacon that throws cannot be produced on cue
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: a sendBeacon that throws cannot be produced on cue
     vi.spyOn(navigator, 'sendBeacon').mockImplementation(() => {
       throw new Error('nope');
     });

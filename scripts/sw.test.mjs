@@ -72,13 +72,13 @@ function createWorker(site = offline, cacheKeys = ['pdkef-previous'], source = w
   const self = {
     location: { origin: 'https://pdkef.test' },
     addEventListener: (name, listener) => listeners.set(name, listener),
-    // Forced: Node has no service worker scope, so its answers below are mocks.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: Node has no service worker scope, so its answers below are mocks.
     skipWaiting: vi.fn(async () => { worker.order.push('skipWaiting'); skipped(); }),
     // MEM-35: the install set starts from the pages open in a tab, so a worker is born with the
     // home page open (idle) unless a test sets its own windows.
-    // Forced: Node has no clients either; a test sets the open tabs in `worker.windows`.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: Node has no clients either; a test sets the open tabs in `worker.windows`.
     clients: { claim: vi.fn(async () => { worker.order.push('claim'); }), matchAll: vi.fn(async () => worker.windows) },
-    // Forced: nor a registration.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: nor a registration.
     registration: { unregister: vi.fn(async () => true) },
     navigator: { onLine: true },
   };
@@ -448,7 +448,7 @@ describe('offline-first service worker', () => {
       fakeClock();
       try {
         const real = CachePrototype.put;
-        // Forced: a stalled body ends when its request is aborted; only a write deaf to that shows the time limit itself.
+        // oxlint-disable-next-line landmines/no-test-doubles -- Forced: a stalled body ends when its request is aborted; only a write deaf to that shows the time limit itself.
         vi.spyOn(CachePrototype, 'put').mockImplementation(function put(request, response) {
           return (typeof request === 'string' ? request : request.url).endsWith('/sign/') ? new Promise(() => {}) : real.call(this, request, response);
         });
@@ -1211,7 +1211,7 @@ const fakeWindow = (id, behavior = 'idle', url = `https://pdkef.test/${id}/`) =>
     sent: [],
     /** Settles once the worker has asked this tab something. */
     asked: new Promise((resolveAsked) => { asked = resolveAsked; }),
-    // Forced: Node has no window client, so the tab and its scripted answer are mocks.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: Node has no window client, so the tab and its scripted answer are mocks.
     postMessage: vi.fn((message, ports) => {
       window.sent.push([message, ports]);
       asked();
@@ -1484,7 +1484,7 @@ describe.each([['source', workerSource], ['minified source', minifiedWorkerSourc
     const sent = [];
     let asked;
     const askedOnce = new Promise((resolveAsked) => { asked = resolveAsked; });
-    // Forced: Node has no waiting worker, so it and its scripted answer are mocks.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: Node has no waiting worker, so it and its scripted answer are mocks.
     const postMessage = vi.fn((data, ports) => {
       sent.push([data, ports]);
       asked();
@@ -1618,7 +1618,7 @@ describe.each(criticalSources)('critical version (%s)', (_label, criticalSource,
       reply: null,
       sent: [],
       asked: new Promise((resolveAsked) => { asked = resolveAsked; }),
-      // Forced: Node has no window client, so the tab and its scripted answer are mocks.
+      // oxlint-disable-next-line landmines/no-test-doubles -- Forced: Node has no window client, so the tab and its scripted answer are mocks.
       postMessage: vi.fn((message, ports) => {
         window.sent.push([message, ports]);
         window.reply = () => ports[0].postMessage({ ready: true });
@@ -1989,7 +1989,7 @@ describe.each([['source', workerSource], ['minified source', minifiedWorkerSourc
     // Makes reading the stored manifest reject until the returned function is called.
     const breakManifestRead = () => {
       const real = CachePrototype.match;
-      // Forced: real storage never fails to read an entry it holds.
+      // oxlint-disable-next-line landmines/no-test-doubles -- Forced: real storage never fails to read an entry it holds.
       const spy = vi.spyOn(CachePrototype, 'match').mockImplementation(function match(request, options) {
         if ((typeof request === 'string' ? request : request.url) === MANIFEST_KEY) throw new Error('unreadable');
         return real.call(this, request, options);
@@ -2158,7 +2158,7 @@ describe.each([['source', workerSource], ['minified source', minifiedWorkerSourc
   it('does not take a redirect for a page from another build', async () => {
     const worker = await installThen(withoutCss, NEXT);
     const redirect = { type: 'opaqueredirect', ok: false, status: 0 };
-    // Forced: Node's fetch answers a manual redirect with the 3xx itself, where a browser answers an opaque redirect.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: Node's fetch answers a manual redirect with the 3xx itself, where a browser answers an opaque redirect.
     vi.spyOn(worker.context, 'fetch').mockImplementation(async () => redirect);
     const nav = await dispatchFetch(worker, navigate('/merge'), { resultingClientId: 'tab-1' });
     expect(nav.response).toBe(redirect);
@@ -2206,7 +2206,7 @@ describe.each([['source', workerSource], ['minified source', minifiedWorkerSourc
   };
   const refuseWrites = (refused = (url) => !url.includes('/__maint/'), message = 'QuotaExceededError') => {
     const real = CachePrototype.put;
-    // Forced: a disk that refuses a write is not something Node's storage does on demand.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: a disk that refuses a write is not something Node's storage does on demand.
     return vi.spyOn(CachePrototype, 'put').mockImplementation(async function put(request, response) {
       if (refused(typeof request === 'string' ? request : request.url)) throw new Error(message);
       return real.call(this, request, response);
@@ -2250,7 +2250,7 @@ describe.each([['source', workerSource], ['minified source', minifiedWorkerSourc
     const real = CachePrototype.put;
     let started;
     const putStarted = new Promise((resolveStarted) => { started = resolveStarted; });
-    // Forced: storage that never answers a write cannot be made on demand.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: storage that never answers a write cannot be made on demand.
     vi.spyOn(CachePrototype, 'put').mockImplementation(function put(request, response) {
       if (!(typeof request === 'string' ? request : request.url).includes('/__maint/')) return real.call(this, request, response);
       started();
@@ -2321,7 +2321,7 @@ describe.each([['source', workerSource], ['minified source', minifiedWorkerSourc
   it('keeps failing the same way when the record cache cannot be opened', async () => {
     const worker = build(serving(new Response(JSON.stringify(manifestOf({ build: 'another' })))));
     const real = cacheStorage.open;
-    // Forced: a cache that cannot be opened is a storage fault Node does not produce on demand.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: a cache that cannot be opened is a storage fault Node does not produce on demand.
     vi.spyOn(cacheStorage, 'open').mockImplementation(async function open(key) {
       if (key === MAINT) throw new Error('storage is gone');
       return real.call(this, key);
@@ -2371,7 +2371,7 @@ describe.each([['source', workerSource], ['minified source', minifiedWorkerSourc
       const reaching = new Promise((resolveReached) => { reached = resolveReached; });
       let release;
       const slow = new Promise((resolveSlow) => { release = resolveSlow; });
-      // Forced: storage that is slow to open the record cache cannot be made on demand.
+      // oxlint-disable-next-line landmines/no-test-doubles -- Forced: storage that is slow to open the record cache cannot be made on demand.
       vi.spyOn(cacheStorage, 'open').mockImplementation(async function open(key) {
         if (key === MAINT) {
           reached();
@@ -2447,7 +2447,7 @@ describe.each([['source', workerSource], ['minified source', minifiedWorkerSourc
 
   it('fails the install without waiting on the unregister, whose job queues behind this install', async () => {
     const worker = build(serving(() => new Response('stale home')));
-    // Forced: a real registration queues its unregister behind the running install, so it cannot settle inside it.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: a real registration queues its unregister behind the running install, so it cannot settle inside it.
     vi.spyOn(worker.self.registration, 'unregister').mockImplementation(() => new Promise(() => {}));
     const settled = await Promise.race([
       dispatchInstall(worker).then(() => 'resolved', () => 'rejected'),
@@ -2486,7 +2486,7 @@ describe.each([['source', workerSource], ['minified source', minifiedWorkerSourc
 
   it('keeps the older build when storage is full, where releasing it frees nothing', async () => {
     const worker = build(serving(() => new Response('home')));
-    // Forced: a full disk is not something Node's storage does on demand.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: a full disk is not something Node's storage does on demand.
     vi.spyOn(CachePrototype, 'put').mockRejectedValue(new Error('QuotaExceededError'));
     await expect(dispatchInstall(worker)).rejects.toThrow('QuotaExceededError');
     expect(worker.self.registration.unregister).not.toHaveBeenCalled();
@@ -2614,7 +2614,7 @@ describe.each([['source', workerSource], ['minified source', minifiedWorkerSourc
     const window = {
       sent: [],
       hinted: new Promise((resolveHinted) => { hinted = resolveHinted; }),
-      // Forced: Node has no window client, so the tab and its scripted answer are mocks.
+      // oxlint-disable-next-line landmines/no-test-doubles -- Forced: Node has no window client, so the tab and its scripted answer are mocks.
       postMessage: vi.fn((message) => { window.sent.push(message); hinted(); }),
     };
     worker.windows = [window];

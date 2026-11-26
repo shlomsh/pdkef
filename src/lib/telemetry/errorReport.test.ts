@@ -235,7 +235,7 @@ describe('readBuildCommit', () => {
     }
   });
   it('reads the build off the browser navigation entry', () => {
-    // Forced: jsdom's performance has no navigation entry
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom's performance has no navigation entry
     vi.spyOn(performance, 'getEntriesByType').mockImplementation((type) => (type === 'navigation' ? entries(build('abc1234')) : []));
     try {
       expect(readBuildCommit()).toBe('abc1234');
@@ -244,7 +244,7 @@ describe('readBuildCommit', () => {
     }
   });
   it('never throws when the performance object throws', () => {
-    // Forced: a performance timeline that throws, which no browser can be put in
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: a performance timeline that throws, which no browser can be put in
     vi.spyOn(performance, 'getEntriesByType').mockImplementation(() => {
       throw new Error('no');
     });

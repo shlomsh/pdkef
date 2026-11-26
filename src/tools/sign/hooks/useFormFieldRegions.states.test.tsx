@@ -122,7 +122,7 @@ describe('useFormFieldRegions detection state', () => {
   // and identically on every reload.
   it('says the detector never loaded when its own chunks fail to import', async () => {
     vi.resetModules();
-    // forced: a stale cached shell asks for a chunk name a deploy replaced, and no file in the repo can make a module import reject
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: a stale cached shell asks for a chunk name a deploy replaced, and no file in the repo can make a module import reject
     vi.doMock('../lib/fields/formWidgets.js', () => {
       throw new TypeError('Importing a module script failed.');
     });

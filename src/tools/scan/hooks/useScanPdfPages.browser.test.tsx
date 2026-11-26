@@ -68,7 +68,7 @@ describe('useScanPdfPages', () => {
 
     act(() => render(null, container!));
     const sheet = { file: new File(['x'], 's.jpg', { type: 'image/jpeg' }), quads: [QUAD], question: null };
-    // forced: a sheet handed over after the cancel; the real reader stops itself on the abort, so no real PDF gets one this far
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: a sheet handed over after the cancel; the real reader stops itself on the abort, so no real PDF gets one this far
     vi.mocked(pdfSheets).mockImplementationOnce(async function* () { yield sheet; yield sheet; });
     const readerWork = new ScanWork();
     mounted = mount(readerWork, () => readerWork.cancelPdfImport());

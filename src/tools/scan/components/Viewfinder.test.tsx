@@ -7,7 +7,8 @@ import Viewfinder from './Viewfinder.tsx';
 
 let handle: CameraHandle & { shooting?: boolean; photoRefused?: boolean };
 let cameraInput: { onTaken: (page: unknown) => void; paused?: boolean };
-vi.mock('../hooks/useCamera.ts', () => ({ useCamera: (input: typeof cameraInput) => { cameraInput = input; return handle; } })); // forced: a camera already live with the view each test names, with no stream
+// oxlint-disable-next-line landmines/no-test-doubles -- Forced: a camera already live with the view each test names, with no stream
+vi.mock('../hooks/useCamera.ts', () => ({ useCamera: (input: typeof cameraInput) => { cameraInput = input; return handle; } }));
 
 let container: HTMLElement | null = null;
 const baseProps = () => ({

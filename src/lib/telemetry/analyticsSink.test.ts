@@ -118,7 +118,7 @@ describe('sendToSink', () => {
 
   it('never throws when the beacon does', () => {
     configure();
-    // Forced: a sendBeacon that throws cannot be produced on cue
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: a sendBeacon that throws cannot be produced on cue
     vi.spyOn(navigator, 'sendBeacon').mockImplementation(() => {
       throw new Error('boom');
     });

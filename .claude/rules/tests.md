@@ -37,7 +37,9 @@ never `vi.waitFor` / `expect.poll` on a spy or a recorder; resolve a deferred fr
 `page.waitForEvent` set up before the action. `no-flake-masking` and `no-fixed-sleep` are on with an `allow`
 map in `.oxlintrc.json` (exact per-file counts): a new one fails, and `test:ratchet-raises` refuses any raised or
 added entry. A rule that misses or misfires on our code is fixed upstream, never with a local guard. The one
-disable is `colocated-tests`, a file-level line naming the test's subject. `no-test-doubles` is off.
+file-level disable is `colocated-tests`, a line naming the test's subject. `no-test-doubles` is on: a double
+that stays has its own `// oxlint-disable-next-line landmines/no-test-doubles -- Forced: <why>` line, checked by
+`scripts/test-double-reasons.mjs`.
 
 A `File` or `Blob` equals only itself in an assertion (`src/test/support/fileEquality.ts`, registered in `setup.js`); to check a copy, compare its name,
 type, size or bytes.
@@ -127,7 +129,7 @@ draft read back through the real `draftStore`. It imports `lib`, so it lives in 
 `test-support`. Nothing fakes pdf.js: an island test that needs it runs in the `browser` project on real pdf.js
 through `src/test/harness/browserToolHarness.ts` (Redact's through `src/test/support/redactTool.browser.tsx`, Scan's through `scanTool.browser.tsx` beside it),
 building its PDFs with pdf-lib or reading fixtures through `?url`. A state no real file can produce is one
-`{ spy: true }` mock of our own module and one `mockImplementationOnce` line marked `// forced:` (LAND-04).
+`{ spy: true }` mock of our own module and one `mockImplementationOnce` line under its `-- Forced:` disable (LAND-04).
 
 ## `src/test/cross-tool/`
 

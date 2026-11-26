@@ -124,7 +124,7 @@ describe('readScan', () => {
     }
     const doc = () => openDoc([{}, {}]);
     const main = await readScan(await doc(), () => true);
-    // Forced: jsdom has no Worker, so the worker path needs a mock class in its place.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no Worker, so the worker path needs a mock class in its place.
     vi.stubGlobal('Worker', FakeWorker);
     const viaWorker = await readScan(await doc(), () => true);
     expect(viaWorker).toBe(main);
@@ -132,7 +132,7 @@ describe('readScan', () => {
   });
 
   it('falls back to the main thread when the module worker cannot start', async () => {
-    // Forced: a module worker that cannot start cannot be made in jsdom (it has no Worker at all).
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: a module worker that cannot start cannot be made in jsdom (it has no Worker at all).
     vi.stubGlobal('Worker', class { constructor() { throw new Error('no module workers'); } });
     expect(await readScan(await openDoc([{}, {}]), () => true)).toBe('spread');
   });

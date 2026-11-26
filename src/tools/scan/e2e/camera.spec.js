@@ -217,7 +217,7 @@ test('a phone that cannot keep up steps down, then hands over to the native came
       return realApply.call(this, constraints);
     };
     const RealWorker = window.Worker;
-    // Forced: the pacer judges checks a second on the wall clock, and a CI machine runs the real camera worker far faster than a slow phone does; CDP's CPU throttle applies to the page's main thread, not to its workers, so a slow worker answer has to be made here.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: the pacer judges checks a second on the wall clock, and a CI machine runs the real camera worker far faster than a slow phone does; CDP's CPU throttle applies to the page's main thread, not to its workers, so a slow worker answer has to be made here.
     window.Worker = class extends RealWorker {
       constructor(url, options) {
         super(url, options);

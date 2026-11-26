@@ -1,13 +1,23 @@
 # Removing test doubles (`no-test-doubles`, LAND-04)
 
 Shlomi's call, 2026-11-19: bring the count down in waves, best value first. The waves landed on main
-with branch `landmines-all` (50cd7eba3, 2026-11-25): 879 sites in 223 files were left, and later waves are counted in LAND-04. The rule stays off
-(`.oxlintrc.json`) until upstream takes a per-file `allow` option like its sibling testing rules; that PR waits until our open ones (#21, #33) are resolved (opened 2026-11-25: https://github.com/interfere-inc/landmines/pull/65). The count left then goes in as an
-allow list that only shrinks. 1,877 sites on 1,792 lines in 266 files at the start.
+with branch `landmines-all` (50cd7eba3, 2026-11-25): 879 sites in 223 files were left, and later waves are counted in LAND-04.
+1,877 sites on 1,792 lines in 266 files at the start.
 
-About 200 sites have no honest ending: tests that force a module to fail (146 lines) or force a
-state such as storage that throws or a fixed id (59). They stay until the allow list, or a product
-design that takes a failure honestly.
+**The rule is on (Shlomi's call, 2026-11-26).** A double that stays is allowed on its own line, and only there:
+
+```js
+// oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no camera to refuse a photo on cue
+```
+
+The reason says why nothing real can produce that state here. `scripts/test-double-reasons.mjs` fails the unit run
+on a disable of the rule wider than one line or without a `-- Forced:` reason. A new double anywhere fails lint, so
+the 292 sites on 287 lines in 122 files left at the switch only go down. The per-file `allow` option upstream
+(https://github.com/interfere-inc/landmines/pull/65) is no longer needed for this.
+
+The sites that stay have no honest ending: what jsdom and Node do not have, failures no real file, store or
+browser makes on demand, and moments held open to test an order. They go when a product design takes the failure
+honestly or a real input reaches them.
 
 ## What the rule checks
 
@@ -67,7 +77,7 @@ were 265 tests and 19 s.
   Shlomi. Several browser tests may merge into one that keeps every assertion.
 - The number of browser tests only goes down: CI counts the `browser` run against `browserTests` in
   `scripts/ratchet-limits.json` (`scripts/check-browser-test-count.mjs`). A new one takes the place of another.
-- A double a lower test needs stays visible, on the allow list. The count is reported per tool.
+- A double a lower test needs stays visible, on its own disable line with its reason.
 
 ## Waves, best value first
 

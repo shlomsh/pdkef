@@ -165,7 +165,7 @@ describe('useDraftPersistence - save outcome reporting', () => {
   });
 
   it('reports "error", never "saved", when the write rejects', async () => {
-    // Forced: saveDraft answers false for every store failure it meets and never rejects; this guards the save state if a write ever does.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: saveDraft answers false for every store failure it meets and never rejects; this guards the save state if a write ever does.
     vi.mocked(saveDraft).mockRejectedValue(new Error('storage unavailable'));
     const props = baseProps();
     mount(props);
@@ -241,7 +241,7 @@ describe('useDraftPersistence - save outcome reporting', () => {
   });
 
   it('never flushes an untouched restored document on hide or page exit', async () => {
-    // Forced: jsdom cannot hide a page.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom cannot hide a page.
     Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' });
     try {
       mount(baseProps({ elements: [{ id: 'restored-edit' }], isDirty: false }));
@@ -253,6 +253,7 @@ describe('useDraftPersistence - save outcome reporting', () => {
       expect(saveDraft).not.toHaveBeenCalled();
       expect(apiRef.current.result.draftSaveState).toBe('idle');
     } finally {
+      // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom cannot hide a page.
       delete document.visibilityState; // the page's own answer, on the prototype, shows again
     }
   });
@@ -349,7 +350,8 @@ describe('useDraftPersistence - unpersisted-storage warning', () => {
 
   it('never appears before a save has succeeded', async () => {
     setStandalone(true);
-    vi.mocked(isStoragePersisted).mockResolvedValue(false); // forced: the browser says storage is not persisted
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: the browser says storage is not persisted
+    vi.mocked(isStoragePersisted).mockResolvedValue(false);
     // A real write held open for the whole test, so the save never finishes.
     await holdDraftStore();
     const props = baseProps();
@@ -365,7 +367,8 @@ describe('useDraftPersistence - unpersisted-storage warning', () => {
 
   it('shows the warning after a successful save, in an installed/standalone context, when storage is not persisted', async () => {
     setStandalone(true);
-    vi.mocked(isStoragePersisted).mockResolvedValue(false); // forced: the browser says storage is not persisted
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: the browser says storage is not persisted
+    vi.mocked(isStoragePersisted).mockResolvedValue(false);
     const props = baseProps();
     mount(props);
     renderFirstEdit(apiRef, props, container);
@@ -375,7 +378,8 @@ describe('useDraftPersistence - unpersisted-storage warning', () => {
 
   it('never warns outside an installed/standalone context, even when storage is not persisted', async () => {
     setStandalone(false);
-    vi.mocked(isStoragePersisted).mockResolvedValue(false); // forced: the browser says storage is not persisted
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: the browser says storage is not persisted
+    vi.mocked(isStoragePersisted).mockResolvedValue(false);
     const props = baseProps();
     mount(props);
     renderFirstEdit(apiRef, props, container);
@@ -398,7 +402,8 @@ describe('useDraftPersistence - unpersisted-storage warning', () => {
 
   it('lets a later real error win over an earlier unpersisted warning', async () => {
     setStandalone(true);
-    vi.mocked(isStoragePersisted).mockResolvedValue(false); // forced: the browser says storage is not persisted
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: the browser says storage is not persisted
+    vi.mocked(isStoragePersisted).mockResolvedValue(false);
     const props = baseProps();
     mount(props);
     renderFirstEdit(apiRef, props, container);

@@ -46,7 +46,7 @@ describe('settleHandoff', () => {
 
   it('commits even when the cache write throws', async () => {
     await saveHandoff('sign', { fileName: 'a.pdf', fileBytes: bytes() });
-    // Forced: the real write catches its own failures and answers false, it never rejects; this guards the commit if it ever does.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: the real write catches its own failures and answers false, it never rejects; this guards the commit if it ever does.
     vi.mocked(cacheRecentFile).mockRejectedValueOnce(new Error('quota'));
     await settleHandoff('sign', { fileName: 'a.pdf', fileBytes: bytes() });
     expect(await peekHandoff('sign')).toBeNull();

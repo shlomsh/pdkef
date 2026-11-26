@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 183 live: 79 up next, 24 then, 26 waiting, 54 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 184 live: 78 up next, 24 then, 26 waiting, 56 parked.
 
 ## Redact: finish removal
 
@@ -332,7 +332,6 @@ One landmines rule at a time: fix its sites, turn it on in CI. Where a rule miss
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| LAND-04 | P3 | [LAND-04](backlog/tasks/LAND-04.md) · Fewer replaced dependencies in unit tests | In progress |
 | LAND-05 | P3 | [LAND-05](backlog/tasks/LAND-05.md) · Tests live beside what they test | In progress |
 
 ### Parked
@@ -340,6 +339,8 @@ One landmines rule at a time: fix its sites, turn it on in CI. Where a rule miss
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | DEBT-78 | P3 | [DEBT-78](backlog/tasks/DEBT-78.md) · The app's media queries read through one module |  |
+| DEBT-79 | P3 | [DEBT-79](backlog/tasks/DEBT-79.md) · A refused maintenance beacon counts as sent, so a service worker install failure is never retried | Needs Shlomi: Shlomi's call on the product fix |
+| DEBT-80 | P3 | [DEBT-80](backlog/tasks/DEBT-80.md) · Unit tests that fail only when the file's tests run in another order |  |
 
 ## Polish
 
@@ -391,7 +392,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Robustness and debt: 105 done, 4 retired
 - Unify the tools, narrow the graph: 102 done, 0 retired
 - Search and languages: 18 done, 0 retired
-- Honest tests: adopt landmines: 4 done, 0 retired
+- Honest tests: adopt landmines: 5 done, 0 retired
 - Polish: 38 done, 2 retired
 - Sign tool architecture: 37 done, 1 retired
 - Editor architecture: 14 done, 0 retired

@@ -74,7 +74,7 @@
         }
       }
     ],
-    "landmines/no-test-doubles": "off",
+    "landmines/no-test-doubles": "error",
     "landmines/strict-msw": [
       "error",
       {

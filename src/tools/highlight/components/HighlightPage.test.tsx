@@ -246,7 +246,7 @@ describe('HighlightPage rest toolbar', () => {
     mount([passage]);
     await waitUntil(() => expect(container.querySelector('[data-element-id]')).not.toBeNull());
     const wrapper = container.querySelector<HTMLElement>('[data-element-id]')!;
-    // Forced: jsdom has no layout, so the mark's rect is given.
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no layout, so the mark's rect is given.
     vi.spyOn(wrapper, 'getBoundingClientRect').mockReturnValue({ left: 100, top: 200, width: 400, height: 50 } as DOMRect);
     const down = new MouseEvent('pointerdown', { bubbles: true, button: 0 });
     Object.defineProperty(down, 'pointerType', { value: 'mouse' });

@@ -202,11 +202,11 @@ const note: CommentElement = {
 /** A workspace of the given width with one page and these elements; the zoom is 1 and the page 600 px wide. */
 function mountNoted(elements: EditorElement[], workspaceWidth: number, extra: Record<string, unknown> = {}, page?: object, zoomValue = 1, chrome = 1, lamp = false) {
   const originalRect = HTMLElement.prototype.getBoundingClientRect;
-  // Forced: jsdom has no layout, so the workspace is given a width
+  // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no layout, so the workspace is given a width
   HTMLElement.prototype.getBoundingClientRect = function rect() {
     return { ...originalRect.call(this), width: this.hasAttribute('data-workspace') ? workspaceWidth : 0 } as DOMRect;
   };
-  // Forced: jsdom has no ResizeObserver that reports; this one reports once on observe
+  // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no ResizeObserver that reports; this one reports once on observe
   vi.stubGlobal('ResizeObserver', class { constructor(private cb: () => void) {} observe() { this.cb(); } disconnect() {} });
   const zoom = {
     zoom: zoomValue, chrome, setting: 'width', pages: [{ width: 600, height: 800, textLeft: 0, textRight: 600 }], board: { boardWidth: 600, slack: 0 },
@@ -346,7 +346,7 @@ describe('HighlightWorkspace notes (R28, R29)', () => {
     for (const fullscreen of [true]) {
       const ws = mount({ fullscreen, pseudoFullscreen: false }, [mark, note]);
       const button = ws.querySelector<HTMLElement>('button[aria-label="Print"]')!;
-      // Forced: jsdom has no layout, so the button's box is given numbers
+      // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no layout, so the button's box is given numbers
       vi.spyOn(button, 'getBoundingClientRect').mockReturnValue({ left: 300, right: 340, bottom: 100 } as DOMRect);
       act(() => { button.click(); });
       const menu = ws.querySelector('[role="menu"]')!;

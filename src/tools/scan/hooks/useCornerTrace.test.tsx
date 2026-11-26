@@ -37,7 +37,7 @@ afterEach(() => {
 
 describe('useCornerTrace', () => {
   it('with fine off asks for no trace and shows none', async () => {
-    // Forced: onTrace is always traceCorners, which needs a decoded photo and jsdom decodes none
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: onTrace is always traceCorners, which needs a decoded photo and jsdom decodes none
     const onTrace = vi.fn().mockResolvedValue(SIDES);
     mount(page(Q1, null, false), onTrace);
     await flush();
@@ -46,7 +46,7 @@ describe('useCornerTrace', () => {
   });
 
   it('with fine on asks for the trace of the page\'s own quad and pins on mount, and shows the answer', async () => {
-    // Forced: onTrace is always traceCorners, which needs a decoded photo and jsdom decodes none
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: onTrace is always traceCorners, which needs a decoded photo and jsdom decodes none
     const onTrace = vi.fn().mockResolvedValue(SIDES);
     mount(page(Q1), onTrace);
     expect(onTrace).toHaveBeenCalledWith(1, Q1, null);
@@ -56,7 +56,7 @@ describe('useCornerTrace', () => {
 
   it('drops an answer for an older quad that arrives after the quad changed', async () => {
     let late!: (s: Sides | null) => void;
-    // Forced: onTrace is always traceCorners, which needs a decoded photo and jsdom decodes none (held, then answered)
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: onTrace is always traceCorners, which needs a decoded photo and jsdom decodes none (held, then answered)
     const onTrace = vi.fn()
       .mockImplementationOnce(() => new Promise<Sides | null>((r) => { late = r; }))
       .mockResolvedValue(null);
@@ -70,12 +70,13 @@ describe('useCornerTrace', () => {
   });
 
   it('asks again with the pins after a pin changes, and shows no outline for the previous pins', async () => {
-    // Forced: onTrace is always traceCorners, which needs a decoded photo and jsdom decodes none
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: onTrace is always traceCorners, which needs a decoded photo and jsdom decodes none
     const onTrace = vi.fn().mockResolvedValue(SIDES);
     mount(page(Q1), onTrace);
     await flush();
     expect(shown).toBe(SIDES);
     const pins: Pins = [[], [], [], [{ k: 3, at: { x: 0.2, y: 0.5 } }]];
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: onTrace is always traceCorners, which needs a decoded photo and jsdom decodes none
     onTrace.mockImplementationOnce(() => new Promise(() => {}));
     act(() => render(view(page(Q1, pins), onTrace), container!));
     expect(onTrace).toHaveBeenLastCalledWith(1, Q1, pins);
@@ -84,7 +85,7 @@ describe('useCornerTrace', () => {
 
   it('renders again only when an answer lands, not when a trace is asked for or let go', async () => {
     let answer: (sides: Sides | null) => void = () => {};
-    // Forced: onTrace is always traceCorners, which needs a decoded photo and jsdom decodes none
+    // oxlint-disable-next-line landmines/no-test-doubles -- Forced: onTrace is always traceCorners, which needs a decoded photo and jsdom decodes none
     const onTrace = vi.fn((): Promise<Sides | null> => new Promise((done) => { answer = done; }));
     mount(page(Q1), onTrace);
     await flush();
