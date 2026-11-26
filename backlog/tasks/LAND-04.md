@@ -406,7 +406,9 @@ count). The rule is off meanwhile.
   the rescue of a damaged PNG in Image to PDF and Merge, both core and out of reach of jsdom. Each is one test, and two pairs
   of narrow browser tests merged, every assertion kept, so the browser count stays at 156. 302 sites down to 292 in 122
   files. The other 30 candidates keep their mocks: the service worker and the update flow are proved by e2e, the rest are
-  covered by a real browser elsewhere or not core.
+  covered by a real browser elsewhere or not core. The sharpness test runs at a real device pixel ratio of 2 (Chromium's
+  own screen emulation) and found a real double paint: every page painted twice on open, because the width it painted for
+  was recorded only after the page loaded. It is now recorded before, and the test asks for one paint.
 - The rule is on (2026-11-26, Shlomi's call): each of the 292 sites left has its own
   `// oxlint-disable-next-line landmines/no-test-doubles -- Forced: <why>` line (287 lines), written from its `// Forced:`
   comment by a one-off script and checked by hand where the reason sat further up. `scripts/test-double-reasons.mjs` fails

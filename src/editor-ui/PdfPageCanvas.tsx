@@ -41,6 +41,10 @@ export default function PdfPageCanvas({
     let active = true;
     let renderTask: RenderTask | null = null;
     let page: PDFPageProxy | null = null;
+    // Recorded before the first await, so the measure effect below, which runs
+    // in the same flush, sees the width this paint is for and asks for no other.
+    const bucket = widthBucket || bucketWidth(canvasRef.current.clientWidth);
+    paintedBucketRef.current = bucket;
     const renderPage = async () => {
       try {
         page = await pdfDocument.getPage(pageNum);
@@ -51,8 +55,6 @@ export default function PdfPageCanvas({
         const canvas = canvasRef.current;
         if (!canvas || !active) return;
         const unit = page.getViewport({ scale: 1, rotation });
-        const bucket = widthBucket || bucketWidth(canvas.clientWidth);
-        paintedBucketRef.current = bucket;
         const viewport = page.getViewport({
           scale: pageRenderScale({
             unitWidth: unit.width,
@@ -112,7 +114,7 @@ export default function PdfPageCanvas({
   }, [pdfDocument, pageNum, pageGeometry?.rotation, onViewportReady, widthBucket]);
 
   // Declared after the paint effect on purpose: on mount that effect has
-  // already recorded the width it painted for, so the first measurement here
+  // already recorded the width it paints for, so the first measurement here
   // matches it and does not trigger a second paint.
   useEffect(() => {
     const canvas = canvasRef.current;
