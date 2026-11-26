@@ -17,14 +17,20 @@ const ROWS: DetailRow[] = [
 ];
 
 let host: HTMLElement | null = null;
+// Every host a test mounted (one test mounts twice), so none keeps its Escape listener after the test.
+const hosts: HTMLElement[] = [];
 function mount(edits: DetailEdits = {}, extra: Partial<Parameters<typeof DetailsSheet>[0]> = {}) {
   const props = { onEdit: vi.fn(), onRestore: vi.fn(), onClose: vi.fn() };
   host = document.createElement('div');
+  hosts.push(host);
   document.body.appendChild(host);
   act(() => { render(<DetailsSheet open rows={ROWS} edits={edits} {...props} {...extra} />, host!); });
   return { el: host, ...props, ...extra };
 }
-afterEach(() => { if (host) { render(null, host); host.remove(); host = null; } });
+afterEach(() => {
+  for (const h of hosts.splice(0)) { act(() => { render(null, h); }); h.remove(); }
+  host = null;
+});
 
 const row = (el: HTMLElement, id: string) => el.querySelector(`[data-detail-row="${id}"]`) as HTMLElement;
 const buttons = (r: HTMLElement) => [...r.querySelectorAll('button')].map((b) => b.textContent);
@@ -119,6 +125,7 @@ describe('DetailsSheet accessibility', () => {
   }
   const mountStateful = () => {
     host = document.createElement('div');
+    hosts.push(host);
     document.body.appendChild(host);
     act(() => { render(<Stateful />, host!); });
     return host;
