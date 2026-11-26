@@ -159,6 +159,8 @@ describe('PdfEditPagesTool opening a file', () => {
     it('a load failure still offers Replace file, which asks first', async () => {
       await s.load(new File(['this is not a PDF'], 'document.pdf', { type: 'application/pdf', lastModified: 1234 }));
       await s.click(s.button('Replace file'));
+      // The dialog opening renders once more after the click's act scope; settle it inside act so no passive effect outlives the file.
+      await s.drain();
 
       expect(s.replaceDialog().open).toBe(true);
     });

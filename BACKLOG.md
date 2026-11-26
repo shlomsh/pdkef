@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 184 live: 78 up next, 24 then, 26 waiting, 56 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 183 live: 79 up next, 23 then, 26 waiting, 55 parked.
 
 ## Redact: finish removal
 
@@ -221,7 +221,6 @@ Production errors you can see, small tools that clean up after themselves, and d
 | MEM-41 | P2 | [MEM-41](backlog/tasks/MEM-41.md) · The bundling and stub guards cannot pass on a half-working build |  |
 | QUAL-55 | P2 | [QUAL-55](backlog/tasks/QUAL-55.md) · The update tests' setup stops timing out waiting for a worker to take a tab |  |
 | QUAL-56 | P2 | [QUAL-56](backlog/tasks/QUAL-56.md) · Sign's rotate-page test passes every time, not most times |  |
-| QUAL-58 | P3 | [QUAL-58](backlog/tasks/QUAL-58.md) · A Preact after-paint timer stops failing a DOM test file after its page is gone |  |
 
 ### Waiting
 
@@ -332,6 +331,7 @@ One landmines rule at a time: fix its sites, turn it on in CI. Where a rule miss
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
+| DEBT-80 | P3 | [DEBT-80](backlog/tasks/DEBT-80.md) · Unit tests that fail only when the file's tests run in another order | In progress |
 | LAND-05 | P3 | [LAND-05](backlog/tasks/LAND-05.md) · Tests live beside what they test | In progress |
 
 ### Parked
@@ -340,7 +340,6 @@ One landmines rule at a time: fix its sites, turn it on in CI. Where a rule miss
 | --- | --- | --- | --- |
 | DEBT-78 | P3 | [DEBT-78](backlog/tasks/DEBT-78.md) · The app's media queries read through one module |  |
 | DEBT-79 | P3 | [DEBT-79](backlog/tasks/DEBT-79.md) · A refused maintenance beacon counts as sent, so a service worker install failure is never retried | Needs Shlomi: Shlomi's call on the product fix |
-| DEBT-80 | P3 | [DEBT-80](backlog/tasks/DEBT-80.md) · Unit tests that fail only when the file's tests run in another order |  |
 
 ## Polish
 
@@ -389,7 +388,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Page enhancement for Scan and Highlight: 7 done, 1 retired
 - Tool pages: show the verb: 9 done, 0 retired
 - Form detector accuracy: 20 done, 1 retired
-- Robustness and debt: 105 done, 4 retired
+- Robustness and debt: 106 done, 4 retired
 - Unify the tools, narrow the graph: 102 done, 0 retired
 - Search and languages: 18 done, 0 retired
 - Honest tests: adopt landmines: 5 done, 0 retired
