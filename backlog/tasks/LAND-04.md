@@ -373,12 +373,29 @@ count). The rule is off meanwhile.
   wave" and a few reasons were no longer true. Thumbnails, draft previews, restored drafts, Merge's lock probe, Redact's document and
   To Image's canvas now run for real. A fresh review ran 83 mutations: 2 lost (a photo's scaling, an abort just after a render), both
   caught again by an assertion; 38 were never caught by either version, most of them To Image's output and Redact's find.
+- The sites a test could run for real today (2026-11-26, wave 17): 411 sites down to 386. Scan's draft restore and image encoders,
+  the draft store, hand-off answers, recency and analytics, a real swipe reader for flip, malformed drafts written into the real
+  store, a really tainted canvas, and Sign's real form detector. Tried and kept: comment read-back's importer (it catches
+  everything), a page after its document is destroyed, a 400,000-glyph page, a held store that would block the test's own read,
+  Redact's export chunk and its storage-full write (Chromium's quota override did not fail a real write).
+- Media queries (2026-11-26, wave 18): jsdom gets a real `matchMedia` (`src/test/support/screen.ts`) that answers each query
+  from the screen a test sets with `setScreen`, a desktop by default; setup's old one answered every query yes. 52 sites go.
+  Kept: an old Safari's `addListener`-only list, and `matchMedia` absent or throwing, which are the states under test. The old
+  default had made both phone and desktop branches run at once; a measurement over 35 product reads found one branch that lost
+  its test that way (the page grid's subscribed desktop query), which now has its own. Twelve reads no version ever caught
+  (Compress's fitted columns, Merge's handlers, Highlight's note pane, Scan's view, flatten and camera gate, the home page's
+  workspace and scroll driver, the dropzone); DEBT-78 files the thirty reads for one module.
+- Decisions out of effects (2026-11-26, wave 19): page-load measures, Scan's corner trace and camera shot policy, and the comment
+  rail's stacking are pure functions production calls, tested with plain inputs. 338 sites down to 325 in 135 files.
+- Fresh reviews of both: waves 17 and 18 ran 39 mutations, three lost and caught again (a media query listener left on, a swipe
+  end read off its row, the hand-off's defensive catch); wave 19 ran 52, none lost, and found one extra render per corner trace
+  request, now gone. Sign's form-detection test waits on the beacon being sent (`beaconNamed`) instead of polling the recorder.
 
 ## What is left (2026-11-26)
 
-Every site left carries its `// Forced:` reason, 411 in 157 files:
+Every site left carries its `// Forced:` reason, 325 in 135 files:
 
-- The largest part is what jsdom and Node do not have: media queries (setup's `matchMedia` answers every query yes), the share sheet,
+- The largest part is what jsdom and Node do not have: the share sheet,
   fullscreen, dialogs, the visual viewport, the clipboard, workers, observers that report, a service worker and its windows.
 - Layout, since jsdom gives every box no size, and scrolling.
 - Photo decode, image encoders, the camera and the traces that need a decoded photo.
@@ -388,7 +405,6 @@ Every site left carries its `// Forced:` reason, 411 in 157 files:
 Open:
 
 - The rule goes on with a per-file `allow` map once https://github.com/interfere-inc/landmines/pull/65 ships.
-- `useMediaQuery` could be tested for real only in a browser test, which needs Shlomi's call.
 - A refused maintenance beacon counts as sent, because `beaconMaintenanceTransport` returns nothing, so
   `reportSwInstallFailures` never retries. A product fix, which needs Shlomi's call.
 - Mutations no version of the tests caught are listed per wave above.

@@ -15,6 +15,10 @@ held up; `no` and `unsure` sites were mostly tried, and a false reason usually m
 | Stays: cannot be real in any test | 54 |
 | Goes with the site it puts back | 34 |
 
+Done since (2026-11-26): waves 17 (the "now" sites), 18 (a real `matchMedia` for jsdom, `src/test/support/screen.ts`) and
+19 (page measures, Scan's corner trace and camera shot policy, and the comment rail's stacking as pure functions) took the
+count to 325 in 135 files. A few "now" sites stayed after all: their tries are noted in the LAND-04 wave lines.
+
 Open before the next wave:
 
 - **The service worker.** `scripts/sw.test.mjs` (11 sites) was judged core, since working offline is a promise of every tool,
@@ -32,7 +36,7 @@ Open before the next wave:
 | --- | --- | --- |
 | `src/editor-ui/PdfPageCanvas.destroyed.test.tsx:63` | unsure | pdf.js range transport (getDocument range option) lets the test hold page data until after destroy; a real pause. |
 | `src/editor-ui/whiteout/pageSampling.browser.test.tsx:85` | no | Already in a browser file: draw a cross-origin image served by MSW without CORS; the canvas is really tainted. |
-| `src/editor/comments/readBack.test.ts:34` | no | Drop the mockRejected line: real importer throws on ArrayBuffer(1) and the catch gives the same result; vitest passes (tried). |
+| `src/editor/comments/readBack.test.ts:34` | yes | Tried in wave 17: the real importer catches everything, so only a chunk that cannot load reaches the catch, and without the mock swapping the catch for a throw survived. Stays. |
 | `src/editor/highlight/flip.test.ts:18` | no | by the operational rule the swipe reader is a collaborator; use real createSwipeReader and assert the geometry |
 | `src/editor/highlight/flip.test.ts:34` | no | same: real createSwipeReader over real bands, assert the flipped geometry |
 | `src/editor/workspace/useEditorDraftPersistence.test.tsx:152` | no | Write the malformed record straight into fake-indexeddb, then real loadDraft returns it; the store API is not the only writer. |

@@ -42,9 +42,11 @@ does not count. Each replaced site must end in one of these, and the brief and t
    and it records what it needs. A collaborator that has a real implementation is not a test input.
 4. **Network through MSW.** Anything that reaches `fetch` goes through an MSW handler
    (`onUnhandledRequest: 'error'`, which `strict-msw` then guards).
-5. **Real browser.** An API jsdom does not have (`matchMedia`, `BroadcastChannel`, `Worker`, camera,
+5. **Real browser.** An API jsdom does not have (`BroadcastChannel`, `Worker`, camera,
    canvas pixels, `navigator.*`) runs in Vitest browser mode against real Chromium, with no stub.
    Only a narrow subject goes there (see "The browser layer stays small"); a tool's island suite never does.
+   Media queries are the exception: jsdom gets a real `matchMedia` from `src/test/support/screen.ts`, which answers
+   each query from a screen a test sets with `setScreen` (a desktop by default) and fires `change` when it crosses.
 
 A site that fits none of these is reported to the lead, not bent to fit.
 
