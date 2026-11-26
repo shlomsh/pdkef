@@ -394,3 +394,7 @@ Open:
 - Mutations no version of the tests caught are listed per wave above.
 - Some files failed shuffled before these waves: `prePickedFiles`, `PdfImageToPdfTool`, Redact's `DetailsSheet`,
   `highlightSwipeGesture` and `useEditorDraftPersistence` tests.
+- Triage (2026-11-26): every one of the 411 sites has a route in docs/landmines/no-test-doubles-triage.md: 45 can go now, 42 with a
+  real `matchMedia` in the test setup, 32 with a new browser test core to a tool, 106 with a product change, 98 stay (a browser test
+  for something not core), 54 cannot be real in any test, 34 go with the site they put back.
+
