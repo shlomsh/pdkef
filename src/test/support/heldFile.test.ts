@@ -45,6 +45,17 @@ describe('HeldFile', () => {
     expect(new Uint8Array(await read)).toEqual(bytes);
   });
 
+  it('passReads lets that many reads through at once, then holds the next', async () => {
+    const file = new HeldFile(bytes, 'a.pdf', { passReads: 2 });
+    expect(await settled(file.arrayBuffer())).toBe(true);
+    expect(await settled(file.arrayBuffer())).toBe(true);
+    const third = file.arrayBuffer();
+    await file.started;
+    expect(await settled(third)).toBe(false);
+    file.release();
+    expect(new Uint8Array(await third)).toEqual(bytes);
+  });
+
   it('release lets every waiting read through', async () => {
     const file = new HeldFile(bytes, 'a.pdf');
     const reads = [file.arrayBuffer(), file.arrayBuffer()];
