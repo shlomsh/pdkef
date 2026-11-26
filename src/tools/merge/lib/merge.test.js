@@ -4,10 +4,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { PDFDocument, PDFName, PDFString } from '@cantoo/pdf-lib';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { MergeFileError, inspectPdf, mergePdfs, mergedFileName, resolvePdfCreationDate } from './merge.js';
-import { redrawPng } from '#lib/images/pngRedraw.ts';
 
-// Node has no image decoder: the first DEBT-75 test below forces the browser's redraw, the second reaches the real one, which fails here. Elsewhere the real one is reached through.
-vi.mock('#lib/images/pngRedraw.ts', { spy: true });
+// The DEBT-75 cases (a PNG pdf-lib cannot decode) need the browser's decoder and run in src/test/cross-tool/pngRedraw.browser.test.ts.
 
 // PdfMergeTool.test.tsx mocks merge.js outright, so nothing in the component
 // suite ever runs this file's real pdf-lib calls - see the same gap noted for
@@ -463,21 +461,6 @@ describe('mergePdfs library integration with real fixtures', () => {
         ref = item.get(PDFName.of('Next'));
       }
       expect(titles).toEqual(['photo-1', 'photo-2', 'num-2']);
-    });
-
-    it('DEBT-75: a truncated PNG the browser can redraw still takes its page', async () => {
-      const bytes = fs.readFileSync(path.resolve(__dirname, '../../../lib/__fixtures__/photo-2.png'));
-      // Forced: the redraw needs the browser's image decoder (Image, blob: urls), which neither Node nor jsdom has.
-      vi.mocked(redrawPng).mockResolvedValueOnce(new Uint8Array(bytes));
-      const cut = getPhotoFile('photo-truncated.png', 'image/png');
-      const blob = await mergePdfs([getFixtureFile('num-2.pdf'), cut]);
-      const { pageCount } = await getPdfPageTexts(blob);
-      expect(pageCount).toBe(2);
-    });
-
-    it('DEBT-75: a PNG neither pdf-lib nor the browser can read points at its file', async () => {
-      const cut = getPhotoFile('photo-truncated.png', 'image/png');
-      await expect(mergePdfs([getFixtureFile('num-2.pdf'), cut])).rejects.toMatchObject({ name: 'MergeFileError', fileIndex: 1, reason: 'unreadable' });
     });
 
     it('inspectPdf reports a photo as one unencrypted page', async () => {

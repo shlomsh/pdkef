@@ -5,8 +5,7 @@ import { PDFDocument } from '@cantoo/pdf-lib';
 import { addImagePage, jpegOrientation, placeImage, PAGE_SIZES, UnreadableImageError, UnsupportedImageError } from './imagePage.js';
 import { redrawPng } from './pngRedraw.ts';
 
-// The real redraw runs wherever a test does not force it. Forced: jsdom has no image decoder, so the tests that
-// need the browser's redraw to answer (or fail) set that one return value; the redraw itself is proved in a real browser.
+// The damaged-PNG cases that need the browser's redraw run in src/test/cross-tool/pngRedraw.browser.test.ts; here the spy only sees it is not called.
 vi.mock('./pngRedraw.ts', { spy: true });
 
 const fixture = (name) => new Uint8Array(fs.readFileSync(path.resolve(__dirname, '../__fixtures__', name)));
@@ -28,29 +27,10 @@ describe('addImagePage', () => {
   describe('a PNG pdf-lib cannot decode (DEBT-75)', () => {
     beforeEach(() => { vi.mocked(redrawPng).mockReset(); });
 
-    it('is redrawn through the browser and embedded from that', async () => {
-      vi.mocked(redrawPng).mockResolvedValue(fixture('photo-2.png')); // forced: the browser's redraw answers with a decodable PNG
-      const doc = await PDFDocument.create();
-      const page = await addImagePage(doc, fixture('photo-truncated.png'), 'image/png', 'cut.png');
-      expect(redrawPng).toHaveBeenCalledTimes(1);
-      expect(page.getSize()).toEqual({ width: 40, height: 80 });
-      expect(doc.getPageCount()).toBe(1);
-    });
-
     it('leaves a good PNG alone', async () => {
       const doc = await PDFDocument.create();
       await addImagePage(doc, fixture('photo-2.png'), 'image/png');
       expect(redrawPng).not.toHaveBeenCalled();
-    });
-
-    it('throws UnreadableImageError naming the file when the browser cannot decode it either', async () => {
-      vi.mocked(redrawPng).mockImplementation(async () => { throw new Error('The source image could not be decoded.'); }); // forced: the browser's redraw fails
-      const doc = await PDFDocument.create();
-      await expect(addImagePage(doc, fixture('photo-truncated.png'), 'image/png', 'cut.png')).rejects.toMatchObject({
-        name: 'UnreadableImageError',
-        fileName: 'cut.png',
-      });
-      expect(doc.getPageCount()).toBe(0);
     });
 
     it('is a kind of UnsupportedImageError, so a caller that skips unsupported files skips it too', () => {
