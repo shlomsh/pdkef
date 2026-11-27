@@ -456,7 +456,7 @@ global config that changes what "related" even means) by adding specific extra t
 the whole push to the full suite. Nx's own `deriveScope()`/`unit_paths` is untouched - it still exists
 and still backs `e2e_paths` - but the unit step no longer reads it at all, so a `CORE_PROJECTS` verdict
 (`site`/`shell`/`editor`/`lib`) that used to force `everything=true` for units no longer does. See
-`.claude/rules/tests.md`'s "Unit-by-impact selection" section for the day-to-day summary, and
+`.claude/rules/test-tooling.md`'s "Unit-by-impact selection" section for the day-to-day summary, and
 `scripts/unit-scope.mjs`'s own header comment for the mechanism in full, including the one fact this
 leans on throughout: passing a *test* file's own path as a `vitest related` seed selects exactly that
 file (Vitest seeds its `affected` set with the `related` list itself before walking import edges

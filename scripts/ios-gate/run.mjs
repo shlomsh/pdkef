@@ -3,7 +3,7 @@
 // on a real booted iPhone through Appium's XCUITest driver and prints one
 // PASS/FAIL/MANUAL line per scenario (scenarios.mjs), non-zero exit on any
 // FAIL. Not part of check:push or CI - run it by hand before a release and
-// after any Sign mobile change (see .claude/rules/tests.md).
+// after any Sign mobile change (see .claude/rules/test-tooling.md).
 import { execSync, spawn } from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';

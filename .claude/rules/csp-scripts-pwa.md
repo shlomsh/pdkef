@@ -5,21 +5,8 @@ paths:
   - "src/layouts/**"
   - "src/components/SeoSchema.astro"
   - "src/components/OrganizationSchema.astro"
-  - "public/sw.js"
-  - "public/manifest.webmanifest"
   - "scripts/verify-csp.js"
-  - "scripts/generate-precache-manifest.mjs"
-  - "scripts/sw.test.mjs"
-  - "src/site-lib/precachePolicy*"
-  - "scripts/buildId.mjs"
-  - "scripts/check-dependency-advisories.mjs"
-  - "scripts/verify-dependency-governance.mjs"
-  - "package.json"
-  - "package-lock.json"
-  - "patches/**"
   - "e2e/csp-smoke.spec.js"
-  - "e2e/offline/**"
-  - "docs/dependency-governance.md"
 ---
 
 # CSP, inline scripts, the service worker, and dependency pinning
@@ -32,6 +19,9 @@ the incidents.
 Before changing what a page loads, what the worker installs, how client code is bundled or a caching
 header, read [docs/offline-and-requests.md](../../docs/offline-and-requests.md): the offline-first stance, the
 per-request bill, the bundling rule and the assumptions each decision rests on, with how to re-measure them.
+
+The service worker, manifest and precache moved to `service-worker.md`; version pinning to
+`dependency-pinning.md`. Each loads with its own files.
 
 ## Content-Security-Policy
 
@@ -59,6 +49,7 @@ The CSP is intentionally split across two layers:
   silently-blocked hydration bootstrap looks fine (static HTML renders) but the island never hydrates.
   Do not add `script-src`/`default-src` back into the `vercel.json` header CSP: policies intersect, and
   a second `default-src 'self'` re-blocks scripts the meta tag allows.
+
 ## CSP style attributes are a separate risk from hashed `<style>` tags
 
 - **CSP style attributes are a separate risk from hashed `<style>` tags, and the intuitive diagnosis is
@@ -71,53 +62,7 @@ The CSP is intentionally split across two layers:
   `style={{}}` props through per-key `setProperty` (exempt) but string `style="..."` props through
   `cssText` (governed).
 
-
-## PWA (manifest + hand-written service worker)
-
-There is no PWA build plugin (`vite-plugin-pwa` and `@vite-pwa/astro` were both tried and dropped — see git history "Migrate to Astro" and "Reinstall on patched Astro 7.0.3" commits for why: `vite-plugin-pwa`'s `closeBundle` hook doesn't survive Astro's multi-pass static build, and `@vite-pwa/astro` doesn't yet certify Astro 7). Instead:
-- `public/manifest.webmanifest` is a hand-written static file, copied verbatim by Astro.
-- **Client bundles (MEM-37, MEM-44; header comment in `astro.config.mjs`).** Modules a page loads at first paint are grouped by the entries that reach them (`site`, `home`, `tools-common`, `editor-core`, `<tool>-tool`, ...). Late modules (no entry reaches them statically) are grouped the same way as `<tool>-late`, `editor-late` and `tools-late`, so a tool's worker install is a few files, not a dozen. `sign-vendor` holds the third-party modules (the font library and its tables) that would be in `sign-late`, so an edit to Sign's own code does not re-download them (one more request on `/sign/`, deliberately). A late group must never hold a statically reachable module (grouping makes a chunk eager as soon as one member is), so its name function walks static importers itself and returns no name for those; pdf.js, pdf-lib, the workers and `signals` stay out. `check-lazy-modules.js` enforces it (no `*-late.js` in a first paint, a tool's late file reachable from its own pages only, a lazy-file budget per page).
-- `public/sw.js` is a small, hand-written, dependency-free service worker: cache-first-with-background-refresh for navigations, cache-first for every other same-origin asset. `CACHE_VERSION` is **not** hand-bumped - `scripts/generate-precache-manifest.mjs` runs after `astro build`, walks `dist/`, writes `dist/precache-manifest.json` and substitutes a content hash of it for the `__BUILD_ID__` placeholder, so each deploy gets its own cache automatically. It then minifies the result with esbuild (`scripts/minifyServiceWorker.mjs`; `sw.test.mjs` runs the minified text through the same harness), so comments in `public/sw.js` cost visitors nothing. **The install caches the tools a person uses, not the whole app (MEM-35, replacing MEM-15's whole-app install; docs/request-budget.md).** The manifest is v2: `pages`, one closure per HTML page (`scripts/precacheClosure.mjs`, computed at build time), plus a `shell` list only the budget guard reads. Install caches the one `/` document (kept for the build check, `root_unreachable`/`root_mismatch`, not as an offline fallback; MEM-40: "download only what the page asks for") plus the closure of every page open at install and every page the previous build's cache held (`installPaths`; `/`'s own closure only when `/` is one of them); a tool page opened later gets its closure cached in the background on that first visit. Guides and pages a person never opened, guide media, `sample.pdf` and the pdf.js codec wasm are left to runtime caching. Hashed `/_astro/` files and unchanged unhashed files are copied from the previous build's cache (MEM-16, MEM-32); an unhashed file is first read from the HTTP cache with `force-cache` and kept when it matches the manifest hash, else fetched with `cache: 'no-cache'` (MEM-34). **The worker registers on a tool page at once, and elsewhere only once a person has opened a file in a tool (MEM-39, MEM-43):** `src/lib/appUpdate/engagement.ts` (`markFileOpened`, `whenEngaged`) keeps `pdkef:file-opened` in localStorage, and the registration in `BaseLayout.astro` waits on it through the `ready` promise, then on hydration and idle (MEM-17). A page that shows a tool carries `data-tool-page` (on `ToolStage.astro`'s wrapper, the same pages that say the airplane-mode line) and registers on its first visit, because that line must be true before any file is opened; the marker is read from the page, never from a path list. Home, articles, `/drive/` and `/open/` keep the file rule. A device that already has a worker keeps it and its updates, the installed app registers at launch, and `appinstalled` also triggers it. **`/` counts as held at an update only when a previous cache holds its whole closure (MEM-40): every install stores the `/` document, so the document alone says nothing. Installing the app caches the home page:** on `appinstalled`, or at load for an installed app or a device with `pdkef:app-installed`, `engagement.ts` (`cacheHomeForInstalledApp`) sends `pdkef:cache-home` and the active worker runs `cacheRestOfPage` for `/`. A first view of a non-tool page makes no `/sw.js` request; a tool page registers at once (MEM-43), so a tool works offline once its install completes, and the home page works offline only once it was opened. The request guard budgets "first visit" and "after a file is opened" separately.
-- **The deploying commit travels in a `Server-Timing` response header, never in `dist/` (MEM-19, replacing the DEBT-35 HTML stamp).** `middleware.ts` adds `Server-Timing: build;desc="<sha7>"` (from `VERCEL_GIT_COMMIT_SHA`, via `src/site-lib/buildCommit.ts`) to every HTML response, and `readBuildCommit` in `src/lib/telemetry/errorReport.ts` reads it off the navigation entry; the header survives the service worker's Cache API, so cache-served pages carry it too. The first design put it in JS (a `vite.define` constant renamed 38 of 78 `_astro` files per deploy), the second in a `<meta>` substituted into every page, which still changed every page's bytes per deploy. Never put a per-commit value in JS or in any file the build id hashes. A push-triggered Vercel deploy gets `VERCEL_GIT_COMMIT_SHA` from Vercel; a CLI deploy does not, so the forced deploy for a changed `patches/` file is `npm run deploy:prod` (DEBT-37), which passes it with `--build-env` and `--env` (middleware reads it at request time), refuses an uncommitted tree and takes `--dry-run`. `astro preview` runs no middleware, so `e2e/error-report-build.spec.js` adds the header itself and `src/site-lib/middleware.test.ts` covers the middleware half.
-- **Three invariants in `sw.js`, each of which fixed a bug where the page rendered but the PDF silently never appeared. Don't quietly revert them:**
-  - **`skipWaiting()` only on the MEM-10 message, never on install.** An update must not take control of a page still running the previous build, because `activate` deletes that build's cache and those pages lazy-import content-hashed chunks (pdfjs, `pdf.worker.min.mjs`, the font TTFs) long after first paint. Activating early pulled the cache out from under a live tab mid-edit. The active worker sends `pdkef:skip-waiting` to the waiting one on a navigation; the waiting worker grants it only when it is ready (install precached every URL and wrote `/__pdkef/precache-complete/`, and the device is online, so offline coverage never shrinks) and every open page (a URL ending in a slash) answered its `pdkef:busy-query` with idle within 750ms. A build whose install missed a URL fetches what is still missing when asked about readiness online, then writes the marker, so one miss never strands an update. Offline, the active worker does not even ask. A tab is busy while it holds `src/lib/appUpdate/updateHolds.ts` (an export in flight, or a file open in a tool without drafts) unless it is navigating away; a tab that does not answer (frozen, or on a build from before MEM-10, which has no reload) counts as busy. Every tab running the new code reloads on `controllerchange` after flushing its draft saves. The navigating tab gets a blank page with a one-second refresh, because Chromium activates only once the old worker is idle. The sw.test.mjs minified-source check pins exactly two `skipWaiting(` calls: this one and the forced takeover below.
-  - **`CRITICAL_VERSION` forces the one build that must reach every tab now (MEM-13).** It is an integer in `public/sw.js` that rides in the cache name (`pdkef-c<N>-<build>`; an old `pdkef-<hash>` key reads as 0). Bump it by one, by hand, only for a build that fixes a major bug (data loss, a broken export); every other build leaves it alone and behaves exactly as MEM-10 above. A waiting build whose version is above the lowest one cached (the build the tabs run) runs `tryForcedTakeover()` at the end of install and on `pdkef:critical-check`, which the page sends after it looked for an update (visible, online, hourly). It posts `pdkef:critical-update` to every page window and calls `skipWaiting()` once each replied `{ ready: true }` or after `CRITICAL_TAKEOVER_CAP_MS` (75s), then every tab reloads on `controllerchange`. A force overrides a file open in a draftless tool and a tab that does not answer; it still waits for an export in flight (the page caps that at 60s) and for pending draft saves to flush. It runs only when `readyToTakeOver()` holds, so offline, or before the precache is complete, it does nothing and shows nothing; the check retries when the device is back online. On the first bump after MEM-13 ships, a tab still running pre-MEM-13 code cannot answer the force: the worker goes ahead at its cap, and that tab reloads only once its own holds release (its old controllerchange handler waits for them), so keep the first bump for a real need too.
-  - **Precaching is best-effort per URL**, except the `/` document (the build check), which must succeed. An install is still dozens of files, so on a weak connection something will fail; failing the whole install left the visitor with no offline shell at all and re-downloaded the whole site on every subsequent visit. A missed asset still loads from the network and is cached on first use. Requests go through a small concurrency pool for the same reason. **A page counts as cached only with its whole closure (MEM-28):** `servableFromCache` serves a cached page only when every URL of its manifest `pages[url]` is cached (since MEM-35 the complete marker no longer vouches for every page); otherwise the navigation goes to the network, and offline to `/` only when `/` is itself servable (MEM-40), else `Response.error()`, exactly as for an uncached page. A deploy landing mid-install had left a phone on cached pages whose `/shared/` sheets the network no longer had. A network page that is not this build's (no hash match) has its `resultingClientId` remembered (`/__pdkef/network-clients/` in the build's cache, so a restarted worker still knows it), and that client's non-hashed files come from the network unstored: `/site/` and `/shared/` names are stable across builds (MEM-25, MEM-26), so the cache would otherwise hand it this build's bytes. Hashed `/_astro/` files stay cache-first for every client. **Since MEM-31 every JS chunk is `/shared/<name>.js`** (entries `/site/<name>.js`), so `/_astro/` holds only the workers and assets: a hashed chunk name is written into each importer, and one edited module renamed a 300 KB chunk through four small ones (update cost 656 KB). `stableChunkNames` fails the build if two chunks share a name (Rolldown would number one, and the number drifts); `test:stable-names` fails on a chunk importing a hashed file. **MEM-51: stable names also let a lazy chunk from a newer build bind to an older build's shared chunks (same names, renumbered export letters, no error); `scripts/chunkInterfaceGuard.mjs` makes every lazy chunk check an interface-only hash of each shared chunk it imports, and `chunkReload.ts` reloads on the failure. The hash must never hold a per-deploy value** (docs/offline-and-requests.md, A8).
-  - **Stub requests are dropped after the build (MEM-37).** A post-build step, `scripts/dropStubRequests.mjs`, makes pages name the shared file a stub only imports or re-exports.
-  - The stub files stay on the server for pages cached from the previous build, referenced by nothing new and in no precache closure.
-  - **A 404 on the manifest makes the worker uninstall itself** (`OrphanedWorkerError` → `removeSelf`), and cache deletion is scoped to the `pdkef-` prefix. A worker installed by `npm run preview` is scoped to the *origin*, which on localhost is just a port, so it kept serving that build's assets cache-first to `astro dev` afterwards. The page then got modules from two different Vite optimize passes and hydration died on `Cannot read properties of undefined (reading '__H')` in `preact_hooks` - with nothing in the console naming the cache. The tell is two different `?v=` hashes on `preact.js` and `preact_hooks.js` in the Network tab; Vite stamps one `browserHash` per optimize pass, so two means two generations are live at once. Prefer different ports for `dev` and `preview` regardless.
-- Registration lives in `BaseLayout.astro` as a non-`is:inline` script (see the CSP section above for why it must not be `is:inline`). It registers only when `import.meta.env.PROD`; in dev it does the opposite and actively unregisters any worker plus deletes any `pdkef-` cache, so a leftover preview worker heals on the next reload instead of poisoning the dev server indefinitely.
-
-`/api/report` (DEBT-17) is a same-origin beacon POST, so `connect-src 'self'` is untouched. The service worker must not intercept it: `public/sw.js`'s fetch handler only handles GET plus the share-target POST (every other method returns before `respondWith`), so the beacon always goes straight to the network. Keep it that way.
-
-The MEM-24 install-failure record lives in the cache `maint-sw-v1`, which sits outside `CACHE_PREFIX`/`isOwnCache` on purpose, so cleanup and the critical-version checks never touch it. Keep it that way if the prefix changes.
-
-Icons referenced in the manifest are generated and live in `public/icons/` (`icon-192`, `icon-512`, `icon-512-maskable`, `apple-touch-icon`, plus `favicon-16`/`favicon-32`).
-
-
-## Astro/Vercel version pinning - don't casually upgrade
-
-Astro is pinned to `^7.0.3`, not the `@vite-pwa/astro`-certified `^5.x` line, **on purpose**: `npm audit` showed Astro's own published security advisories (XSS via `define:vars`, slot names, spread props; SSRF) cover every version through `7.0.0-beta`, including all of 5.x. Downgrading to satisfy some other package's peer range would mean shipping a known-vulnerable Astro. If a future dependency wants an older Astro, re-verify with `npm audit` before downgrading — don't assume an older major is safer just because more tooling has caught up to it.
-
-
-- **`legacy-peer-deps` is a smell, not a fix.** Astro is pinned to `^7.0.3` on purpose (security
-  advisories cover every version through 7.0-beta). Any tool that forces `legacy-peer-deps` to install
-  must be re-audited against that pin before adoption.
-
-### Preact stays on 10.x (2026-10-05, Dependabot #33)
-
-`@astrojs/preact@6.0.5` peers on `preact@^10.6.5`, so a preact 11 bump fails `npm install` with
-`ERESOLVE` and takes every CI job and the Vercel preview down with it. We did not reach for
-`--legacy-peer-deps`. `.github/dependabot.yml` ignores preact major updates.
-
-**Revisit when `@astrojs/preact` lists preact 11 in its peer range.** Check with
-`npm view @astrojs/preact version peerDependencies`; the ticket that owns this is
-[DEBT-40](../../backlog/tasks/DEBT-40.md). When the range admits 11, delete the `preact` entry under
-`ignore:` in `dependabot.yml`, run the full CI chain on a branch, and close the ticket. Our code has no
-reason to move earlier, so a preact 11 PR before that is noise, not a missed upgrade.
-
 ## CI guard
 
 1. **CSP hash gate** (`verify-csp.js`) - the generated `<meta>` CSP still covers every emitted inline
    script/style, and no element carries a literal `style="..."` attribute.
-

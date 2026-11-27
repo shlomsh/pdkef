@@ -44,7 +44,7 @@ npm run test:e2e:fonts    # the 25 font screening guards, unconditionally; CI na
 ```
 
 - **Iterate with `check:fast`; run `check:push` once before a push**, not after every edit and not once
-  per subagent. A subagent's brief names `check:fast -- --since <task start commit>` (or one spec). [tests]
+  per subagent. A subagent's brief names `check:fast -- --since <task start commit>` (or one spec). [test-tooling]
 - E2E tests are sparse guardrails, roughly 1 e2e per 10 unit tests, only for what jsdom cannot prove
   (rendered rects, drag-time behaviour, page-edge behaviour, hydration/CSP flows). Playwright runs on
   4 workers (2 in CI); a spec that asserts a wall-clock budget goes in `PERF_BUDGETS` in
@@ -60,7 +60,7 @@ npm run test:e2e:fonts    # the 25 font screening guards, unconditionally; CI na
 - **Team-lead mode.** For anything with independent pieces, delegate to Sonnet subagents instead of
   doing it all on the main thread; brief each one precisely and verify its report yourself — a
   subagent's summary describes intent, not necessarily what happened.
-- **One subagent, one task, and small ones.** Research and exploration never happen on the main thread.
+- **One subagent, one task, and small ones.** Research and exploration never happen on the main thread; inside the repo they go to the `researcher` agent.
   The lead makes the design call, then splits the work into narrow briefs (one change, one guard, one
   doc edit, one measurement) run in parallel; a brief names the concrete shape, not a goal to search
   for. Write the contract between the pieces first, give each agent disjoint files, and integrate and
@@ -69,9 +69,8 @@ npm run test:e2e:fonts    # the 25 font screening guards, unconditionally; CI na
 - **Mechanical edits go to the `implementer` agent** (`.claude/agents/implementer.md`): named files,
   one `check:fast`. Builds, previews and viewport sweeps run once in the lead or one verifier, starting
   from 3-4 viewports; wall time tracks brief size, at about 8s per tool call plus reasoning.
-- **Review is a separate subagent with zero shared context.** Self-review confirms assumptions, it
-  doesn't test them. The reviewer is spawned fresh, and every objection it raises must quote the exact
-  line it applies to.
+- **Review is a separate subagent with zero shared context** (the `reviewer` agent). Self-review confirms assumptions, it
+  doesn't test them. The reviewer is spawned fresh, and every objection it raises must quote the exact line it applies to.
 - **Simple wins.** Prefer the more elegant solution; three similar lines beat a premature abstraction.
 - **Engineering is a core principle.** Isolation, DRY, and tests aren't optional extras. If a change is
   quietly causing tech debt (a slowing build, duplicated logic, missing isolation or coverage), open a
@@ -104,8 +103,7 @@ npm run test:e2e:fonts    # the 25 font screening guards, unconditionally; CI na
 - Two request-time exceptions to "no server", none ever sees a PDF byte: `middleware.ts` negotiates
   `Accept: text/markdown`; `api/report.ts` receives anonymous reports.
 - Styling is a scoped hybrid: Tailwind utilities for the static `.astro` surface, CSS Modules for the
-  editor, inline styles only for per-element runtime geometry. `global.css` holds tokens and element
-  defaults only.
+  editor, inline styles only for per-element runtime geometry. `global.css` holds tokens and element defaults only.
 
 ## Invariants every change must respect
 
@@ -137,8 +135,7 @@ brackets carries the evidence; do not relearn it.
   `src/editor/text/fonts.js`; every script needs a `SCRIPT_FALLBACKS` row and a shaping guard; never rasterise
   text to fix a mismatch. Adding a font is a nine-step unit of work. [fonts-and-text]
 - **Every canonical URL ends in a slash.** Internal links carry the slash; a new route needs its
-  non-slash → slash redirect pair in `vercel.json` in the same change (`npm run test:redirects`).
-  [routing-and-pages]
+  non-slash → slash redirect pair in `vercel.json` in the same change (`npm run test:redirects`). [routing-and-pages]
 - **Colors come from `:root` tokens in `global.css`, never literals.** Tailwind's `@theme` skips the
   default scale, so an undeclared utility compiles to *nothing*; declare the token first. A component
   must be listed in its page family's entry sheet in `src/styles/` or its utilities are missing on that
@@ -147,10 +144,9 @@ brackets carries the evidence; do not relearn it.
   first screen (hero, launcher, dock) is one composed unit that nothing gets inserted into. [home-page]
 - **Never reveal with an IntersectionObserver what JS first hid**; derive reveal state from scroll
   position (`animation-timeline: view()`). [home-page]
-- **Service worker: `skipWaiting()` only when every tab is idle (MEM-10), best-effort precache except `/`, self-uninstall on a 404
-  manifest.** [csp-scripts-pwa]
+- **Service worker: `skipWaiting()` only when every tab is idle (MEM-10), best-effort precache except `/`, self-uninstall on a 404 manifest.** [service-worker]
 - **Astro stays on `^7.0.3`**: older majors carry published advisories; anything needing
-  `legacy-peer-deps` is re-audited first. [csp-scripts-pwa]
+  `legacy-peer-deps` is re-audited first. [dependency-pinning]
 
 ## Voice (for any user-facing text)
 
@@ -183,12 +179,16 @@ to raise a limit.** Page-weight budgets are budgets, not ratchets.
 
 | Rule file (`.claude/rules/`) | Loads when you read | Headline |
 | --- | --- | --- |
-| `editor.md` | `src/editor/**`, `src/editor-ui/**`, `src/tools/sign/**`, `src/tools/redact/**` | design standard, arming/selection model, toolbar layout, editor hazards |
+| `editor.md` | `src/editor/**`, `src/editor-ui/**`, `src/tools/sign/**`, `src/tools/redact/**` | design standard, arming/selection model, editor hazards |
+| `editor-toolbar.md` | `SignToolbar.module.css`, the toolbar components, `e2e/tool-toolbars/**` | main toolbar row: touch targets, wrapping, label fit |
 | `tools-and-shell.md` | `src/tools/**`, `src/shell/**`, `src/lib/**`, `docs/ux-design-guidelines.md` | draft persistence, other tools, cross-tool hand-offs, UX guideline |
-| `tests.md` | `src/test/**`, any e2e spec, `vitest.config.js`, `playwright.config.js`, `scripts/affected-scope.mjs` | DOM test scope, per-platform text width, cross-tool test folder, affected-scope narrowing |
+| `tests.md` | `src/test/**`, any e2e spec, `vitest.config.js`, `playwright.config.js` | test-first, DOM test scope, per-platform text width, cross-tool test folder |
+| `test-tooling.md` | `scripts/affected-scope.mjs`, `unit-scope`, `check-fast`, `check-push`, `nx.json` | which tests a change runs, `check:fast`, `check:push`, the iOS gate |
 | `fonts-and-text.md` | `src/editor/text/**`, `public/fonts/**`, shaping guards | screening protocol, per-script guards, subsetting, the five text stages |
 | `styling.md` | `src/styles/**`, any `.css`, CSS guard scripts | palette, per-family utility sheets, CSS Modules boundary, ratchets |
-| `csp-scripts-pwa.md` | `astro.config.mjs`, `vercel.json`, layouts, `public/sw.js`, `package.json` | CSP layers and incidents, service worker invariants, version pinning |
+| `csp-scripts-pwa.md` | `astro.config.mjs`, `vercel.json`, layouts | CSP layers and incidents |
+| `service-worker.md` | `public/sw.js`, the manifest, precache scripts, `src/lib/appUpdate/**` | service worker invariants, precache, the update flow |
+| `dependency-pinning.md` | `package.json`, the lockfile, `patches/**` | version pinning, `legacy-peer-deps` |
 | `routing-and-pages.md` | `src/pages/**`, `src/data/**`, `middleware.ts`, `vercel.json` | tool registry, redirects, trust pages, Markdown negotiation |
 | `content-and-copy.md` | `src/content/**`, `src/data/**`, `.astro` components, SEO docs | content collection, full voice guide, SEO invariants and acquisition |
 | `home-page.md` | `src/pages/index.astro`, `HeroDemo/**`, `FileDropzone*`, `e2e/home/**` | layout/CLS invariants, launcher vs demo, scroll-driven reveal |

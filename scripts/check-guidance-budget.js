@@ -11,6 +11,13 @@
 //      that silently never loads, which is worse than no rule.
 // Source-only; CI runs it right after check:backlog, before anything that builds.
 //
+// The budgets are bytes as well as lines, because bytes are what an agent pays for: a rule of
+// 124 lines held 23 KB in lines of up to 3,300 characters, and `package.json` loaded all of it.
+// A sixth check caps what one file read can load: the rules whose globs match a single file are
+// summed, and the heaviest file in the repo must stay under READ_MAX_BYTES. A rule that grows
+// past its budget is split by trigger (the section moves to its own rule, loaded by the files it
+// is about), never trimmed of the lesson and never given a bigger limit.
+//
 // A fifth check (ARCH-94, scripts/check-cited-paths.mjs): every repo path cited in a rule, CLAUDE.md, a
 // docs/*.md file or a source comment must exist; its header says what counts as a path.
 //
@@ -30,14 +37,25 @@ import { repoFiles } from './repo-files.mjs';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const CLAUDE_MD_MAX_LINES = 200;
 const RULE_MAX_LINES = 400;
+const KB = 1024;
+const CLAUDE_MD_MAX_BYTES = 16.5 * KB;
+const RULE_MAX_BYTES = 21.5 * KB;
+const READ_MAX_BYTES = 66 * KB;
 const CORE_PREFIXES = ['src/shell/', 'src/editor-ui/', 'src/editor/', 'src/tools/', 'src/lib/'];
 // Only files git knows about (DEBT-68): a gitignored local file must not fail a guard CI never runs it on.
 const known = repoFiles(root);
 const globRepo = (pattern) => globSync(pattern, { cwd: root }).filter((f) => known.has(f));
 const failures = [];
 const allGlobs = [];
+const loadedBy = new Map(); // file -> [{ label, bytes }] for every rule a read of that file loads
+const kb = (n) => `${(n / KB).toFixed(1)} KB`;
 
-const claudeLines = readFileSync(join(root, 'CLAUDE.md'), 'utf8').split('\n').length;
+const claudeText = readFileSync(join(root, 'CLAUDE.md'), 'utf8');
+const claudeLines = claudeText.split('\n').length;
+const claudeBytes = Buffer.byteLength(claudeText);
+if (claudeBytes > CLAUDE_MD_MAX_BYTES) {
+  failures.push(`CLAUDE.md is ${kb(claudeBytes)} (budget ${kb(CLAUDE_MD_MAX_BYTES)}); every agent and subagent loads all of it. Move the detail into a .claude/rules/ file with paths: frontmatter and leave one line here.`);
+}
 if (claudeLines > CLAUDE_MD_MAX_LINES) {
   failures.push(`CLAUDE.md is ${claudeLines} lines (budget ${CLAUDE_MD_MAX_LINES}). Move the detail into a .claude/rules/ file with paths: frontmatter and leave one line here.`);
 }
@@ -50,13 +68,21 @@ for (const name of readdirSync(rulesDir).filter((f) => f.endsWith('.md') && know
   if (lines.length > RULE_MAX_LINES) {
     failures.push(`${label} is ${lines.length} lines (budget ${RULE_MAX_LINES}). Split it by topic or move evidence into a docs/ record it links.`);
   }
+  const bytes = Buffer.byteLength(text);
+  if (bytes > RULE_MAX_BYTES) {
+    failures.push(`${label} is ${kb(bytes)} (budget ${kb(RULE_MAX_BYTES)}). Move its largest section into its own rule, loaded by the files that section is about.`);
+  }
   const fm = text.match(/^---\n([\s\S]*?)\n---\n/);
   if (!fm) { failures.push(`${label} has no frontmatter; without paths: it loads into every session.`); continue; }
   const globs = [...fm[1].matchAll(/^\s*-\s*"?([^"\n]+?)"?\s*$/gm)].map((m) => m[1]);
   if (!/^paths:/m.test(fm[1]) || globs.length === 0) { failures.push(`${label} frontmatter has no paths: list; it would load unconditionally.`); continue; }
+  const matched = new Set();
   for (const pattern of globs) {
-    if (globRepo(pattern).length === 0) failures.push(`${label}: paths glob "${pattern}" matches no file, so that trigger never fires.`);
+    const hits = globRepo(pattern);
+    if (hits.length === 0) failures.push(`${label}: paths glob "${pattern}" matches no file, so that trigger never fires.`);
+    for (const hit of hits) matched.add(hit);
   }
+  for (const file of matched) loadedBy.set(file, [...(loadedBy.get(file) ?? []), { label, bytes }]);
   allGlobs.push(...globs);
 }
 
@@ -74,7 +100,16 @@ for (const prefix of CORE_PREFIXES) {
   }
 }
 
+let heaviest = { file: '', total: 0, rules: [] };
+for (const [file, rules] of loadedBy) {
+  const total = rules.reduce((sum, r) => sum + r.bytes, 0);
+  if (total > heaviest.total) heaviest = { file, total, rules };
+}
+if (heaviest.total > READ_MAX_BYTES) {
+  failures.push(`Reading ${heaviest.file} loads ${kb(heaviest.total)} of rules (budget ${kb(READ_MAX_BYTES)}): ${heaviest.rules.map((r) => `${r.label} ${kb(r.bytes)}`).join(', ')}. Narrow a glob so the file loads only the rules about it, or split the largest rule by trigger.`);
+}
+
 for (const d of scanRepo(root)) failures.push(`${d.file} cites ${d.path}, which does not exist (moved or deleted: point at where it lives now, or drop the reference).`);
 
 if (failures.length) { console.error('Guidance budget check failed:\n' + failures.map((f) => `  - ${f}`).join('\n')); process.exit(1); }
-console.log(`Guidance budget OK: CLAUDE.md ${claudeLines}/${CLAUDE_MD_MAX_LINES} lines; every rule is path-scoped, every glob matches, every core-folder file is covered, and every cited path exists.`);
+console.log(`Guidance budget OK: CLAUDE.md ${claudeLines}/${CLAUDE_MD_MAX_LINES} lines, ${kb(claudeBytes)}/${kb(CLAUDE_MD_MAX_BYTES)}; every rule is path-scoped and under ${kb(RULE_MAX_BYTES)}, every glob matches, every core-folder file is covered, every cited path exists, and the heaviest read (${heaviest.file}) loads ${kb(heaviest.total)}/${kb(READ_MAX_BYTES)} of rules.`);

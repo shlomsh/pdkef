@@ -140,7 +140,7 @@ while the reader reads, awake when reached for, dozing slowly when the reader sc
 again. Zoom offers Fit width (the default), Fit text (the paper's empty margins trimmed away, what a
 student reading a paper wants most), Fit page and Actual size, with pinch and Cmd/Ctrl plus or minus around
 the pointer; no zoom is remembered. Sideways movement stops at the edge of the pages and their notes, and
-zooming out stops at the whole page (R56, R57). Coarse pointers keep the 44 px targets `editor.md` requires
+zooming out stops at the whole page (R56, R57). Coarse pointers keep the 44 px targets `editor-toolbar.md` requires
 (R49), and on a phone the Marker is armed and put down with a tap, with no hint of its own in this mode (R51).
 Download says "Saved as {name}." in the strip under the toolbar (R59). It is
 one fullscreen style, not a container-query tier (those drifted twice), built once in shared chrome so

@@ -1180,7 +1180,7 @@ describe('precache manifest delivery policy', () => {
 // generate-precache-manifest.mjs). It must stay a valid classic worker
 // script, keep the __BUILD_ID__ placeholder for that same script to
 // substitute, and never gain a skipWaiting() call the minifier didn't put
-// there (see the skipWaiting() invariant in csp-scripts-pwa.md): the MEM-10
+// there (see the skipWaiting() invariant in service-worker.md): the MEM-10
 // grant and MEM-13's gated force are the only two.
 describe('minified service worker', () => {
   it('evaluates in the same harness and keeps the invariants that matter', async () => {

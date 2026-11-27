@@ -4,7 +4,7 @@ Read this **before** debugging when an island silently does nothing, a whole Pla
 at once, or hydration dies with `Cannot read properties of undefined (reading '__H')`. Every entry here
 was diagnosed the slow way at least once; each one names the tell that separates it from its
 look-alikes. The CSP cause is in `.claude/rules/csp-scripts-pwa.md`; the service-worker cause is under
-"PWA" in the same file.
+"PWA" in `.claude/rules/service-worker.md`.
 
 ## A whole Playwright suite going red at once
 

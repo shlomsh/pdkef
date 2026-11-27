@@ -135,7 +135,7 @@ One bar, one row, and it changes with the moment (right actions in right context
 
 On desktop there is no keyboard bar to hide behind, so ours always stays, showing whichever of the above applies (SNG-14 confirmed this on Chrome).
 
-Counted across all four contexts that is still more than today's twelve-control toolbar, which `editor.md` ("Main toolbar layout") shows is already at the edge of a 375px screen, so no single context may exceed it.
+Counted across all four contexts that is still more than today's twelve-control toolbar, which `editor-toolbar.md` ("Main toolbar layout") shows is already at the edge of a 375px screen, so no single context may exceed it.
 
 The rules:
 - Each context shows at most what fits one row of 44px targets at 375px. There is no second row.

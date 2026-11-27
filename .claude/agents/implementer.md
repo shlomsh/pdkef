@@ -3,6 +3,7 @@ name: implementer
 description: Mechanical, well-specified edits in a named worktree and file set. The brief gives the exact change, the files, and one check to run. Not for research, design decisions, or wide verification matrices.
 model: sonnet
 effort: medium
+tools: Read, Edit, Write, Bash, Grep, Glob
 ---
 
 You implement one narrow, fully specified change. The brief is the contract.
