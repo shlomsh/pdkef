@@ -13,11 +13,11 @@ test.use({ serviceWorkers: 'block' });
 test.describe.configure({ timeout: 120_000 });
 
 const RESTORE_CASES = [
-  { name: 'wide condensed desktop', viewport: { width: 1512, height: 900 } },
-  { name: '900px compact desktop', viewport: { width: 900, height: 900 } },
+  { name: 'wide condensed desktop', viewport: { width: 1512, height: 900 }, checkPageCount: (pageCount) => expect(pageCount).toBeVisible() },
+  { name: '900px compact desktop', viewport: { width: 900, height: 900 }, checkPageCount: (pageCount) => expect(pageCount).toBeVisible() },
   // At phone widths the density control is intentionally absent, but the
   // first-paint restore hint still owns the compact hero state.
-  { name: 'mobile', viewport: { width: 390, height: 844 } },
+  { name: 'mobile', viewport: { width: 390, height: 844 }, checkPageCount: (pageCount) => expect(pageCount).toHaveCount(1) },
 ];
 
 const makeLongPdfBuffer = () => makePdfBuffer(null, { pages: 77, title: false, lines: (i) => [{ text: `Saved work acceptance page ${i + 1}`, size: 16 }] });
@@ -157,8 +157,7 @@ for (const restoreCase of RESTORE_CASES) {
     // SIGN-27 keeps that meta text out of the one-row phone card, so only
     // its presence is asserted there.
     const pageCount = restored.getByText('77 pages', { exact: false });
-    if (restoreCase.viewport.width < 560) await expect(pageCount).toHaveCount(1);
-    else await expect(pageCount).toBeVisible();
+    await restoreCase.checkPageCount(pageCount);
 
     // More than the 700ms debounce: a restore is not an edit, so neither the
     // pending nor saved chip may appear after the editor has settled.

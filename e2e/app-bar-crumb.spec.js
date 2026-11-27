@@ -56,8 +56,11 @@ for (const route of TOOLS) {
       expect(m.overflow, `${at}: the page scrolls sideways`).toBeLessThanOrEqual(0);
 
       if (m.shown) {
+        // oxlint-disable-next-line landmines/no-conditional-expect -- the rule is "reads or is not there at all", so the branch is the point; both sides run for every tool (the crumb shows at 390px and 768px, gives way at 320, 360, 375 and 744px).
         expect(m.nameWidth, `${at}: the crumb shows ${m.nameWidth}px of its name`).toBeGreaterThanOrEqual(MIN_READABLE_NAME);
-        if (m.cut) expect(m.textOverflow, `${at}: a cut name has no ellipsis`).toBe('ellipsis');
+        // Every shown name is cut at these widths, and the style is what cuts it with an ellipsis, so it is asserted whether or not this one is cut.
+        // oxlint-disable-next-line landmines/no-conditional-expect -- inside the shown branch above, for the same reason
+        expect(m.textOverflow, `${at}: a shown name has no ellipsis to cut with`).toBe('ellipsis');
       }
 
       // Left to right: brand, crumb (if shown), badge, chips, each clear of the one before.

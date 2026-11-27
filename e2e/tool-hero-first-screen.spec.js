@@ -20,9 +20,10 @@ const ROUTES = ['/merge/', '/split/', '/compress/', '/compress-image/', '/pdf-to
 // picked, so the side-by-side compact column they needed is gone.
 const ALL_SIZES = new Set(['/merge/', '/image-to-pdf/', '/split/', '/sign/', '/compress/', '/compress-image/']);
 const SIZES = [
-  { width: 1280, height: 680, belowFold: true },
-  { width: 1440, height: 820, belowFold: true },
-  { width: 1920, height: 1040, belowFold: false },
+  { width: 1280, height: 680, howTopMin: 680 },
+  { width: 1440, height: 820, howTopMin: 820 },
+  // Tall enough that How it works may start inside the first screen: only that it is on the page.
+  { width: 1920, height: 1040, howTopMin: 0 },
 ];
 
 const HYDRATED = 'astro-island:not([ssr]) [data-empty-state]';
@@ -65,10 +66,8 @@ test.describe('first screen', () => {
         await expectInViewport(page, page.locator('h1').first(), 'h1');
         await expectInViewport(page, page.locator('[data-empty-state]').first(), 'sheet');
         await expectInViewport(page, picker(page), 'Choose files');
-        if (size.belowFold) {
-          const top = await page.locator('#how-it-works').evaluate((el) => el.getBoundingClientRect().top);
-          expect(top, 'How it works starts at or below the fold').toBeGreaterThanOrEqual(size.height);
-        }
+        const top = await page.locator('#how-it-works').evaluate((el) => el.getBoundingClientRect().top);
+        expect(top, 'How it works starts at or below the fold').toBeGreaterThanOrEqual(size.howTopMin);
         // The hero sits high and centred in the first screen whatever the tool column does.
         const geo = await page.evaluate(() => {
           const hero = document.querySelector('.tool-hero').getBoundingClientRect();
@@ -208,12 +207,12 @@ for (const route of ['/merge/', '/split/', '/sign/', '/redact/']) {
 // Below 1024px the page stays stacked (the grid is 1024px and up): the verb stays small,
 // Choose files is on the first screen and nothing overflows sideways, checked after the verb's
 // last frame (Split's decks are widest once parted; at 390px they once scrolled the page 32px).
-for (const [route, width, height] of [['/merge/', 900, 800], ['/compress/', 900, 800], ['/split/', 900, 800], ['/split/', 390, 844]]) {
+for (const [route, width, height, stageIsGrid] of [['/merge/', 900, 800, false], ['/compress/', 900, 800, false], ['/split/', 900, 800, false], ['/split/', 390, 844, true]]) {
   test(`${route} stacks at ${width}x${height} with a short verb and Choose files in view`, async ({ page }) => {
     await page.setViewportSize({ width, height });
     await open(page, route);
     // At 640px and under the stage is a grid too, the phone first screen's: one column, no desktop hero.
-    if (width > 640) expect(await page.locator('.tool-stage').first().evaluate((el) => getComputedStyle(el).display), 'stage').not.toBe('grid');
+    expect(await page.locator('.tool-stage').first().evaluate((el) => getComputedStyle(el).display === 'grid'), 'stage is a grid').toBe(stageIsGrid);
     const verb = await page.locator('[data-empty-state] div[aria-hidden="true"]').first().boundingBox();
     expect(verb.height, 'verb box height').toBeLessThanOrEqual(300);
     await expectInViewport(page, picker(page), 'Choose files');
@@ -449,7 +448,7 @@ test.describe('hand-off arrival', () => {
 
 // The sheet's end edge is the column's end edge: the How it works link ends at the column edge, so
 // the sheet (main) must end there too, not 48px short of it.
-for (const [route, dir] of [['/merge/', 'ltr'], ['/he/merge/', 'rtl']]) {
+for (const [route, dir, sheetEdge, linkEdge] of [['/merge/', 'ltr', 'sheetRight', 'linkRight'], ['/he/merge/', 'rtl', 'sheetLeft', 'linkLeft']]) {
   test(`${route} sheet ends at the column edge (${dir})`, async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 820 });
     await open(page, route);
@@ -458,8 +457,7 @@ for (const [route, dir] of [['/merge/', 'ltr'], ['/he/merge/', 'rtl']]) {
       const link = document.querySelector('[data-how-link]').getBoundingClientRect();
       return { sheetLeft: sheet.left, sheetRight: sheet.right, linkLeft: link.left, linkRight: link.right };
     });
-    if (dir === 'ltr') expect(Math.abs(edges.sheetRight - edges.linkRight), 'sheet right vs link right').toBeLessThanOrEqual(1);
-    else expect(Math.abs(edges.sheetLeft - edges.linkLeft), 'sheet left vs link left').toBeLessThanOrEqual(1);
+    expect(Math.abs(edges[sheetEdge] - edges[linkEdge]), `${sheetEdge} vs ${linkEdge}`).toBeLessThanOrEqual(1);
   });
 }
 

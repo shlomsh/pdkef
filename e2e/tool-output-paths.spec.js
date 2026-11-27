@@ -37,7 +37,7 @@ const tools = [
     // the count line ("Download 1 PDF 1 page · 1.2 KB"), hence the prefix match.
     actionName: null,
     downloadNameMatch: /^Download 1 PDF/,
-    downloadAttr: 'extracted_source.pdf',
+    downloadAttr: /^extracted_source\.pdf$/,
   },
   {
     name: 'Compress',
@@ -54,7 +54,7 @@ const tools = [
     // Not exact: the shared Download element (ARCH-41) carries its detail line
     // (the compressed size) in the link's accessible name.
     downloadNameMatch: /^Download\b/,
-    downloadAttr: 'source-compressed.pdf',
+    downloadAttr: /^source-compressed\.pdf$/,
   },
   {
     name: 'PDF to Image',
@@ -64,6 +64,7 @@ const tools = [
     // lands, its name carrying the size ("Download PNG · 412 KB").
     actionName: null,
     downloadNameMatch: /^Download PNG/,
+    downloadAttr: /\S/,
   },
   {
     name: 'Image to PDF',
@@ -73,7 +74,7 @@ const tools = [
     // shared Download element (ARCH-41) says "Download", then size and pages.
     actionName: null,
     downloadNameMatch: /^Download\b/,
-    downloadAttr: 'source.pdf',
+    downloadAttr: /^source\.pdf$/,
   },
   {
     name: 'Edit Pages',
@@ -88,6 +89,7 @@ const tools = [
     // No Apply step: the output is prepared in the background.
     actionName: null,
     downloadNameMatch: /^Download/,
+    downloadAttr: /\S/,
   },
 ];
 
@@ -110,6 +112,7 @@ test.describe('uncovered tools produce a real downloadable file', () => {
       }
 
       if (tool.name === 'Compress') {
+        // oxlint-disable-next-line landmines/no-conditional-expect -- only Compress has a status marker to wait on; the other four tools build on pick and their link wait below is the signal. Both sides run: Compress and the four others are all in this loop.
         await expect(page.locator('[data-compress-status="done"]')).toBeVisible({ timeout: 60_000 });
       }
 
@@ -123,9 +126,7 @@ test.describe('uncovered tools produce a real downloadable file', () => {
 
       const downloadAttr = await download.getAttribute('download');
       expect(downloadAttr).toBeTruthy();
-      if (tool.downloadAttr) {
-        expect(downloadAttr).toBe(tool.downloadAttr);
-      }
+      expect(downloadAttr).toMatch(tool.downloadAttr);
     });
   }
 });

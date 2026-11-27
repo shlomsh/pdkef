@@ -204,8 +204,12 @@ for (const route of ROUTES) {
    cluster is wider than a 72px cell, and centred on a first- or last-column
    page it ran off the edge (PDF to Image's four controls by 28px at 375px).
    An edge page keeps its cluster inside the grid, mirrored in right-to-left. */
-const EDGE_ROUTES = [...ROUTES, '/he/split/', '/he/pdf-to-image/'];
-for (const route of EDGE_ROUTES) {
+const EDGE_CASES = [
+  ...ROUTES.map((route) => ({ route, saveLinks: route === '/pdf-to-image/' ? 1 : 0 })),
+  { route: '/he/split/', saveLinks: 0 },
+  { route: '/he/pdf-to-image/', saveLinks: 1 },
+];
+for (const { route, saveLinks } of EDGE_CASES) {
   test(`at 375px every action of an edge page is on screen, ${route}`, async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 });
     await openGridTool(page, route);
@@ -217,9 +221,7 @@ for (const route of EDGE_ROUTES) {
       await cell.locator('[data-thumb-box]').click();
     };
     // The Save link is rendered once the images are built, shown with the rest on reveal.
-    if (route.includes('pdf-to-image')) {
-      await expect(cells(page).first().locator('a[download]')).toHaveCount(1, { timeout: 15_000 });
-    }
+    await expect(cells(page).first().locator('a[download]')).toHaveCount(saveLinks, { timeout: 15_000 });
     for (const index of [0, columns - 1]) {
       const cell = cells(page).nth(index);
       await reveal(cell);

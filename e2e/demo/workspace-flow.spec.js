@@ -132,12 +132,17 @@ test('the complete form fits above the dock on a laptop and iPhone-sized viewpor
     const billEnd = await bill.locator('[class*="_doc-line_"]').last().boundingBox();
     expect(billEnd.y + billEnd.height).toBeLessThanOrEqual(billScreen.y + billScreen.height + 1);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-    if (viewport.width === 390) {
-      await expect(stage.locator('[class*="_phone_"]')).toHaveCSS('box-shadow','none');
-      const dock = page.locator('.home-dock');
-      expect(await dock.evaluate(el => el.scrollWidth > el.clientWidth)).toBe(true);
-    }
   }
+});
+
+test('the complete form fits above the dock on a laptop and iPhone-sized viewport, the phone is flat and the dock is a rail at 390px', async ({ page }) => {
+  await page.setViewportSize({width:390,height:844});
+  await page.goto('/');
+  await scrollStory(page,'sign',.81);
+  const stage = stageLocator(page,'sign');
+  await expect(stage.locator('[class*="_phone_"]')).toHaveCSS('box-shadow','none');
+  const dock = page.locator('.home-dock');
+  expect(await dock.evaluate(el => el.scrollWidth > el.clientWidth)).toBe(true);
 });
 
 test('the same source PDF is deduplicated to its latest tool and opens from the desktop launcher', async ({ page }) => {

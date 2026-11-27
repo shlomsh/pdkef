@@ -51,6 +51,7 @@ test('the Download element keeps the same DOM node across preparing and ready (M
     await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
     await firstCard.tap();
     // The tap must select the cell, or its Rotate button never shows.
+    // oxlint-disable-next-line landmines/no-conditional-expect -- the tap is the webkit (touch) project's way to select; the chromium project hovers instead, and CI runs both projects
     await expect(firstCard).toHaveAttribute('data-selected');
   } else {
     await firstCard.hover();

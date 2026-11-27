@@ -576,7 +576,8 @@ export async function runShapingGuardInPage({
       quantizesAdvances: quantizes,
       displacementFloorPct: quantizes ? measureDisplacementFloorPct(corpus.map((entry) => entry.text)) : 0,
       cases: substituting.map(({ id, text }) => ({ id, ...evalOne(text) })),
-      calibrationCases: nonSubstituting.map(({ id, text }) => ({ id, ...evalOne(text) })),
+      // Not substituted by construction: that is how the corpus was split above.
+      calibrationCases: nonSubstituting.map(({ id, text }) => ({ id, ...evalOne(text), substituted: false })),
       hintedAdvanceStats,
     };
   }
@@ -707,13 +708,13 @@ export function createShapingGuardTest({
       // A hand-picked calibration string that shapes through a contextual
       // substitution is not zero-ambiguity ink, so a floor measured from it
       // could be absorbing a real letterform disagreement instead of noise.
-      if (!autoCalibrate) {
-        const ambiguous = result.calibrationCases.filter((c) => c.substituted);
-        expect(
-          ambiguous.map((c) => c.text),
-          `${scriptName}/${candidateName}: these calibration strings shape through a contextual substitution, so they are not the zero-shaping-ambiguity ink a noise floor has to be measured from - a real disagreement on one of them would silently raise the tolerance that is supposed to catch it. Replace them, or move this guard to autoCalibrate.`,
-        ).toEqual([]);
-      }
+      // Self-calibrating guards pass this by construction (their calibration
+      // strings are the ones that do not substitute); it is checked for them too.
+      const ambiguous = result.calibrationCases.filter((c) => c.substituted);
+      expect(
+        ambiguous.map((c) => c.text),
+        `${scriptName}/${candidateName}: these calibration strings shape through a contextual substitution, so they are not the zero-shaping-ambiguity ink a noise floor has to be measured from - a real disagreement on one of them would silently raise the tolerance that is supposed to catch it. Replace them, or move this guard to autoCalibrate.`,
+      ).toEqual([]);
 
       if (autoCalibrate) {
         console.log(`${scriptName}/${candidateName} guard (self-calibrating): ${result.nonSubstitutingCount} non-substituting (calibration), ${result.substitutingCount} substituting (under test), of ${corpus.length} corpus strings`);
@@ -721,16 +722,14 @@ export function createShapingGuardTest({
         // silently calibrate off a handful of samples, or - at zero - divide
         // by nothing meaningful. Fail explicitly instead of computing a
         // tolerance that looks real but isn't backed by enough evidence.
-        if (result.nonSubstitutingCount < minNonSubstitutingCount) {
-          expect(result.nonSubstitutingCount, `${scriptName}/${candidateName}: only ${result.nonSubstitutingCount} of ${corpus.length} corpus strings shape with no substitution (need >= ${minNonSubstitutingCount} to calibrate a noise floor). Extend the corpus with strings that provably don't substitute in this font, or supply a hand-picked calibrationSet instead.`).toBeGreaterThanOrEqual(minNonSubstitutingCount);
-        }
+        // oxlint-disable-next-line landmines/no-conditional-expect -- autoCalibrate is this guard's own mode, fixed per font; 14 guards run this side and 8 hand-picked ones the other
+        expect(result.nonSubstitutingCount, `${scriptName}/${candidateName}: only ${result.nonSubstitutingCount} of ${corpus.length} corpus strings shape with no substitution (need >= ${minNonSubstitutingCount} to calibrate a noise floor). Extend the corpus with strings that provably don't substitute in this font, or supply a hand-picked calibrationSet instead.`).toBeGreaterThanOrEqual(minNonSubstitutingCount);
         // Zero substituting strings means this run tested nothing - every
         // corpus string shaped identically to a plain cmap lookup, so there
         // was no case where fontkit and the browser could have disagreed on
         // a letterform. That is a fact worth knowing, not a pass.
-        if (result.substitutingCount === 0) {
-          expect(result.substitutingCount, `${scriptName}/${candidateName}: 0 of ${corpus.length} corpus strings trigger any contextual substitution in fontkit, so this guard has nothing to test for this face - it is not proof of agreement. Extend the corpus with strings known to trigger this face's calt/liga features, or drop this face from the guard with that reasoning recorded.`).toBeGreaterThan(0);
-        }
+        // oxlint-disable-next-line landmines/no-conditional-expect -- autoCalibrate is this guard's own mode, fixed per font; 14 guards run this side and 8 hand-picked ones the other
+        expect(result.substitutingCount, `${scriptName}/${candidateName}: 0 of ${corpus.length} corpus strings trigger any contextual substitution in fontkit, so this guard has nothing to test for this face - it is not proof of agreement. Extend the corpus with strings known to trigger this face's calt/liga features, or drop this face from the guard with that reasoning recorded.`).toBeGreaterThan(0);
       }
 
       // Whole-pixel advances can move a run by at most half a pixel per glyph.

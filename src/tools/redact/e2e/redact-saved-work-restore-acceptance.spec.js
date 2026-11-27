@@ -12,9 +12,9 @@ test.use({ serviceWorkers: 'block' });
 test.describe.configure({ timeout: 120_000 });
 
 const RESTORE_CASES = [
-  { name: 'wide condensed desktop', viewport: { width: 1512, height: 900 } },
-  { name: '900px compact desktop', viewport: { width: 900, height: 900 } },
-  { name: 'mobile', viewport: { width: 390, height: 844 } },
+  { name: 'wide condensed desktop', viewport: { width: 1512, height: 900 }, checkPageCount: (pageCount) => expect(pageCount).toBeVisible() },
+  { name: '900px compact desktop', viewport: { width: 900, height: 900 }, checkPageCount: (pageCount) => expect(pageCount).toBeVisible() },
+  { name: 'mobile', viewport: { width: 390, height: 844 }, checkPageCount: (pageCount) => expect(pageCount).toHaveCount(1) },
 ];
 
 const makeLongPdfBuffer = () => makePdfBuffer(null, { pages: 77, title: false, lines: (i) => [{ text: `Saved redaction acceptance page ${i + 1}`, size: 16 }] });
@@ -164,8 +164,7 @@ for (const restoreCase of RESTORE_CASES) {
     // SIGN-27 keeps that meta text out of the one-row phone card, so only
     // its presence is asserted there.
     const pageCount = restored.getByText('77 pages', { exact: false });
-    if (restoreCase.viewport.width < 560) await expect(pageCount).toHaveCount(1);
-    else await expect(pageCount).toBeVisible();
+    await restoreCase.checkPageCount(pageCount);
     await expect(restored.getByText('Tip: pick a tool. A box covers what is under it; Delete takes text or an image out of the file.', { exact: true })).toHaveCount(0);
 
     // More than the 700ms debounce: a restoration is not an edit, so neither

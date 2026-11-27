@@ -330,15 +330,15 @@ test.describe('fill mode on a desktop', () => {
     // fresh element: pick the face on the last one (the pick is carried to the
     // next field), delete it, and type into the same cell again.
     const centres = {};
-    for (const font of ['Arimo', 'Caveat', 'Pacifico']) {
-      if (font !== 'Arimo') {
-        await element.locator('textarea').click();
-        await element.getByRole('button', { name: 'Aa' }).click();
-        await page.locator('[data-font-picker-menu]').getByRole('option', { name: font, exact: true }).click();
-        await expect(element.getByRole('button', { name: 'Aa' })).toHaveAttribute('title', new RegExp(font));
-        await element.getByTitle('Delete', { exact: true }).click();
-        await expect(element).toHaveCount(0);
-      }
+    const pickFaceAndClear = async (font) => {
+      await element.locator('textarea').click();
+      await element.getByRole('button', { name: 'Aa' }).click();
+      await page.locator('[data-font-picker-menu]').getByRole('option', { name: font, exact: true }).click();
+      await expect(element.getByRole('button', { name: 'Aa' })).toHaveAttribute('title', new RegExp(font));
+      await element.getByTitle('Delete', { exact: true }).click();
+      await expect(element).toHaveCount(0);
+    };
+    const measureFace = async (font) => {
       await slot.focus();
       await page.keyboard.type('0123');
       await slot.evaluate((node) => node.blur());
@@ -352,6 +352,11 @@ test.describe('fill mode on a desktop', () => {
       const box = await inkBox(page, cell, ink);
       // Relative to the cell, so a scroll between fonts cannot count as a move.
       centres[font] = (box.top + box.bottom) / 2 - cell.y;
+    };
+    await measureFace('Arimo');
+    for (const font of ['Caveat', 'Pacifico']) {
+      await pickFaceAndClear(font);
+      await measureFace(font);
     }
     // The placement puts every face's digit centre at the same spot to within
     // 0.01px, but the browser's own line box does not follow the font tables

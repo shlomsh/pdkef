@@ -62,6 +62,9 @@ async function readToolbar(page) {
 // Share button exists, the desktop-only Download). Both tools' widths were
 // picked the same way: narrow enough to force wrapping, one step below the
 // shared 920px icon-only breakpoint for the single/double-row case.
+// A wrap case carries what its split must be: balanced to within one control per row, or a pinned split.
+const balanced = (width) => ({ width, split: /^\d+(\+\d+)*$/, maxSpread: 1 });
+const pinned = (width, split, maxSpread) => ({ width, split: new RegExp(`^${split.replaceAll('+', '\\+')}$`), maxSpread });
 const tools = [
   // Measured 2026-09-20, headless Chromium, after the History control came
   // out; widths moved 2026-10-28 when the loaded card dropped its frame below
@@ -73,7 +76,7 @@ const tools = [
   // stranded one control, 10+1, until the eleven-control rule moved from 531px to
   // 532px, where the comment above it says they stop fitting) and 334 the first
   // 4+4+3 width; 320, 360, 390, 430 and 500 sit between.
-  { name: 'Sign', path: '/sign/?next=0', fixture: 'sign-toolbar-e2e.pdf', wrapWidths: [320, 334, 360, 390, 430, 500, 593, 594] },
+  { name: 'Sign', path: '/sign/?next=0', fixture: 'sign-toolbar-e2e.pdf', wrapCases: [320, 334, 360, 390, 430, 500, 593, 594].map(balanced) },
   // RED-31 made it eleven (Peek joined), so 300-320px packs 4+4+3.
   // RED-02 made Redact ten controls (Find joined). At 300-320px the 44px touch
   // floor caps a line at four, and ten can only pack 4+4+2 there (the comment
@@ -81,7 +84,7 @@ const tools = [
   // unreachable). Shlomi chose that split over moving or hiding Find
   // (2026-09-27), so those widths pin it exactly: a lone stranded control
   // still fails.
-  { name: 'Redact', path: '/redact', fixture: 'redact-toolbar-e2e.pdf', wrapWidths: [300, 320, 340], acceptedSplits: { 300: '4+4+3', 320: '4+4+3' } },
+  { name: 'Redact', path: '/redact', fixture: 'redact-toolbar-e2e.pdf', wrapCases: [pinned(300, '4+4+3', 1), pinned(320, '4+4+3', 1), balanced(340)] },
 ];
 
 for (const tool of tools) {
@@ -139,7 +142,7 @@ for (const tool of tools) {
     // of their own (390px used to give 6+3, 500px gave 8+1, for Sign's control
     // count - Redact's own widths were found the same way against its own,
     // smaller control count).
-    for (const width of tool.wrapWidths) {
+    for (const { width, split, maxSpread } of tool.wrapCases) {
       test(`splits into evenly filled rows at ${width}px`, async ({ page }) => {
         await page.setViewportSize({ width, height: 900 });
         await openTool(page, tool.path, tool.fixture);
@@ -148,15 +151,11 @@ for (const tool of tools) {
         expect(rows.length).toBeGreaterThan(1);
 
         const counts = rows.map((row) => row.count);
-        const accepted = tool.acceptedSplits?.[width];
-        if (accepted) {
-          expect(counts.join('+'), 'The split chosen for this width').toBe(accepted);
-        } else {
-          expect(
-            Math.max(...counts) - Math.min(...counts),
-            `Rows are unbalanced: ${counts.join('+')}`,
-          ).toBeLessThanOrEqual(1);
-        }
+        expect(counts.join('+'), 'The split chosen for this width').toMatch(split);
+        expect(
+          Math.max(...counts) - Math.min(...counts),
+          `Rows are unbalanced: ${counts.join('+')}`,
+        ).toBeLessThanOrEqual(maxSpread);
 
         // No row may spill past the toolbar it sits in.
         for (const row of rows) {

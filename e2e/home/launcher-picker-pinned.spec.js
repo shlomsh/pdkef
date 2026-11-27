@@ -188,6 +188,7 @@ const SHORT_DESKTOP_VIEWPORTS = [
 // screen since the recents area now scrolls internally instead of pushing it
 // out of the launcher cell.
 const SHORT_DESKTOP_COUNTS = [0, 6];
+const SHORT_DESKTOP_LAST_TILE = { 0: /^(?![\s\S]*recent-\d)/, 6: /recent-5\.pdf/ };
 const PHONE_VIEWPORT = { width: 390, height: 844 };
 // Five recents is the two-row case that used to move the picker on desktop.
 const PHONE_RECENTS = makeRecents(5);
@@ -279,9 +280,8 @@ test.describe('home launcher picker and recents stay pinned as recents load', ()
         // 0 recents still renders one li: the bundled placeholder tile.
         const expectedLiCount = count > 0 ? count : 1;
         await expect(page.locator('#home-files li')).toHaveCount(expectedLiCount);
-        if (count > 0) {
-          await expect(page.locator('#home-files li').last()).toContainText(`recent-${count - 1}.pdf`);
-        }
+        // The last tile names the last seeded recent; with none seeded it names no recent at all.
+        await expect(page.locator('#home-files li').last()).toHaveText(SHORT_DESKTOP_LAST_TILE[count]);
         await settleLayout(page);
 
         const result = await readRects(page);

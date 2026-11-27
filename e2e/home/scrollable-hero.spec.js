@@ -134,12 +134,6 @@ test.describe('scrollable home hero', () => {
       }
       expect(Math.max(...titlePositions) - Math.min(...titlePositions)).toBeLessThanOrEqual(2);
 
-      if (viewport.width === 390) {
-        // The launcher keeps its existing horizontal rail instead of forcing
-        // nine small controls into a wrapped, clipped layout.
-        expect(structure.dockCanScrollInline).toBe(true);
-      }
-
       await page.evaluate(() => {
         const demoTrack = document.querySelector('.demo-track[data-demo-track="mobile"]');
         window.scrollTo(0, demoTrack.offsetTop + Math.min(200, demoTrack.offsetHeight / 4));
@@ -169,6 +163,17 @@ test.describe('scrollable home hero', () => {
       expect(demoFrame.footerIsTopLayer).toBe(true);
     });
   }
+
+  test('keeps the complete hero ahead of the demo at 390x844, the dock stays a horizontal rail', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/');
+    await page.locator('#home-files [data-home-picker]').waitFor();
+
+    // The launcher keeps its existing horizontal rail instead of forcing
+    // nine small controls into a wrapped, clipped layout.
+    const structure = await homeStructure(page);
+    expect(structure.dockCanScrollInline).toBe(true);
+  });
 
   test('desktop hero frame stays pinned through the demos and then releases', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });

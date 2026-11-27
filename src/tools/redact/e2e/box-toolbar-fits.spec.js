@@ -14,7 +14,7 @@ const makeTwoPagePdf = () => makePdfBuffer(null, { pages: 2, title: false });
 test.describe('selected box pill fits the window (RED-53)', () => {
   test.skip(({ browserName }) => browserName !== 'chromium', 'layout guard, Chromium only');
 
-  for (const width of [390, 600, 1024]) {
+  for (const { width, duplicateVisible } of [{ width: 390, duplicateVisible: false }, { width: 600, duplicateVisible: false }, { width: 1024, duplicateVisible: true }]) {
     test(`at ${width}px`, async ({ browser }) => {
       const context = await browser.newContext({ viewport: { width, height: 800 } });
       await context.addInitScript((key) => {
@@ -64,8 +64,7 @@ test.describe('selected box pill fits the window (RED-53)', () => {
 
         await expect(pill.getByRole('button', { name: 'Delete', exact: true })).toBeVisible();
         const duplicate = pill.getByText('Duplicate');
-        if (width >= 768) await expect(duplicate).toBeVisible();
-        else await expect(duplicate).not.toBeVisible();
+        await expect(duplicate).toBeVisible({ visible: duplicateVisible });
       } finally {
         await context.close();
       }

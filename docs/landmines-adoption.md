@@ -38,7 +38,7 @@ Counts over `src scripts e2e api middleware.ts`.
 | `no-parameter-branch` | 7 in 6 files | **On (LAND-07).** The body computed its expected value from the case, so it mirrored the code under test; every expected value now sits in the case table. |
 | `no-elapsed-time-bound` | 6 | **On (LAND-07).** A wall-clock upper bound fails on a slow machine with no bug. All six are deliberate (a kill or an exit that is the behaviour, a hang guard, two linear-time guards, a perf budget) and keep a disable naming why. |
 | `no-silent-catch` | 19 in 17 files | **On (LAND-07).** Production code and one dev-only capture tool: best-effort cleanups, optional browser APIs and previews whose failure the page already absorbs. Each keeps its reason on its disable line; none hid a lost save. |
-| `no-conditional-expect` | 110 in 54 files | **On (LAND-08, 2026-11-27).** The 62 unit sites are fixed; 48 in 19 e2e specs wait in its `allow` map for wave 2. Some were real silent skips (`if (pageKind) expect(...)`). |
+| `no-conditional-expect` | 110 in 54 files | **On (LAND-08, 2026-11-27).** Every site asserts each time or splits its case; 14 lines in 6 e2e files keep a disable saying why the branch is the point (a font guard's calibration mode, a browser project, one tool's status marker). About half could pass silently before. |
 | `no-cold-import-in-test`, `no-cold-start-in-test` | 52 in 27, 113 in 21 | **Adopt (LAND-09).** The 5 s budget measures a module load or a process start; cold starts are where tests run out of time on battery. |
 | `padding-between-statements` | 64,530 | **Declined.** Formatting. |
 | `no-scripts-directory`, `package-scripts` | 286, 1 | **Declined.** `scripts/` and the `check:*` / `generate:*` names are how pdkef's guards run in CI. |
@@ -62,9 +62,8 @@ Adopted so far, as `landmines/...` rules of the one 0.3.2 plugin: `no-unsignaled
 `no-flake-masking` (LAND-03), `no-fixed-sleep` (LAND-02, its `allow` map includes 47 e2e sites;
 it replaced `check-e2e-sleeps`), `strict-msw`, `colocated-tests` and
 `package-exports`, `no-test-doubles` with a disable per kept line, the seven zero-hit rules of LAND-06, and
-`no-parameter-branch`, `no-elapsed-time-bound` and `no-silent-catch` (LAND-07), and `no-conditional-expect` (LAND-08,
-its `allow` map holds the e2e sites left). A disable of `no-test-doubles` or a
-LAND-07 rule is one line with a reason, checked by `scripts/test-double-reasons.mjs`. Next: LAND-08's e2e wave and LAND-09. Off: `no-project-max-workers` (false positive) and
+`no-parameter-branch`, `no-elapsed-time-bound` and `no-silent-catch` (LAND-07), and `no-conditional-expect` (LAND-08). A disable of `no-test-doubles`, a
+LAND-07 rule or `no-conditional-expect` is one line with a reason, checked by `scripts/test-double-reasons.mjs`. Next: LAND-09. Off: `no-project-max-workers` (false positive) and
 `declared-test-inputs` (Turbo); declined: `no-comments`, `no-explicit-return-types`, `test-file-names`
 and the nine layout and style rules in the table above.
 

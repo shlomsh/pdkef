@@ -77,14 +77,15 @@ test.describe('Exported PDF render guard', () => {
       workerSrc,
     });
 
+    // Guarded rather than trusted to discipline: capturing on the wrong
+    // platform silently rewrites every signature and makes the next CI run
+    // read as a whole-corpus regression in signPdf. Asserted on every run, so
+    // it holds whenever a capture is asked for and trivially when it is not.
+    expect(
+      UPDATING && process.platform !== BASELINE_PLATFORM,
+      `Refusing to capture a baseline on ${process.platform}. This guard's baseline is platform-bound and must be captured on ${BASELINE_PLATFORM} - see "Regenerating the baseline" in exportRenderHarness.js.`,
+    ).toBe(false);
     if (UPDATING) {
-      // Guarded rather than trusted to discipline: capturing on the wrong
-      // platform silently rewrites every signature and makes the next CI run
-      // read as a whole-corpus regression in signPdf.
-      expect(
-        process.platform,
-        `Refusing to capture a baseline on ${process.platform}. This guard's baseline is platform-bound and must be captured on ${BASELINE_PLATFORM} - see "Regenerating the baseline" in exportRenderHarness.js.`,
-      ).toBe(BASELINE_PLATFORM);
       writeBaseline(BASELINE_PATH, results);
       console.log(`Wrote ${results.length} baseline signatures to ${BASELINE_PATH}. Review the diff - a baseline change is a change to what users receive.`);
     }

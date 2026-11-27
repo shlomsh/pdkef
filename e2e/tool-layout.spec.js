@@ -56,55 +56,80 @@ test('aligns every tool title row with its breadcrumb grid at desktop width', as
 // shifted the title down by 20.8px with no CSS of ours to point at. Range
 // rects, not the <h1> box, isolate the first line's own top.
 test('top-aligns each tool hero icon with the first line of its title', async ({ page }) => {
-  for (const width of [1440, 1100, 768, 390]) {
+  // The expected layout is case data: per width, which routes keep the icon beside the title and which stack
+  // it above. Editors keep it beside below 1024px; page-grid tools do at 640px and under (Merge's condensed
+  // phone hero included: stacked, it pushed the sticky Download sheet below a 659px viewport on Linux fonts).
+  const pageRoutes = toolRoutes.filter((route) => !editorRoutes.includes(route));
+  expect(editorRoutes.length).toBeGreaterThan(0);
+  expect(pageRoutes.length).toBeGreaterThan(0);
+  const widthCases = [
+    { width: 1440, besideEditors: [], besidePages: [], belowEditors: editorRoutes, belowPages: pageRoutes },
+    { width: 1100, besideEditors: [], besidePages: [], belowEditors: editorRoutes, belowPages: pageRoutes },
+    { width: 768, besideEditors: editorRoutes, besidePages: [], belowEditors: [], belowPages: pageRoutes },
+    { width: 390, besideEditors: editorRoutes, besidePages: pageRoutes, belowEditors: [], belowPages: [] },
+  ];
+
+  const measureHero = async (page) =>
+    page.evaluate(() => {
+      const row = document.querySelector('header.tool-hero > div');
+      const tile = row.firstElementChild.getBoundingClientRect();
+      const h1Box = row.querySelector('h1').getBoundingClientRect();
+      const range = document.createRange();
+      range.selectNodeContents(row.querySelector('h1'));
+      const [firstLine] = range.getClientRects();
+      const rtl = getComputedStyle(row).direction === 'rtl';
+      return {
+        stacked: document.querySelector('header.tool-hero').hasAttribute('data-hero-stacked'),
+        lines: range.getClientRects().length,
+        tileTop: tile.top,
+        tileBottom: tile.bottom,
+        tileStart: rtl ? tile.right : tile.left,
+        h1Top: h1Box.top,
+        h1Start: rtl ? h1Box.right : h1Box.left,
+        lineTop: firstLine.top,
+      };
+    });
+  const whereOf = (route, width, measured) => `${route} @ ${width}px (${measured.lines} title line(s))`;
+
+  for (const { width, besideEditors, besidePages, belowEditors, belowPages } of widthCases) {
     await page.setViewportSize({ width, height: 900 });
-    for (const route of toolRoutes) {
+
+    for (const route of besideEditors) {
       await page.goto(route);
+      const measured = await measureHero(page);
+      const where = whereOf(route, width, measured);
+      // The editors keep the icon beside the title below the desktop first screen.
+      expect(measured.stacked, where).toBe(false);
+      expect(Math.abs(measured.tileTop - measured.lineTop), where).toBeLessThanOrEqual(4);
+    }
 
-      const measured = await page.evaluate(() => {
-        const row = document.querySelector('header.tool-hero > div');
-        const tile = row.firstElementChild.getBoundingClientRect();
-        const h1Box = row.querySelector('h1').getBoundingClientRect();
-        const range = document.createRange();
-        range.selectNodeContents(row.querySelector('h1'));
-        const [firstLine] = range.getClientRects();
-        const rtl = getComputedStyle(row).direction === 'rtl';
-        return {
-          stacked: document.querySelector('header.tool-hero').hasAttribute('data-hero-stacked'),
-          phoneCondensed: document.querySelector('header.tool-hero').hasAttribute('data-hero-phone-condensed'),
-          lines: range.getClientRects().length,
-          tileTop: tile.top,
-          tileBottom: tile.bottom,
-          tileStart: rtl ? tile.right : tile.left,
-          h1Top: h1Box.top,
-          h1Start: rtl ? h1Box.right : h1Box.left,
-          lineTop: firstLine.top,
-        };
-      });
+    for (const route of besidePages) {
+      await page.goto(route);
+      const measured = await measureHero(page);
+      const where = whereOf(route, width, measured);
+      expect(Math.abs(measured.tileTop - measured.lineTop), where).toBeLessThanOrEqual(4);
+    }
 
-      const where = `${route} @ ${width}px (${measured.lines} title line(s))`;
-      if (editorRoutes.includes(route) && width < 1024) {
-        // The editors keep the icon beside the title below the desktop first screen.
-        expect(measured.stacked, where).toBe(false);
-        expect(Math.abs(measured.tileTop - measured.lineTop), where).toBeLessThanOrEqual(4);
-      } else if (editorRoutes.includes(route)) {
-        // HERO-05: at 1024px and up their empty state is the stacked look, though the
-        // header keeps its `data-hero-stacked` off (the phone rules key on it).
-        expect(measured.stacked, where).toBe(false);
-        expect(measured.tileBottom, where).toBeLessThanOrEqual(measured.h1Top);
-        expect(Math.abs(measured.tileStart - measured.h1Start), where).toBeLessThanOrEqual(1);
-      } else if ((measured.phoneCondensed && width <= 767) || width <= 640) {
-        // Merge's condensed phone hero keeps the tile beside the name (ToolHero.astro): stacked,
-        // it pushed the sticky Download sheet below a 659px viewport on Linux fonts. At 640px and
-        // under every page-grid tool's empty hero does the same, so the card is the first screen.
-        expect(Math.abs(measured.tileTop - measured.lineTop), where).toBeLessThanOrEqual(4);
-      } else {
-        // The page-grid tools stack the icon above the title (HERO-02/03):
-        // the icon ends before the h1 begins and shares its inline-start edge.
-        expect(measured.stacked, where).toBe(true);
-        expect(measured.tileBottom, where).toBeLessThanOrEqual(measured.h1Top);
-        expect(Math.abs(measured.tileStart - measured.h1Start), where).toBeLessThanOrEqual(1);
-      }
+    for (const route of belowEditors) {
+      await page.goto(route);
+      const measured = await measureHero(page);
+      const where = whereOf(route, width, measured);
+      // HERO-05: at 1024px and up their empty state is the stacked look, though the
+      // header keeps its `data-hero-stacked` off (the phone rules key on it).
+      expect(measured.stacked, where).toBe(false);
+      expect(measured.tileBottom, where).toBeLessThanOrEqual(measured.h1Top);
+      expect(Math.abs(measured.tileStart - measured.h1Start), where).toBeLessThanOrEqual(1);
+    }
+
+    for (const route of belowPages) {
+      await page.goto(route);
+      const measured = await measureHero(page);
+      const where = whereOf(route, width, measured);
+      // The page-grid tools stack the icon above the title (HERO-02/03):
+      // the icon ends before the h1 begins and shares its inline-start edge.
+      expect(measured.stacked, where).toBe(true);
+      expect(measured.tileBottom, where).toBeLessThanOrEqual(measured.h1Top);
+      expect(Math.abs(measured.tileStart - measured.h1Start), where).toBeLessThanOrEqual(1);
     }
   }
 });

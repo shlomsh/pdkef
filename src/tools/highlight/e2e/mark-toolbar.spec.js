@@ -74,6 +74,7 @@ test.describe('touch panel', () => {
       await openTool(page, '/highlight-pdf/', { file: { name: 'toolbar.pdf', buffer: source }, overlaySelector: '[data-page-overlay]' });
       if (full) {
         await pullCord(page, 'tap');
+        // oxlint-disable-next-line landmines/no-conditional-expect -- only the 402x874 full-screen case enters full screen and the other three stay in the normal view, so both sides run
         await expect(page.locator('[role="toolbar"][data-mode]')).toBeVisible();
         // The page is fitted again for the bigger view: wait until it holds still for a few frames.
         await page.waitForFunction(() => new Promise((done) => {

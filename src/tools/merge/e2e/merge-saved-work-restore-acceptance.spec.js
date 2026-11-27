@@ -9,12 +9,16 @@ import { waitForIsland } from '../../../../e2e/support/tool.js';
 test.use({ serviceWorkers: 'block' });
 test.describe.configure({ timeout: 120_000 });
 
+// railStatusCount: how many "Draft saved" rail status rows are visible after the first save.
+// pickedUpCount: how many "Picked up where you left off" sentences are visible after a restore.
 const RESTORE_CASES = [
-  { name: 'wide condensed desktop', viewport: { width: 1512, height: 900 }, hasRailStatus: true },
+  { name: 'wide condensed desktop', viewport: { width: 1512, height: 900 }, hasRailStatus: true, railStatusCount: 1, pickedUpCount: 1 },
   // Merge switches to its compact workspace before 1024px, so the desktop
-  // rail status is intentionally absent at this viewport.
-  { name: '900px compact desktop', viewport: { width: 900, height: 900 }, hasRailStatus: false },
-  { name: 'mobile', viewport: { width: 390, height: 844 }, hasRailStatus: false },
+  // rail status is intentionally absent at this viewport. Between 768 and
+  // 1023px neither the rail's nor the phone header's placement of the
+  // restore sentence is shown, so only the timer's departure is asserted.
+  { name: '900px compact desktop', viewport: { width: 900, height: 900 }, hasRailStatus: false, railStatusCount: 0, pickedUpCount: 0 },
+  { name: 'mobile', viewport: { width: 390, height: 844 }, hasRailStatus: false, railStatusCount: 0, pickedUpCount: 1 },
 ];
 
 const makePdfBuffer = (label, pageCount = 9) => buildPdf(label, {
@@ -123,9 +127,7 @@ for (const restoreCase of RESTORE_CASES) {
       await firstCard.getByRole('button', { name: /^Rotate page/ }).click({ force: true });
     }
     await expect(firstCard).toHaveAttribute('data-rotation', '90');
-    if (restoreCase.hasRailStatus) {
-      await expect(page.locator('[class*="draft-status-row"]', { hasText: 'Draft saved' })).toBeVisible({ timeout: 15_000 });
-    }
+    await expect(page.locator('[class*="draft-status-row"]', { hasText: 'Draft saved' }).filter({ visible: true })).toHaveCount(restoreCase.railStatusCount, { timeout: 15_000 });
     // "Draft saved" can still be showing from the save before the rotation
     // (the grid now appears once its fit settles, MERGE-24), so wait for the
     // rotation itself to reach IndexedDB.
@@ -175,8 +177,7 @@ for (const restoreCase of RESTORE_CASES) {
     // Both placements are in the DOM (CSS picks one); between 768 and 1023px
     // neither is shown, so only the timer's departure is asserted there.
     const pickedUp = restored.getByText('Picked up where you left off');
-    const { width } = restoreCase.viewport;
-    if (width < 768 || width >= 1024) await expect(pickedUp.filter({ visible: true })).toHaveCount(1);
+    await expect(pickedUp.filter({ visible: true })).toHaveCount(restoreCase.pickedUpCount);
     await expect(pickedUp).toHaveCount(0, { timeout: 10_000 });
     // Time on purpose: the observation window closes after the timer departs.
     await restored.waitForTimeout(300);
@@ -200,16 +201,23 @@ for (const restoreCase of RESTORE_CASES) {
     if (restoreCase.hasRailStatus) {
       await restoredFirstCard.hover();
       await restoredFirstCard.getByRole('button', { name: /^Rotate page/ }).click({ force: true });
+      // oxlint-disable-next-line landmines/no-conditional-expect -- the rail edit needs the desktop rail's hover affordance and status row; the 1512px case runs it, the 900px and mobile cases run the restore half above
       await expect(restoredFirstCard).toHaveAttribute('data-rotation', '180');
+      // oxlint-disable-next-line landmines/no-conditional-expect -- the rail edit needs the desktop rail's hover affordance and status row; the 1512px case runs it, the 900px and mobile cases run the restore half above
       await expect(restored.getByText('Saving draft…', { exact: true })).toBeVisible();
+      // oxlint-disable-next-line landmines/no-conditional-expect -- the rail edit needs the desktop rail's hover affordance and status row; the 1512px case runs it, the 900px and mobile cases run the restore half above
       await expect(restored.getByText('Draft saved', { exact: true })).toBeVisible();
       const afterEdit = await readMergeWork(restored);
+      // oxlint-disable-next-line landmines/no-conditional-expect -- the rail edit needs the desktop rail's hover affordance and status row; the 1512px case runs it, the 900px and mobile cases run the restore half above
       expect(afterEdit.revision).toBe(beforeRestore.revision + 1);
+      // oxlint-disable-next-line landmines/no-conditional-expect -- the rail edit needs the desktop rail's hover affordance and status row; the 1512px case runs it, the 900px and mobile cases run the restore half above
       expect(afterEdit.updatedAt).toBeGreaterThan(beforeRestore.updatedAt);
+      // oxlint-disable-next-line landmines/no-conditional-expect -- the rail edit needs the desktop rail's hover affordance and status row; the 1512px case runs it, the 900px and mobile cases run the restore half above
       expect(afterEdit.plan[0]).toMatchObject({ rotation: 180 });
       await restored.evaluate(() => window.dispatchEvent(new Event('pagehide')));
       // Time on purpose: a negative check after pagehide.
       await restored.waitForTimeout(300);
+      // oxlint-disable-next-line landmines/no-conditional-expect -- the rail edit needs the desktop rail's hover affordance and status row; the 1512px case runs it, the 900px and mobile cases run the restore half above
       expect(await readMergeWork(restored)).toEqual(afterEdit);
     }
   });

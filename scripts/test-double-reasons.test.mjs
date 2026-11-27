@@ -37,6 +37,17 @@ describe('test double reasons', () => {
     ]);
   });
 
+  it('holds no-conditional-expect (LAND-08) to one line with a reason', () => {
+    expect(reasonProblems('a.spec.js', [
+      '// oxlint-disable-next-line landmines/no-conditional-expect -- only the webkit project taps; chromium hovers, and CI runs both',
+      '/* oxlint-disable landmines/no-conditional-expect */',
+      '// oxlint-disable-next-line landmines/no-conditional-expect',
+    ].join('\n'))).toEqual([
+      'a.spec.js:2: disable the rule on one line, with oxlint-disable-next-line',
+      'a.spec.js:3: give the reason as "-- <why the branch is the point, and what makes both sides run>"',
+    ]);
+  });
+
   it('finds none in the repository', () => {
     expect(repoReasonProblems(fileURLToPath(new URL('..', import.meta.url)))).toEqual([]);
   });

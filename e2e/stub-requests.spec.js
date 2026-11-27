@@ -40,7 +40,7 @@ for (const route of ROUTES) {
     const seen = watch(page);
     await page.goto(route);
     await hydrated(page);
-    if (!NO_ISLANDS.has(route)) expect(await page.locator('astro-island').count(), 'the page has islands to hydrate').toBeGreaterThan(0);
+    expect((await page.locator('astro-island').count()) > 0, 'the page has islands to hydrate').toBe(!NO_ISLANDS.has(route));
     expect(seen.requests.filter((path) => PAGE_SCRIPT_STUB.test(path))).toEqual([]);
     expect(seen.failed).toEqual([]);
     expect(seen.bad).toEqual([]);
