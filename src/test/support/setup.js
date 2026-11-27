@@ -1,4 +1,6 @@
-import { afterEach, expect } from 'vitest';
+import { afterAll, afterEach, expect } from 'vitest';
+import { options } from 'preact';
+import { createAfterPaintGuard } from './afterPaintGuard.ts';
 import { matchMedia, resetScreen } from './screen.ts';
 import { sameFile } from './fileEquality.ts';
 
@@ -52,6 +54,14 @@ if (typeof window !== 'undefined' && window._virtualConsole) {
   window._virtualConsole.on('jsdomError', (error) => {
     if (!knownJsdomError.test(error?.message ?? '')) console.error(error);
   });
+}
+
+// QUAL-58: Preact's after-paint flushes still pending when a file ends are cancelled here, so none fires
+// after jsdom is gone (src/test/support/afterPaintGuard.ts). jsdom only: a real browser outlives them.
+if (typeof navigator !== 'undefined' && navigator.userAgent.includes('jsdom')) {
+  const guard = createAfterPaintGuard();
+  options.requestAnimationFrame = guard.schedule;
+  afterAll(() => guard.finish());
 }
 
 expect.addEqualityTesters([sameFile]);

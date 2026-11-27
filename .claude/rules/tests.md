@@ -87,6 +87,10 @@ tool's page belongs under `e2e/` instead, enforced statically by rule 7 in `docs
 (poppler vs Chromium noise measured at 80-88%), and never "is there ink" as a pass condition, since
 `.notdef` often draws more ink than the glyph it replaced.
 
+Preact runs effects after paint, on a 35 ms timer raced against rAF. The jsdom setup cancels any such flush still pending when a
+file ends (`src/test/support/afterPaintGuard.ts`, QUAL-58), so none fires after jsdom is gone; an assertion on an effect still
+awaits the render inside `act`.
+
 ## A worker stuck in a loop (QUAL-52)
 
 An endless render inside `act()`, or any loop that never yields, reaches no test timeout and cannot see its parent die.
