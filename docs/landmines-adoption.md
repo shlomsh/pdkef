@@ -11,7 +11,7 @@ writing another local guard.
 
 ## The trial (2026-11-18, origin/main 9f43c5d07)
 
-`oxlint@1.94.0` + `@interfere/landmines@0.1.0` (0.3.1 is installed now), recommended config, over `src scripts e2e api
+`oxlint@1.94.0` + `@interfere/landmines@0.1.0` (0.3.2 is installed now), recommended config, over `src scripts e2e api
 middleware.ts`: 30,908 findings in 2,487 files, about 3 seconds.
 
 | Rule | Hits | Verdict |
@@ -26,6 +26,26 @@ middleware.ts`: 30,908 findings in 2,487 files, about 3 seconds.
 | `colocated-tests` | 13 | **Adopted (LAND-05).** Ten tests whose subject the rule cannot see carry a disable line naming it; the ticket waits on upstream's colocated-tests fix (PR 33). |
 | `strict-msw`, `package-exports` | 0 | **On** (none then; `strict-msw` has 2 recorded sites since the MSW waves). |
 
+### Rules new since the trial (2026-11-27, landmines 0.3.2, origin/main 4b3117dc7)
+
+Counts over `src scripts e2e api middleware.ts`.
+
+| Rule | Hits | Verdict |
+| --- | --- | --- |
+| `no-shared-signal`, `no-stale-render-assertion`, `no-styling-class-assertion`, `no-clipboard-read-text`, `no-imported-mutation`, `no-self-container-query`, `no-github-scripts` | 0 | **On (LAND-06).** `no-self-container-query` also reports child variants such as `*:@md:grid`, which it should not (issue 59); we have none. |
+| `no-project-max-workers` | 1 | **Off, false positive.** It reports `vitest.config.js:119`, but Vitest 5.1 does apply a project's `maxWorkers` (`groupSpecs` passes it to `pool.setMaxWorkers`): browser projects run at 3, the root at 9. Already in issue 59. |
+| `declared-test-inputs` | 0 | **Off.** It checks Turbo task inputs; pdkef uses Nx. |
+| `no-parameter-branch` | 7 in 6 files | **Adopt (LAND-07).** The body computes its expected value from the case, so it mirrors the code under test. |
+| `no-elapsed-time-bound` | 6 | **Adopt (LAND-07).** A wall-clock upper bound fails on a slow machine with no bug; deliberate budgets keep a disable naming them. |
+| `no-silent-catch` | 22 in 17 files | **Adopt (LAND-07).** Mostly best-effort cleanups and beacons that already say why; each keeps that reason on its disable line. |
+| `no-conditional-expect` | 110 in 54 files | **Adopt in waves (LAND-08).** Some are real silent skips (`if (pageKind) expect(...)`). |
+| `no-cold-import-in-test`, `no-cold-start-in-test` | 52 in 27, 113 in 21 | **Adopt (LAND-09).** The 5 s budget measures a module load or a process start; cold starts are where tests run out of time on battery. |
+| `padding-between-statements` | 64,530 | **Declined.** Formatting. |
+| `no-scripts-directory`, `package-scripts` | 286, 1 | **Declined.** `scripts/` and the `check:*` / `generate:*` names are how pdkef's guards run in CI. |
+| `max-exports-per-module`, `max-file-lines`, `max-files-per-directory`, `no-prefix-cluster` | 148, 28, 14, 16 | **Declined.** Layout and size, not test honesty. |
+| `test-dir-only-cross-functional` | 22 | **Declined.** `src/test/cross-tool/` and `src/test/seo/` hold tests with no single owner, on purpose; `colocated-tests` already covers misplaced ones. |
+| `no-inline-hex-encoding` | 7 | **Declined.** Production code, not tests; one hit is RGB colour formatting, not bytes. |
+
 Oxlint's own default `correctness` rules added about 140 findings (45 unused variables, comma and
 short-circuit expressions). The ones opened were style, not bugs; they are switched off in
 `.oxlintrc.json` so the lint is landmines only.
@@ -38,11 +58,13 @@ Oxlint's built-in categories and enables only the landmines rules adopted so far
 the rule supports one. `scripts/check-ratchet-raises.mjs` treats each rule's `allow` map like
 `scripts/ratchet-limits.json`: a raised count or a new file fails, a lower one passes.
 
-Adopted so far, as `landmines/...` rules of the one 0.3.1 plugin: `no-unsignaled-poll` (LAND-01),
+Adopted so far, as `landmines/...` rules of the one 0.3.2 plugin: `no-unsignaled-poll` (LAND-01),
 `no-flake-masking` (LAND-03), `no-fixed-sleep` (LAND-02, its `allow` map includes 47 e2e sites;
 it replaced `check-e2e-sleeps`), `strict-msw`, `colocated-tests` and
-`package-exports`, and `no-test-doubles` with a disable per kept line; `no-comments`, `no-explicit-return-types` and `test-file-names`
-are declined and off.
+`package-exports`, `no-test-doubles` with a disable per kept line, and the seven zero-hit rules of LAND-06.
+Next: LAND-07, LAND-08 and LAND-09. Off: `no-project-max-workers` (false positive) and
+`declared-test-inputs` (Turbo); declined: `no-comments`, `no-explicit-return-types`, `test-file-names`
+and the nine layout and style rules in the table above.
 
 ## Upstream
 

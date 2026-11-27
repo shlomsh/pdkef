@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 182 live: 78 up next, 23 then, 26 waiting, 55 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 185 live: 79 up next, 25 then, 26 waiting, 55 parked.
 
 ## Redact: finish removal
 
@@ -331,7 +331,15 @@ One landmines rule at a time: fix its sites, turn it on in CI. Where a rule miss
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
+| LAND-07 | P2 | [LAND-07](backlog/tasks/LAND-07.md) · Expected values live in the case table, wall-clock bounds are deliberate, silent catches say why |  |
 | LAND-05 | P3 | [LAND-05](backlog/tasks/LAND-05.md) · Tests live beside what they test | In progress |
+
+### Then, in order
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| LAND-08 | P2 | [LAND-08](backlog/tasks/LAND-08.md) · No assertion is skipped by a branch |  |
+| LAND-09 | P3 | [LAND-09](backlog/tasks/LAND-09.md) · A test's time budget measures the test, not a cold start |  |
 
 ### Parked
 
