@@ -49,7 +49,7 @@ A general drain in the shared setup (e7e916d3b) hung six DOM test files on CI an
   60 tests, most of them fast synchronous ones that never give the event loop a turn (`RedactEditor.test.tsx` has 29
   tests and no `await`). The flush simply had not had its 35 ms yet; nothing in those tests was wrong.
 - So the jsdom setup (`src/test/support/setup.js`) schedules Preact's flush through `options.requestAnimationFrame`
-  with `src/test/support/afterPaintGuard.ts`: Preact's own rAF-plus-35-ms race, reading the timers at call time so
+  with `src/test/support/afterPaintGuard.ts`: Preact's own rAF-plus-35-ms race, each step reading the timers when it runs so
   fake timers still apply, and at the end of the file it cancels whatever is still pending and drops anything
   scheduled later. No flush can fire after jsdom is gone, in any file.
 - Proof: the guard's unit tests (a pending flush never runs after the file ends, a later one is dropped, fake timers

@@ -32,8 +32,8 @@ describe('createAfterPaintGuard (QUAL-58)', () => {
   });
 
   it('keeps to the clock the test runs on: under fake timers the flush waits for them', () => {
-    vi.useFakeTimers();
     const guard = createAfterPaintGuard();
+    vi.useFakeTimers();
     let calls = 0;
     guard.schedule(() => { calls += 1; });
     vi.advanceTimersByTime(0);

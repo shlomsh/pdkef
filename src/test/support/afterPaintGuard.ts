@@ -7,28 +7,30 @@
 
 const RAF_TIMEOUT = 35;
 
-/** Preact's `afterNextFrame`, reading the timers at call time as Preact does, so fake timers still apply. */
+/** Preact's `afterNextFrame`, each step reading the timers when it runs as Preact does, so fake timers still apply. */
 export function createAfterPaintGuard() {
   const pending = new Set<() => void>();
   let ended = false;
 
   function schedule(flush: () => void): void {
     if (ended) return;
-    const { setTimeout: setTimer, clearTimeout: clearTimer } = globalThis;
     const hasRaf = typeof globalThis.requestAnimationFrame === 'function';
-    const caf = hasRaf ? globalThis.cancelAnimationFrame : () => {};
+    // Each step reads the timers when it runs, as Preact does; a handle is cleared by the clock that made it.
+    const clearRace = { timeout: globalThis.clearTimeout, frame: hasRaf ? globalThis.cancelAnimationFrame : () => {} };
     let frame = 0;
-    let after: ReturnType<typeof setTimeout> | undefined;
-    const cancel = () => { clearTimer(timeout); caf(frame); clearTimer(after); };
+    let clearAfter = () => {};
     const done = () => {
-      clearTimer(timeout);
-      caf(frame);
-      after = setTimer(() => {
+      clearRace.timeout(timeout);
+      clearRace.frame(frame);
+      const clear = globalThis.clearTimeout;
+      const after = globalThis.setTimeout(() => {
         pending.delete(cancel);
         flush();
       });
+      clearAfter = () => clear(after);
     };
-    const timeout = setTimer(done, RAF_TIMEOUT);
+    const cancel = () => { clearRace.timeout(timeout); clearRace.frame(frame); clearAfter(); };
+    const timeout = globalThis.setTimeout(done, RAF_TIMEOUT);
     if (hasRaf) frame = globalThis.requestAnimationFrame(done);
     pending.add(cancel);
   }
