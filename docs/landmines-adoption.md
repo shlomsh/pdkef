@@ -11,7 +11,7 @@ writing another local guard.
 
 ## The trial (2026-11-18, origin/main 9f43c5d07)
 
-`oxlint@1.94.0` + `@interfere/landmines@0.1.0` (0.3.2 is installed now), recommended config, over `src scripts e2e api
+`oxlint@1.94.0` + `@interfere/landmines@0.1.0` (0.4.0 is installed now), recommended config, over `src scripts e2e api
 middleware.ts`: 30,908 findings in 2,487 files, about 3 seconds.
 
 | Rule | Hits | Verdict |
@@ -46,6 +46,12 @@ Counts over `src scripts e2e api middleware.ts`.
 | `test-dir-only-cross-functional` | 22 | **Declined.** `src/test/cross-tool/` and `src/test/seo/` hold tests with no single owner, on purpose; `colocated-tests` already covers misplaced ones. |
 | `no-inline-hex-encoding` | 7 | **Declined.** Production code, not tests; one hit is RGB colour formatting, not bytes. |
 
+### landmines 0.4.0 (2026-11-28, LAND-10)
+
+Same 34 rules. `no-flake-masking` now reports Playwright's raised timeouts (15 e2e sites, now in its `allow` map) and
+`no-cold-import-in-test` reports an `import()` inside a hook (12 warm-ups, now static imports). An `allow` count may rise
+only for a file the change leaves untouched, so a rule that sees more sets its own baseline and code never does.
+
 Oxlint's own default `correctness` rules added about 140 findings (45 unused variables, comma and
 short-circuit expressions). The ones opened were style, not bugs; they are switched off in
 `.oxlintrc.json` so the lint is landmines only.
@@ -58,7 +64,7 @@ Oxlint's built-in categories and enables only the landmines rules adopted so far
 the rule supports one. `scripts/check-ratchet-raises.mjs` treats each rule's `allow` map like
 `scripts/ratchet-limits.json`: a raised count or a new file fails, a lower one passes.
 
-Adopted so far, as `landmines/...` rules of the one 0.3.2 plugin: `no-unsignaled-poll` (LAND-01),
+Adopted so far, as `landmines/...` rules of the one 0.4.0 plugin: `no-unsignaled-poll` (LAND-01),
 `no-flake-masking` (LAND-03), `no-fixed-sleep` (LAND-02, its `allow` map includes 47 e2e sites;
 it replaced `check-e2e-sleeps`), `strict-msw`, `colocated-tests` and
 `package-exports`, `no-test-doubles` with a disable per kept line, the seven zero-hit rules of LAND-06, and

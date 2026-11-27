@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 // ARCH-76: fails when any value in scripts/ratchet-limits.json, or any per-file count in a
 // `allow` map of .oxlintrc.json rule options, is higher than at the base (or a key was added
-// to an existing section). `--base <ref>`; without it, the merge base with origin/main. A
-// base that has neither file passes.
+// to an existing section), except an allow count for a file the base had and the change leaves
+// untouched: only a rule that now sees more can raise that one. `--base <ref>`; without it, the
+// merge base with origin/main. A base that has neither file passes.
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -56,8 +57,34 @@ export function raisesSince(base, { cwd = process.cwd() } = {}) {
   // A base without the limits file contributes no limits sections, so none of the head's count as raises.
   const baseJson = { ...(baseLimits ?? {}), ...oxlintAllowSections(baseOxlint) };
   const headJson = { ...(baseLimits === undefined ? {} : readRatchetLimits(root)), ...oxlintAllowSections(headOxlint) };
-  const raises = findRaises(baseJson, headJson, renames);
+  const untouched = untouchedSince(cwd, base);
+  const oxlintSections = Object.keys(oxlintAllowSections(headOxlint));
+  const raises = findRaises(baseJson, headJson, renames).filter((r) => {
+    const section = oxlintSections.find((s) => r.path.startsWith(`${s}.`));
+    return !(section && untouched(r.path.slice(section.length + 1)));
+  });
   return { status: raises.length === 0 ? 'ok' : 'raised', raises };
+}
+
+// A file the base had and this change leaves as it was cannot have gained a finding of its own: a higher
+// count there means the rule now sees more (a landmines upgrade), so its new allowance is the baseline.
+function untouchedSince(cwd, base) {
+  let changed;
+  try {
+    // Working tree against the base: every file the base had that this change edits, deletes or untracks.
+    changed = new Set(gitIn(cwd, ['diff', '--name-only', '--no-renames', base]).split('\n').filter(Boolean));
+  } catch {
+    return () => false;
+  }
+  return (file) => {
+    if (changed.has(file)) return false;
+    try {
+      gitIn(cwd, ['cat-file', '-e', `${base}:${file}`]);
+      return true;
+    } catch {
+      return false;
+    }
+  };
 }
 
 export function main(argv = [], { cwd = process.cwd(), log = console.log, err = console.error } = {}) {

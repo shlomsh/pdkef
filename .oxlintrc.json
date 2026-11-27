@@ -27,8 +27,16 @@
       "error",
       {
         "allow": {
+          "e2e/export/export-render-guard.spec.js": 1,
+          "e2e/export/language-acceptance.spec.js": 1,
+          "e2e/handoff/editor-handoff-cls.spec.js": 2,
+          "e2e/handoff/reload-mid-arrival.spec.js": 1,
+          "e2e/offline/offline-workflows.spec.js": 2,
+          "e2e/tool-hero-first-screen.spec.js": 2,
           "scripts/vitest-worker-watchdog.test.mjs": 5,
           "src/test/cross-tool/draftCheckingPlaceholder.test.tsx": 2,
+          "src/tools/merge/e2e/merge-saved-work-restore-acceptance.spec.js": 1,
+          "src/tools/redact/e2e/redact-saved-work-restore-acceptance.spec.js": 1,
           "src/tools/redact/lib/check/realForms.test.js": 1,
           "src/tools/redact/lib/check/runCheck.test.ts": 1,
           "src/tools/redact/lib/find/glyphBoxes.corpus.test.js": 4,
@@ -37,6 +45,9 @@
           "src/tools/scan/lib/edges/repair.test.ts": 1,
           "src/tools/security/lib/security.test.js": 1,
           "src/tools/sign/PdfSignTool.test.tsx": 1,
+          "src/tools/sign/e2e/sign-saved-work-restore-acceptance.spec.js": 1,
+          "src/tools/sign/e2e/sign-toolbar-labels-fit.spec.js": 1,
+          "src/tools/sign/e2e/toolbar-zoom-physical-size.spec.js": 2,
           "src/tools/sign/lib/fields/corpus/layout/layout.test.js": 1
         }
       }

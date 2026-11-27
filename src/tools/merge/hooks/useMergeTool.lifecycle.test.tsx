@@ -4,7 +4,7 @@ import { PDFDocument } from '@cantoo/pdf-lib';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_QUIET } from '#lib/output/quietPrepare.ts';
 import { recentActions } from '#lib/telemetry/actionTrail.ts';
 import { saveDraft, saveHandoff, takeHandoff } from '#lib/drafts/draftStore.ts';
@@ -14,6 +14,7 @@ import { pagesPdf } from '../../../test/support/mergeFixtures.ts';
 import { HeldFile } from '../../../test/support/heldFile.ts';
 import { waitUntil } from '../../../test/support/waitUntil.ts';
 import PdfMergeTool from '../PdfMergeTool.tsx';
+import '../components/MergeDraftPersistence.tsx';
 import { setInputFiles } from '../../../test/support/setInputFiles.js';
 import { MERGE_DRAFT_SCHEMA_VERSION, type MergeDraftRestore } from './useMergeDraft.ts';
 import { useMergeTool, type PdfMergeToolProps } from './useMergeTool.ts';
@@ -28,10 +29,6 @@ function Probe(props: PdfMergeToolProps) {
 
 let harness: ToolHarness;
 let releaseStore: (() => Promise<void>) | null = null;
-
-beforeAll(async () => {
-  await import('../components/MergeDraftPersistence.tsx');
-});
 
 beforeEach(() => {
   vi.spyOn(window, 'scrollTo');

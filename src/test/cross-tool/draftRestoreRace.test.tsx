@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto';
 import { IDBFactory } from 'fake-indexeddb';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { describe, expect, it, vi, beforeAll, beforeEach, afterEach } from 'vitest';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import PdfSignTool from '../../tools/sign/PdfSignTool.tsx';
 import PdfRedactTool from '../../tools/redact/PdfRedactTool.tsx';
 import { cacheRecentFile, loadDraft, peekHandoff, saveDraft, saveHandoff } from '#lib/drafts/draftStore.ts';
@@ -11,6 +11,12 @@ import { drainPromises } from '../support/drainPromises.ts';
 import { waitUntil } from '../support/waitUntil.ts';
 import { setInputFiles } from '../support/setInputFiles.js';
 import '../support/realPdfjs.ts';
+// The chunks a restored or picked file loads lazily (annotation read-back, the pdf-lib wrapper, field
+// detection) load once per process and slowly; load them up front so a test measures the race, not the load.
+import '#editor/comments/importAnnotations.ts';
+import '#lib/pdf/pdfLib.js';
+import '#lib/pdf/loadPdfPages.ts';
+import '../../tools/sign/lib/fields/detectFormFields.ts';
 import { RECENT_FILES_META_KEY } from '#lib/drafts/recentFilesKey.js';
 import { buildPdf } from '../support/redactCheckPdfs.test-helper.ts';
 
@@ -101,17 +107,6 @@ describe('draft-restore vs. manual file pick race', () => {
   const holdRestore = async () => {
     hold = await holdDraftStore();
   };
-
-  // The chunks a restored or picked file loads lazily (annotation read-back, the pdf-lib wrapper, field
-  // detection) load once per process and slowly; load them up front so a test measures the race, not the load.
-  beforeAll(async () => {
-    await Promise.all([
-      import('#editor/comments/importAnnotations.ts'),
-      import('#lib/pdf/pdfLib.js'),
-      import('#lib/pdf/loadPdfPages.ts'),
-      import('../../tools/sign/lib/fields/detectFormFields.ts')
-    ]);
-  });
 
   beforeEach(async () => {
     indexedDB = new IDBFactory();

@@ -396,7 +396,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Robustness and debt: 106 done, 4 retired
 - Unify the tools, narrow the graph: 102 done, 0 retired
 - Search and languages: 18 done, 0 retired
-- Honest tests: adopt landmines: 10 done, 0 retired
+- Honest tests: adopt landmines: 11 done, 0 retired
 - Polish: 38 done, 2 retired
 - Sign tool architecture: 37 done, 1 retired
 - Editor architecture: 14 done, 0 retired

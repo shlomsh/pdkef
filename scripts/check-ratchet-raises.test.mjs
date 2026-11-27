@@ -153,3 +153,64 @@ describe('raisesSince with .oxlintrc.json allow maps', () => {
     expect(raisesSince(noBase.base, { cwd: noBase.cwd })).toEqual({ status: 'no-base-file', raises: [] });
   });
 });
+
+// A throwaway repo whose commit 0 holds `files` and the base .oxlintrc.json; the working tree has the head
+// config and rewrites the files named in `touch`.
+function repoWithLintedFiles(base, head, { files, touch = [] }) {
+  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'ratchet-untouched-'));
+  dirs.push(cwd);
+  git(cwd, 'init', '-b', 'main');
+  git(cwd, 'config', 'user.name', 'Test');
+  git(cwd, 'config', 'user.email', 'test@example.com');
+  fs.mkdirSync(path.join(cwd, 'scripts'));
+  fs.writeFileSync(path.join(cwd, 'scripts', 'ratchet-limits.json'), '{}\n');
+  for (const f of files) {
+    fs.mkdirSync(path.dirname(path.join(cwd, f)), { recursive: true });
+    fs.writeFileSync(path.join(cwd, f), 'test.setTimeout(90_000);\n');
+  }
+  fs.writeFileSync(path.join(cwd, '.oxlintrc.json'), JSON.stringify(base));
+  git(cwd, 'add', '-A');
+  git(cwd, 'commit', '-m', 'c0');
+  fs.writeFileSync(path.join(cwd, '.oxlintrc.json'), JSON.stringify(head));
+  for (const f of touch) fs.appendFileSync(path.join(cwd, f), 'test.setTimeout(120_000);\n');
+  return { cwd, base: git(cwd, 'rev-parse', 'HEAD') };
+}
+
+describe('raisesSince: a rule that sees more in code nobody touched', () => {
+  const files = ['e2e/a.spec.js', 'e2e/b.spec.js'];
+  const one = rc({ 'e2e/a.spec.js': 1 });
+  const withB = rc({ 'e2e/a.spec.js': 1, 'e2e/b.spec.js': 2 });
+  let addedUntouched;
+  let raisedUntouched;
+  let addedEdited;
+  let raisedEdited;
+  let addedMissing;
+
+  beforeAll(() => {
+    addedUntouched = repoWithLintedFiles(one, withB, { files });
+    raisedUntouched = repoWithLintedFiles(one, rc({ 'e2e/a.spec.js': 2 }), { files });
+    addedEdited = repoWithLintedFiles(one, withB, { files, touch: ['e2e/b.spec.js'] });
+    raisedEdited = repoWithLintedFiles(one, rc({ 'e2e/a.spec.js': 2 }), { files, touch: ['e2e/a.spec.js'] });
+    addedMissing = repoWithLintedFiles(one, rc({ 'e2e/a.spec.js': 1, 'e2e/new.spec.js': 1 }), { files: ['e2e/a.spec.js'] });
+  });
+
+  it('passes a new allow entry for a file the change leaves as it was', () => {
+    expect(raisesSince(addedUntouched.base, { cwd: addedUntouched.cwd })).toEqual({ status: 'ok', raises: [] });
+  });
+
+  it('passes a raised count for a file the change leaves as it was', () => {
+    expect(raisesSince(raisedUntouched.base, { cwd: raisedUntouched.cwd }).status).toBe('ok');
+  });
+
+  it('still flags a new entry for a file the change edits', () => {
+    expect(raisesSince(addedEdited.base, { cwd: addedEdited.cwd }).raises).toEqual([{ path: 'oxlint:p/r.e2e/b.spec.js', before: undefined, after: 2, kind: 'added' }]);
+  });
+
+  it('still flags a raised count for a file the change edits', () => {
+    expect(raisesSince(raisedEdited.base, { cwd: raisedEdited.cwd }).status).toBe('raised');
+  });
+
+  it('still flags an entry for a file the base never had', () => {
+    expect(raisesSince(addedMissing.base, { cwd: addedMissing.cwd }).raises.map((x) => x.path)).toEqual(['oxlint:p/r.e2e/new.spec.js']);
+  });
+});

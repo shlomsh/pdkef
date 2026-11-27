@@ -1,8 +1,12 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import type { FormFieldRegions } from './useFormFieldRegions.ts';
+// Warm the modules once so the per-test re-imports below only re-evaluate them.
+import './useFormFieldRegions.ts';
+import '#lib/telemetry/errorReport.ts';
+import '../../../test/support/pdfPageTreeFixtures';
 
 /**
  * The four ways the detector can come back with nothing, which used to be one
@@ -23,12 +27,6 @@ import type { FormFieldRegions } from './useFormFieldRegions.ts';
  * "the detector never loaded" branch at all.
  */
 describe('useFormFieldRegions detection state', () => {
-  beforeAll(async () => {
-    await import('./useFormFieldRegions.ts');
-    await import('#lib/telemetry/errorReport.ts');
-    await import('../../../test/support/pdfPageTreeFixtures');
-  });
-
   let container: HTMLDivElement;
   let warn: ReturnType<typeof vi.spyOn>;
 

@@ -30,12 +30,12 @@ Test seams (ARCH-61): an export that only tests import carries a `/** @testSeam 
 
 ## Tests await signals (`npm run lint:landmines`, LAND-*)
 
-The open-source landmines Oxlint rules (`@interfere/landmines` 0.3.2, one plugin, rules named `landmines/...`)
+The open-source landmines Oxlint rules (`@interfere/landmines` 0.4.0, one plugin, rules named `landmines/...`)
 run as they ship ([docs/landmines-adoption.md](../../docs/landmines-adoption.md)). `no-unsignaled-poll` is on:
 never `vi.waitFor` / `expect.poll` on a spy or a recorder; resolve a deferred from the mock or listener, or
 `page.waitForEvent` set up before the action. `no-flake-masking` and `no-fixed-sleep` are on with an `allow`
 map in `.oxlintrc.json` (exact per-file counts): a new one fails, and `test:ratchet-raises` refuses any raised or
-added entry. A rule that misses or misfires on our code is fixed upstream, never with a local guard. The one
+added entry, except for a file the change leaves untouched (a rule that now sees more, LAND-10). A rule that misses or misfires on our code is fixed upstream, never with a local guard. The one
 file-level disable is `colocated-tests`, a line naming the test's subject. `no-test-doubles` is on: a double
 that stays has its own `// oxlint-disable-next-line landmines/no-test-doubles -- Forced: <why>` line, checked by
 `scripts/test-double-reasons.mjs`, which holds the LAND-07, LAND-08 and LAND-09 rules to one line with a reason too.

@@ -4,6 +4,7 @@ import path from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { beforeAll, describe, expect, it } from 'vitest';
+import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { detectFormFields, pageGeometry, toPageTextRuns } from '../detectFormFields.ts';
 import { baselineDropEm, placeCombOnRegion, placeTextOnCell } from '../../combPlacement.ts';
@@ -41,7 +42,6 @@ beforeAll(async () => {
   const doc = await PDFDocument.load(bytes, { ignoreEncryption: true });
   const require = createRequire(import.meta.url);
   const pdfjsDir = path.dirname(require.resolve('pdfjs-dist/package.json'));
-  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
   const loading = pdfjs.getDocument({
     data: new Uint8Array(bytes),
     standardFontDataUrl: `${path.join(pdfjsDir, 'standard_fonts')}${path.sep}`,
