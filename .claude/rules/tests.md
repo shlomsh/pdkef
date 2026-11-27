@@ -31,7 +31,7 @@ Test seams (ARCH-61): an export that only tests import carries a `/** @testSeam 
 
 ## Tests await signals (`npm run lint:landmines`, LAND-*)
 
-The open-source landmines Oxlint rules (`@interfere/landmines` 0.3.1, one plugin, rules named `landmines/...`)
+The open-source landmines Oxlint rules (`@interfere/landmines` 0.3.2, one plugin, rules named `landmines/...`)
 run as they ship ([docs/landmines-adoption.md](../../docs/landmines-adoption.md)). `no-unsignaled-poll` is on:
 never `vi.waitFor` / `expect.poll` on a spy or a recorder; resolve a deferred from the mock or listener, or
 `page.waitForEvent` set up before the action. `no-flake-masking` and `no-fixed-sleep` are on with an `allow`

@@ -89,6 +89,14 @@
     "landmines/package-exports": "error",
     "landmines/no-explicit-return-types": "off",
     "landmines/no-comments": "off",
+    "landmines/no-shared-signal": "error",
+    "landmines/no-stale-render-assertion": "error",
+    "landmines/no-styling-class-assertion": "error",
+    "landmines/no-clipboard-read-text": "error",
+    "landmines/no-imported-mutation": "error",
+    "landmines/no-self-container-query": "error",
+    "landmines/no-github-scripts": "error",
+    "landmines/declared-test-inputs": "off",
     "no-restricted-imports": [
       "error",
       {
