@@ -57,9 +57,9 @@ From the same thread. Answer with what PDkef does, never by running another proj
 - **"Where's the source?"** https://github.com/shlomsh/pdkef, MIT, the whole site, not a shell around a
   closed core.
 - **"Can I install it?"** Yes, as a PWA, with a share target (`public/manifest.webmanifest`).
-- **"Was this built with an LLM?"** Expect it: GitHub shows Claude as co-author on 4,353 of 4,982
-  commits (`git log`, 2026-11-18). The true answer is yes, with a coding agent, and Shlomi decides the
-  design, reviews and owns it. What backs the quality is the testing: 967 unit test files, 176 Playwright
+- **"Was this built with an LLM?"** Expect it: GitHub shows Claude as co-author on 4,614 of 5,234
+  commits (`git log`, 2026-11-27). The true answer is yes, with a coding agent, and Shlomi decides the
+  design, reviews and owns it. What backs the quality is the testing: 1,092 unit test files, 177 Playwright
   specs, and CI checks for the invariants (CSP, page weight, gesture behaviour, licenses, fonts). Per
   CLAUDE.md, tell the "why" and how it is checked, never how fast it was built.
 - **"Why build another one?"** Shlomi's own answer (see The post): with code quick to write, the everyday
@@ -72,15 +72,15 @@ From the same thread. Answer with what PDkef does, never by running another proj
   without `variantOf`). Rotate, Remove pages, Add page numbers and Extract pages are their own pages
   over the Organize and Split tools.
 - A static Astro site with Preact islands. Every page is plain HTML built ahead of time.
-- 18 runtime dependencies, all on a permissive-license allowlist (MIT, Apache-2.0, ISC, BSD-2/3, Zlib,
+- 17 runtime dependencies, all on a permissive-license allowlist (MIT, Apache-2.0, ISC, BSD-2/3, Zlib,
   0BSD) that CI enforces (`scripts/runtime-license-inventory.mjs:67`).
 - PDF work is done by `@cantoo/pdf-lib` 2.11.1 (MIT, a pdf-lib fork) for building, editing and
   encryption, and `pdfjs-dist` 6.5.438 (Apache-2.0) for rendering and reading text. Everything else
   (Scan's corner finding and perspective fix, Highlight's line finding) is PDkef's own classical image
   code. No OCR, no ML models, no LLM calls anywhere in the product. Pages do list the tools for AI agents
   through WebMCP (`navigator.modelContext` in `BaseLayout.astro`), which is a description, not a call.
-- First commit 2026-06-30; 4,970 commits on main; 967 unit test files and 176 Playwright specs
-  (`git ls-files`, 2026-11-17). 9 GitHub stars on 2026-11-17.
+- First commit 2026-06-30; 5,234 commits on main; 1,092 unit test files and 177 Playwright specs
+  (`git ls-files`, 2026-11-27). 9 GitHub stars on 2026-11-27.
 - Installable as a PWA (`public/manifest.webmanifest`, with a share target).
 
 ## Where your files go
