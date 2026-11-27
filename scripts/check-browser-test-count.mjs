@@ -11,6 +11,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readRatchetLimits } from './ratchet-limits.mjs';
+import { isEntry } from './is-entry.mjs';
 
 // Pure: tests in a vitest JSON report, skipped ones included.
 export function browserTestCount(report) {
@@ -31,21 +32,21 @@ export function compareBrowserTests(recorded, current) {
   return { failed: current > recorded, lowered: current < recorded };
 }
 
-function main(files) {
+export function main(files, { log = console.log, err = console.error } = {}) {
   if (files.length === 0) throw new Error('usage: node scripts/check-browser-test-count.mjs <vitest json report>...');
   const current = browserTestTotal(files.map((file) => JSON.parse(fs.readFileSync(file, 'utf8'))));
   const limits = readRatchetLimits();
   const recorded = limits.browserTests.ci;
   const { failed, lowered } = compareBrowserTests(recorded, current);
   if (failed) {
-    console.error(`browser test count: ${current} browser tests, the record is ${recorded}. Move one to jsdom or Node instead of raising the record (docs/landmines/no-test-doubles.md, "The browser layer stays small").`);
+    err(`browser test count: ${current} browser tests, the record is ${recorded}. Move one to jsdom or Node instead of raising the record (docs/landmines/no-test-doubles.md, "The browser layer stays small").`);
     return 1;
   }
-  if (lowered) console.log(`browser test count: lower browserTests.ci in scripts/ratchet-limits.json, ${recorded} -> ${current}.`);
-  console.log(`browser test count: ok (${current}, record ${recorded}).`);
+  if (lowered) log(`browser test count: lower browserTests.ci in scripts/ratchet-limits.json, ${recorded} -> ${current}.`);
+  log(`browser test count: ok (${current}, record ${recorded}).`);
   return 0;
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
+if (isEntry(import.meta.url)) {
   process.exit(main(process.argv.slice(2)));
 }

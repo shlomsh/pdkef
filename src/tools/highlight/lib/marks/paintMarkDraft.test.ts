@@ -2,7 +2,8 @@
 import { describe, it, expect, vi } from 'vitest';
 import { drainPromises } from '../../../../test/support/drainPromises.ts';
 import { paintMarkDraft } from './paintMarkDraft.ts';
-import { hatchIfLoaded, loadHatch } from '../outline/hatchLoader.ts';
+import { hatchPathD } from '#editor/geometry/hatchInk.ts';
+import { _resetForTest, hatchIfLoaded, loadHatch } from '../outline/hatchLoader.ts';
 import { sketchMark, bandRectsPts } from '#editor-ui/highlight/HighlightNode.tsx';
 import type { HighlightElement } from '#editor/model/editorModel.ts';
 
@@ -69,13 +70,11 @@ describe('paintMarkDraft', () => {
       const path = draft.querySelector('svg[data-highlight-hatch] path')!;
       expect(path.getAttribute('stroke')).toBe('#FFF34D');
       const hatch = (await loadHatch()).hatchOps;
-      const { hatchPathD } = await import('#editor/geometry/hatchInk.ts');
       expect(path.getAttribute('d')).toBe(hatchPathD(hatch, bandRectsPts(bands, box), 'h1'));
     });
 
     it('does not bring a mark back that was cleared while rough.js was loading', async () => {
       const { node, draft } = nodeWithDraft();
-      const { _resetForTest } = await import('../outline/hatchLoader.ts');
       _resetForTest();
       paintMarkDraft(node, pencil, bands, box, 0);
       paintMarkDraft(node, pencil, [], box, 0);

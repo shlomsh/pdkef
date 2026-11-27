@@ -1,8 +1,6 @@
 // CI speed: unit tests for the time-based e2e shard plan (pure parts only).
-import { execFileSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
-import { describe, expect, it } from 'vitest';
-import { specFiles, splitByTime, toFilter, parseShard } from './e2e-shard-plan.mjs';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { main, specFiles, splitByTime, toFilter, parseShard } from './e2e-shard-plan.mjs';
 
 const rng = (seed) => () => (seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296;
 const shuffle = (xs, r) => xs.map((x) => [r(), x]).sort((a, b) => a[0] - b[0]).map((p) => p[1]);
@@ -73,9 +71,14 @@ describe('parseShard', () => {
 });
 
 describe('e2e-shard-plan', () => {
-  const script = fileURLToPath(new URL('./e2e-shard-plan.mjs', import.meta.url));
-
+  // main lists the specs through `playwright test --list`, a process start: run it once here.
+  const out = [];
+  let code;
+  beforeAll(() => {
+    code = main(['--shard', '1/2', '--paths', 'e2e/export/'], { log: (l) => out.push(String(l)), err: () => {} });
+  });
   it('prints an empty shard for paths that hold no chromium spec', () => {
-    expect(execFileSync(process.execPath, [script, '--shard', '1/2', '--paths', 'e2e/export/'], { encoding: 'utf8', stdio: 'pipe' }).trim()).toBe('');
+    expect(code).toBe(0);
+    expect(out.join('\n').trim()).toBe('');
   });
 });

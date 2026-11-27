@@ -6,8 +6,8 @@
 // pure function, not a reimplementation of it.
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { describe, expect, it } from 'vitest';
-import { staleExceptions } from './check-editor-dependency-directions.mjs';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { main, staleExceptions } from './check-editor-dependency-directions.mjs';
 
 describe('editor dependency-direction guard: staleExceptions()', () => {
   it('fails an exception that no resolved edge matches', () => {
@@ -69,11 +69,20 @@ describe('editor dependency-direction guard: staleExceptions()', () => {
 
 // ARCH-44: an aliased import (#editor/...) is resolved and judged exactly like the relative one.
 describe('editor dependency-direction guard: layer aliases', () => {
+  const fixtureRoot = (fixture) => fileURLToPath(new URL(`./fixtures/editor-dependency-directions/${fixture}`, import.meta.url));
   const run = (fixture) => {
-    const root = fileURLToPath(new URL(`./fixtures/editor-dependency-directions/${fixture}`, import.meta.url));
-    const result = spawnSync(process.execPath, [fileURLToPath(new URL('./check-editor-dependency-directions.mjs', import.meta.url)), '--root', root], { encoding: 'utf8' });
-    return result.stderr.split('\n').map((line) => line.trim());
+    const err = [];
+    main(['--root', fixtureRoot(fixture)], { log: () => {}, err: (line) => err.push(String(line)) });
+    return err.join('\n').split('\n').map((line) => line.trim());
   };
+  let cli;
+  beforeAll(() => {
+    cli = spawnSync(process.execPath, [fileURLToPath(new URL('./check-editor-dependency-directions.mjs', import.meta.url)), '--root', fixtureRoot('negative-alias')], { encoding: 'utf8' });
+  });
+  it('keeps the command line wired to the same check', () => {
+    expect(cli.status).toBe(1);
+    expect(cli.stderr).toContain('src/editor/model/viaAlias.ts -> ');
+  });
   const reasonOf = (lines, from) => lines.find((line) => line.startsWith(`${from} -> `))?.split(': ').slice(1).join(': ');
 
   it('flags a forbidden aliased import with the same reason as the relative spelling', () => {

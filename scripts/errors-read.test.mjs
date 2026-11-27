@@ -2,7 +2,8 @@ import { execFile } from 'node:child_process';
 import { createServer } from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { main } from './errors-read.mjs';
 
 // Runs the real scripts/errors-read.mjs against a local stand-in for the Upstash REST pipeline, so the
 // wiring (window vs history, what prints before the verdict) is proved end to end, not by its parts.
@@ -35,7 +36,7 @@ function repliesFor(commandCount, days) {
 let server;
 afterEach(() => new Promise((resolve) => (server ? server.close(resolve) : resolve())));
 
-async function readWith(args, respond) {
+async function listen(respond) {
   server = createServer((req, res) => {
     let body = '';
     req.on('data', (c) => (body += c));
@@ -46,18 +47,41 @@ async function readWith(args, respond) {
     });
   });
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
-  const { port } = server.address();
-  return new Promise((resolve) => {
-    execFile(
-      process.execPath,
-      ['scripts/errors-read.mjs', ...args],
-      { cwd: root, env: { PATH: process.env.PATH, KV_REST_API_URL: `http://127.0.0.1:${port}`, KV_REST_API_TOKEN: 'test', ERRORS_READ_OFFLINE: '1' }, timeout: 30000 },
-      (error, stdout, stderr) => resolve({ code: error ? error.code : 0, stdout, stderr }),
-    );
-  });
+  return server.address().port;
 }
 
+const envFor = (port) => ({ PATH: process.env.PATH, KV_REST_API_URL: `http://127.0.0.1:${port}`, KV_REST_API_TOKEN: 'test', ERRORS_READ_OFFLINE: '1' });
+
+async function readWith(args, respond) {
+  const port = await listen(respond);
+  const out = [];
+  const errs = [];
+  const code = await main(args, { cwd: root, env: envFor(port), log: (l) => out.push(String(l)), err: (l) => errs.push(String(l)) });
+  return { code, stdout: out.join('\n') + '\n', stderr: errs.join('\n') };
+}
+
+// The one real CLI run: proves the entry guard, argv and exit code wiring.
+let cli;
+beforeAll(async () => {
+  const port = await listen((n) => repliesFor(n, []));
+  cli = await new Promise((resolve) => {
+    execFile(
+      process.execPath,
+      ['scripts/errors-read.mjs', '--days', '1', '--history', '2'],
+      { cwd: root, env: envFor(port), timeout: 30000 },
+      (error, stdout) => resolve({ code: error ? error.code : 0, stdout }),
+    );
+  });
+  await new Promise((resolve) => server.close(resolve));
+  server = undefined;
+});
+
 describe('errors-read wiring', () => {
+  it('runs as a CLI: exits 0 and leads with the verdict line', () => {
+    expect(cli.code).toBe(0);
+    expect(cli.stdout).toContain('Needs attention: nothing');
+  });
+
   const days = [
     { counts: { [X]: 2 }, samples: { [X]: SAMPLE_X }, usage: { 'tool_operation_started|redact': 21, 'tool_operation_failed|redact': 11 }, errorTotal: 2, usageTotal: 32 },
     { counts: { [Y]: 7 }, usage: { 'tool_operation_started|redact': 40 }, errorTotal: 7, usageTotal: 40 },

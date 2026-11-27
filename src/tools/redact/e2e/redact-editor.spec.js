@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import fs from 'node:fs';
+import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { PDFDocument, rgb, PDFName, PDFDict, PDFStream } from '@cantoo/pdf-lib';
 import { getPageContentBytes } from '../../../editor/adapters/pdf/pdfObjects.js';
 import { makePdfBuffer as buildPdf, helveticaWidth, makeHelveticaLinesPdf, makeRedHalfConfidentialPdf, makeMarkedPdf } from '../../../../e2e/support/pdf.js';
@@ -856,7 +857,6 @@ test.describe('delete shows the page as it will be saved (RED-13)', () => {
     const savedPath = await download.path();
     if (!savedPath) throw new Error('Playwright did not retain the downloaded PDF');
 
-    const { getDocument } = await import('pdfjs-dist/legacy/build/pdf.mjs');
     const wasmUrl = `${new URL('../../../../node_modules/pdfjs-dist/wasm/', import.meta.url).href}`;
     const saved = await getDocument({ data: new Uint8Array(fs.readFileSync(savedPath)), wasmUrl }).promise;
     const content = await (await saved.getPage(1)).getTextContent();

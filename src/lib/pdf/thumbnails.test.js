@@ -7,6 +7,7 @@ import { PDFDocument } from '@cantoo/pdf-lib';
 import * as pdfjs from 'pdfjs-dist';
 import '../../test/support/realPdfjs.ts';
 import { getPdfjs } from './loadPdfjs.js';
+import { openThumbnailSource, renderPdfThumbnails, renderThumbnail, renderThumbnailWithMeta } from './thumbnails.js';
 
 vi.mock('pdfjs-dist', { spy: true });
 
@@ -69,7 +70,6 @@ const pixelAt = (canvas, x, y) => Array.from(canvas.getContext('2d').getImageDat
 describe('thumbnails.js', () => {
   describe('renderPdfThumbnails', () => {
     it('calls the callback once per page with 1-based page numbers and returns numPages', async () => {
-      const { renderPdfThumbnails } = await import('./thumbnails.js');
       const calls = [];
 
       const numPages = await renderPdfThumbnails(pdfFile, (pageNumber, dataUrl) => {
@@ -86,7 +86,6 @@ describe('thumbnails.js', () => {
     });
 
     it('prefills white before rendering each page', async () => {
-      const { renderPdfThumbnails } = await import('./thumbnails.js');
       // Spy-through on the real 2D context: pdf.js paints its own white page background, so the order of
       // the calls is what shows the prefill came first, over the whole canvas, in white.
       const contextProto = Object.getPrototypeOf(document.createElement('canvas').getContext('2d'));
@@ -121,7 +120,6 @@ describe('thumbnails.js', () => {
     });
 
     it('rejects with an AbortError before any page renders when the signal is already aborted', async () => {
-      const { renderPdfThumbnails } = await import('./thumbnails.js');
       const controller = new AbortController();
       controller.abort();
 
@@ -139,7 +137,6 @@ describe('thumbnails.js', () => {
     });
 
     it('stops before the next page when the signal aborts inside the callback, and destroys the loading task', async () => {
-      const { renderPdfThumbnails } = await import('./thumbnails.js');
       const controller = new AbortController();
       const rendered = [];
       const onPageRender = (pageNumber) => {
@@ -158,7 +155,6 @@ describe('thumbnails.js', () => {
     });
 
     it('renders exactly the given pageIndices, in that order', async () => {
-      const { renderPdfThumbnails } = await import('./thumbnails.js');
       const calls = [];
 
       await renderPdfThumbnails(pdfFile, (pageNumber, dataUrl) => calls.push([pageNumber, dataUrl]), {
@@ -175,7 +171,6 @@ describe('thumbnails.js', () => {
 
   describe('openThumbnailSource', () => {
     it('shares one pdf.js worker across multiple documents instead of one per file (thumbnail throughput)', async () => {
-      const { openThumbnailSource } = await import('./thumbnails.js');
 
       const first = await openThumbnailSource(pdfFile);
       const second = await openThumbnailSource(pdfFile);
@@ -198,7 +193,6 @@ describe('thumbnails.js', () => {
     });
 
     it('reports every page\'s aspect from its size, without rendering (DEBT-65)', async () => {
-      const { openThumbnailSource } = await import('./thumbnails.js');
       const source = await openThumbnailSource(pdfFile);
       getPage.mockClear();
 
@@ -209,7 +203,6 @@ describe('thumbnails.js', () => {
     });
 
     it('rejects a render() call made after destroy()', async () => {
-      const { openThumbnailSource } = await import('./thumbnails.js');
 
       const source = await openThumbnailSource(pdfFile);
       expect(source.pageCount).toBe(3);
@@ -219,7 +212,6 @@ describe('thumbnails.js', () => {
     });
 
     it('cancels the pdf.js RenderTask when the signal fires mid-render, and rejects with AbortError', async () => {
-      const { openThumbnailSource } = await import('./thumbnails.js');
 
       const source = await openThumbnailSource(pdfFile);
       const controller = new AbortController();
@@ -238,7 +230,6 @@ describe('thumbnails.js', () => {
     });
 
     it('rejects with AbortError when the signal fires just after the render settles', async () => {
-      const { openThumbnailSource } = await import('./thumbnails.js');
       const source = await openThumbnailSource(pdfFile);
       const controller = new AbortController();
       // oxlint-disable-next-line landmines/no-test-doubles -- Forced: pdf.js gives a test no moment between a finished render and its caller; the real render runs, the abort is first on its promise.
@@ -257,7 +248,6 @@ describe('thumbnails.js', () => {
 
   describe('renderThumbnailWithMeta', () => {
     it('returns pageCount and the scaled, truncated canvas size for width: 150 on a 612x792 page', async () => {
-      const { renderThumbnailWithMeta } = await import('./thumbnails.js');
 
       const result = await renderThumbnailWithMeta(pdfFile, { width: 150 });
 
@@ -280,7 +270,6 @@ describe('thumbnails.js', () => {
 
   describe('renderThumbnail', () => {
     it('still returns a plain data-URL string', async () => {
-      const { renderThumbnail } = await import('./thumbnails.js');
 
       const dataUrl = await renderThumbnail(pdfFile);
 
@@ -321,7 +310,6 @@ describe('thumbnails.js', () => {
     const photo = () => new File([new Uint8Array(4)], 'cat.jpg', { type: 'image/jpeg' });
 
     it('renderThumbnailWithMeta draws the stored pixels scaled to width, never touching pdf.js', async () => {
-      const { renderThumbnailWithMeta } = await import('./thumbnails.js');
       const result = await renderThumbnailWithMeta(photo(), { width: 100, type: 'image/jpeg', quality: 0.7 });
 
       expect(decodeSpy).toHaveBeenCalledWith(expect.any(File), {
@@ -342,7 +330,6 @@ describe('thumbnails.js', () => {
     });
 
     it('renderThumbnail returns the data URL string', async () => {
-      const { renderThumbnail } = await import('./thumbnails.js');
       const dataUrl = await renderThumbnail(photo());
       expect(dataUrl).toBe(toDataUrl.mock.results[0].value);
       expect(dataUrl.startsWith(PNG)).toBe(true);
@@ -350,7 +337,6 @@ describe('thumbnails.js', () => {
     });
 
     it('openThumbnailSource gives a one-page source whose destroy closes the bitmap', async () => {
-      const { openThumbnailSource } = await import('./thumbnails.js');
       const source = await openThumbnailSource(photo());
 
       expect(source.pageCount).toBe(1);
@@ -372,7 +358,6 @@ describe('thumbnails.js', () => {
     });
 
     it('openThumbnailSource decodes nothing until render, and decodes at the target width', async () => {
-      const { openThumbnailSource } = await import('./thumbnails.js');
       const source = await openThumbnailSource(photo());
       expect(decodeSpy).not.toHaveBeenCalled();
       await source.render(0, { width: 80 });
@@ -384,7 +369,6 @@ describe('thumbnails.js', () => {
     });
 
     it('falls back to a plain decode when the engine rejects the resize options', async () => {
-      const { renderThumbnailWithMeta } = await import('./thumbnails.js');
       // oxlint-disable-next-line landmines/no-test-doubles -- Forced: jsdom has no createImageBitmap, so an engine that rejects the resize options cannot happen for real
       decodeSpy.mockImplementationOnce(() => Promise.reject(new TypeError('unsupported')));
       const result = await renderThumbnailWithMeta(photo(), { width: 100 });
@@ -394,7 +378,6 @@ describe('thumbnails.js', () => {
     });
 
     it('renderPdfThumbnails reports the photo as page 1 of 1', async () => {
-      const { renderPdfThumbnails } = await import('./thumbnails.js');
       const calls = [];
       const count = await renderPdfThumbnails(photo(), (n, url) => calls.push([n, url]));
       expect(count).toBe(1);
@@ -403,7 +386,6 @@ describe('thumbnails.js', () => {
     });
 
     it('honours an already-aborted signal without decoding at all', async () => {
-      const { renderThumbnailWithMeta } = await import('./thumbnails.js');
       const controller = new AbortController();
       controller.abort();
       await expect(renderThumbnailWithMeta(photo(), { signal: controller.signal })).rejects.toMatchObject({

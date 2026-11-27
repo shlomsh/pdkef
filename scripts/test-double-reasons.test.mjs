@@ -48,6 +48,17 @@ describe('test double reasons', () => {
     ]);
   });
 
+  it('holds the LAND-09 rules to one line with a reason too', () => {
+    expect(reasonProblems('a.test.ts', [
+      '// oxlint-disable-next-line landmines/no-cold-import-in-test -- the module load passing through is what this checks',
+      '// oxlint-disable-next-line landmines/no-cold-start-in-test',
+      '/* oxlint-disable landmines/no-cold-import-in-test */',
+    ].join('\n'))).toEqual([
+      'a.test.ts:2: give the reason as "-- <why the process start is the behaviour>"',
+      'a.test.ts:3: disable the rule on one line, with oxlint-disable-next-line',
+    ]);
+  });
+
   it('finds none in the repository', () => {
     expect(repoReasonProblems(fileURLToPath(new URL('..', import.meta.url)))).toEqual([]);
   });

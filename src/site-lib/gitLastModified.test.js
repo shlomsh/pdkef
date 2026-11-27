@@ -85,6 +85,7 @@ describe('a shallow clone cannot date a file outside its window', () => {
       `import { documentationSourceFiles, lastModifiedFor } from ${JSON.stringify(moduleUrl)};\n` +
         `console.log(JSON.stringify(lastModifiedFor(documentationSourceFiles('how-to-sign-a-pdf-on-mac'))));\n`,
     );
+    // oxlint-disable-next-line landmines/no-cold-start-in-test -- real git history (a shallow clone, merge-base --is-ancestor) is the input
     const shallowCloneOutput = execSync(`node "${scriptFile}"`, { cwd: shallowClone, encoding: 'utf8' }).trim();
     expect(JSON.parse(shallowCloneOutput)).toBeNull();
   });
@@ -247,6 +248,7 @@ describe("this repository's .git-blame-ignore-revs", () => {
   // A rebase rewrites a listed hash, and a stale one silently stops working.
   it.skipIf(shallow)('names only commits that exist in this history', () => {
     for (const rev of listedRevs()) {
+      // oxlint-disable-next-line landmines/no-cold-start-in-test -- real git history (a shallow clone, merge-base --is-ancestor) is the input
       expect(() => execSync(`git merge-base --is-ancestor ${rev} HEAD`, { cwd: repoRoot, stdio: 'ignore' }), rev).not.toThrow();
     }
   });

@@ -10,6 +10,7 @@ import { waitUntil } from '../../../test/support/waitUntil.ts';
 import type { EditorElement } from '#editor/model/editorModel.ts';
 import type { PageTurns } from '#editor/geometry/pageTurn.ts';
 import PrintSheets from './PrintSheets.tsx';
+import { loadHatch } from '../lib/outline/hatchLoader.ts';
 
 // Spy-through: the real ink reader, row finder, sketch code and renderer run on real PDFs painted into jsdom's canvas.
 vi.mock('../hooks/readInkBounds.ts', { spy: true });
@@ -89,7 +90,6 @@ describe('PrintSheets', () => {
   });
 
   it('READ-14: a pencil mark prints as hatch strokes in page points, inside the opacity layer', async () => {
-    const { loadHatch } = await import('../lib/outline/hatchLoader.ts');
     await loadHatch();
     const pencil = { ...elements[0], style: 'pencil', opacity: 0.6 } as EditorElement;
     await mount(false, undefined, undefined, [pencil]);

@@ -3,9 +3,10 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { main } from './check-trailing-slash-redirects.js';
 
-// The guard reads <cwd>/dist and <cwd>/vercel.json, so each case plants both in a temp dir and runs the real CLI.
+// The guard reads <cwd>/dist and <cwd>/vercel.json, so each case plants both in a temp dir and runs main there.
 const script = fileURLToPath(new URL('./check-trailing-slash-redirects.js', import.meta.url));
 
 const slash = (route) => ({ source: `/${route}`, destination: `/${route}/`, permanent: true });
@@ -17,9 +18,25 @@ function run({ routes, vercel }) {
     fs.writeFileSync(path.join(cwd, 'dist', route, 'index.html'), '<!doctype html>');
   }
   fs.writeFileSync(path.join(cwd, 'vercel.json'), JSON.stringify(vercel));
-  const r = spawnSync(process.execPath, [script], { cwd, encoding: 'utf8' });
-  return { status: r.status, err: r.stderr, out: r.stdout };
+  const out = [];
+  const errs = [];
+  const status = main([], { cwd, log: (l) => out.push(String(l)), err: (l) => errs.push(String(l)) });
+  return { status, err: errs.map((l) => `${l}\n`).join(''), out: out.map((l) => `${l}\n`).join('') };
 }
+
+describe('check-trailing-slash-redirects CLI wiring', () => {
+  let cli;
+  beforeAll(() => {
+    // An empty cwd has no dist/, so the real script run fails fast with its one-line error.
+    const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'slash-redirects-cli-'));
+    cli = spawnSync(process.execPath, [script], { cwd, encoding: 'utf8' });
+    fs.rmSync(cwd, { recursive: true, force: true });
+  });
+  it('runs as a script and exits 1 with its error when dist/ is missing', () => {
+    expect(cli.status).toBe(1);
+    expect(cli.stderr).toContain('[ERROR] dist/ not found');
+  });
+});
 
 describe('check-trailing-slash-redirects CLI', () => {
   it('passes when every real route, nested ones included, has its non-slash to slash redirect', () => {

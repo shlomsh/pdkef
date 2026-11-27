@@ -505,6 +505,7 @@ describe('stage children run in their own process group', () => {
 installStopHandlers();
 spawnGroup(${JSON.stringify(lateWriter(marker))}, { shell: true, stdio: ['ignore', 'inherit', 'inherit'] });
 `);
+      // oxlint-disable-next-line landmines/no-cold-start-in-test -- SIGTERM to a process group and exit 143 are the behaviour
       const parent = spawn('node', [script], { stdio: ['ignore', 'pipe', 'inherit'] });
       const done = closed(parent);
       await new Promise((ready) => parent.stdout.on('data', (d) => String(d).includes('ready') && ready()));

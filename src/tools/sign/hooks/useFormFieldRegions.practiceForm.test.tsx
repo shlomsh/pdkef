@@ -5,6 +5,7 @@ import { createRequire } from 'node:module';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi } from 'vitest';
+import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import useFormFieldRegions from './useFormFieldRegions.ts';
 import type { FormFieldRegions } from './useFormFieldRegions.ts';
 
@@ -38,7 +39,6 @@ const PDF_PATH = path.join(repoRoot, 'public/images/redaction-guide/sample.pdf')
 async function loadPdfjsDocument(bytes: ArrayBuffer) {
   const require = createRequire(import.meta.url);
   const pdfjsDir = path.dirname(require.resolve('pdfjs-dist/package.json'));
-  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
   const loadingTask = pdfjs.getDocument({
     data: new Uint8Array(bytes),
     standardFontDataUrl: `${path.join(pdfjsDir, 'standard_fonts')}${path.sep}`,

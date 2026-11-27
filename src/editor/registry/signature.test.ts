@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { getDocument, OPS } from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { PDFDict, PDFDocument, PDFName, PDFRawStream } from '@cantoo/pdf-lib';
 import { drawElements } from '../export/drawElements.ts';
 import { tintImageDataUrl } from '../text/imageTint.js';
@@ -84,7 +85,6 @@ async function drawAndReadBack(elements: EditorElement[]) {
   await drawElements(doc, elements, {});
   const bytes = new Uint8Array(await doc.save());
 
-  const { getDocument, OPS } = await import('pdfjs-dist/legacy/build/pdf.mjs');
   const pdf = await getDocument({ data: bytes.slice(), useWorkerFetch: false, isEvalSupported: false } as Parameters<typeof getDocument>[0]).promise;
   const { fnArray, argsArray } = await (await pdf.getPage(1)).getOperatorList();
   type Matrix = number[];

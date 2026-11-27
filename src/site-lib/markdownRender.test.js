@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { tools } from '../data/tools.js';
+import { staticPages } from '../data/staticPages.js';
 import {
   inlineToMarkdown,
   toolToMarkdown,
@@ -70,7 +72,6 @@ describe('toolToMarkdown', () => {
   });
 
   it('renders every real tool without throwing and always includes an H1 and FAQ', async () => {
-    const { tools } = await import('../data/tools.js');
     for (const t of tools) {
       const md = toolToMarkdown(t);
       expect(md).toMatch(/^# /);
@@ -178,7 +179,6 @@ describe('staticPageToMarkdown', () => {
   });
 
   it('renders every real static page (about/contact/privacy) without throwing', async () => {
-    const { staticPages } = await import('../data/staticPages.js');
     expect(staticPages.length).toBeGreaterThanOrEqual(3);
     for (const page of staticPages) {
       const md = staticPageToMarkdown(page);

@@ -1,7 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { describe, expect, it } from 'vitest';
-import { findFloating } from './check-floating-promises.mjs';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { findFloating, main } from './check-floating-promises.mjs';
 
 const script = fileURLToPath(new URL('./check-floating-promises.mjs', import.meta.url));
 const n = (src) => findFloating(src).length;
@@ -31,9 +31,18 @@ describe('findFloating', () => {
 });
 
 describe('CLI', () => {
+  let r;
+  beforeAll(() => {
+    r = spawnSync(process.execPath, [script], { encoding: 'utf8' });
+  });
   it('passes on the real tree', () => {
-    const r = spawnSync(process.execPath, [script], { encoding: 'utf8' });
     expect(r.stdout + r.stderr).toMatch(/floating-promises: PASS/);
     expect(r.status).toBe(0);
+  });
+
+  it('main returns 0 and logs the PASS line on the real tree', () => {
+    const out = [];
+    expect(main([], { log: (l) => out.push(String(l)) })).toBe(0);
+    expect(out.join('\n')).toMatch(/floating-promises: PASS/);
   });
 });

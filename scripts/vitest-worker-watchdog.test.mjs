@@ -60,17 +60,20 @@ function orphan(body, env) {
 
 describe('vitest worker watchdog', () => {
   it('ends a worker stuck in a loop that never yields once its parent is gone', async () => {
+    // oxlint-disable-next-line landmines/no-cold-start-in-test -- worker lifetime, signals and orphans are the behaviour
     const pid = await orphan('while (true) {}', NEVER_STALLS);
     expect(pid).toBeGreaterThan(0);
     expect(await untilGone(pid, 5000)).toBe(true);
   }, 15_000);
 
   it('ends a worker that is only waiting once its parent is gone', async () => {
+    // oxlint-disable-next-line landmines/no-cold-start-in-test -- worker lifetime, signals and orphans are the behaviour
     const pid = await orphan('setInterval(() => {}, 1000)', NEVER_STALLS);
     expect(await untilGone(pid, 5000)).toBe(true);
   }, 15_000);
 
   it('stops a worker that never yields with its parent alive, and says why', async () => {
+    // oxlint-disable-next-line landmines/no-cold-start-in-test -- worker lifetime, signals and orphans are the behaviour
     const ended = await run('while (true) {}', FAST);
     expect(ended.signal).toBe('SIGKILL');
     expect(ended.stderr).toContain('never returned to the event loop');
@@ -86,6 +89,7 @@ describe('vitest worker watchdog', () => {
         require('node:fs').writeSync(1, 'ready');
         let n = 0; const t = setInterval(() => { if (++n === 20) clearInterval(t); }, 50);
       }, 10);`;
+    // oxlint-disable-next-line landmines/no-cold-start-in-test -- worker lifetime, signals and orphans are the behaviour
     const running = run(body, { VITEST_WATCHDOG_POLL_MS: '50', VITEST_WATCHDOG_STALL_MS: '1500' }, [], { stdout: true });
     await running.ready;
     process.kill(running.pid, 'SIGSTOP');
@@ -96,6 +100,7 @@ describe('vitest worker watchdog', () => {
 
   it('does not keep a finished worker alive', async () => {
     const started = Date.now();
+    // oxlint-disable-next-line landmines/no-cold-start-in-test -- worker lifetime, signals and orphans are the behaviour
     const ended = await run('', NEVER_STALLS);
     expect(ended.code).toBe(0);
     // oxlint-disable-next-line landmines/no-elapsed-time-bound -- the bound is the behaviour: a worker kept alive never exits

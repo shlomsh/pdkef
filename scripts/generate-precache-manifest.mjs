@@ -1,13 +1,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
+
 import { computeBuildId } from './buildId.mjs';
 import { pruneCspHashes, sortCspHashes } from './cspHashOrder.mjs';
 import { pageHash } from './pageHash.mjs';
 import { minifyServiceWorker } from './minifyServiceWorker.mjs';
 import { NEVER_PRECACHED_PAGES, shouldPrecache } from '../src/site-lib/precachePolicy.js';
 import { pageClosure, shellClosure, toPublicUrl as relativeToUrl } from './precacheClosure.mjs';
+import { isEntry } from './is-entry.mjs';
 
-const distDir = path.join(process.cwd(), 'dist');
 const manifestName = 'precache-manifest.json';
 const workerName = 'sw.js';
 
@@ -20,6 +21,8 @@ function walk(dir, files = []) {
   return files;
 }
 
+export function main({ cwd = process.cwd(), log = console.log } = {}) {
+const distDir = path.join(cwd, 'dist');
 if (!fs.existsSync(distDir)) {
   throw new Error('dist/ does not exist. Run Astro build before generating the precache manifest.');
 }
@@ -58,7 +61,7 @@ const shell = shellClosure(view, { keep });
 // is served with the headers it was stored with. Their fingerprint joins the build id, so a
 // headers-only deploy still installs, and goes in the manifest, so the worker reuses a page's
 // unchanged bytes only from a build served with the same headers.
-const vercelConfig = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'vercel.json'), 'utf8'));
+const vercelConfig = JSON.parse(fs.readFileSync(path.join(cwd, 'vercel.json'), 'utf8'));
 const responseHeaders = pageHash(JSON.stringify(vercelConfig.headers ?? []));
 
 const buildId = computeBuildId([
@@ -110,4 +113,7 @@ for (const url of [...unhashedUrls].sort()) {
 }
 fs.writeFileSync(path.join(distDir, manifestName), `${JSON.stringify({ version: 2, build: buildId, headers: responseHeaders, shell, pages, hashes }, null, 2)}\n`);
 
-console.log(`✅ Precache manifest: ${shell.length} shell files and ${Object.keys(pages).length} pages (pdkef-${buildId}).`);
+log(`✅ Precache manifest: ${shell.length} shell files and ${Object.keys(pages).length} pages (pdkef-${buildId}).`);
+}
+
+if (isEntry(import.meta.url)) main();

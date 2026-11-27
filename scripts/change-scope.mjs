@@ -61,6 +61,8 @@
 
 import { execFileSync } from 'node:child_process';
 
+import { isEntry } from './is-entry.mjs';
+
 export const DOCS_ONLY = [
   /^backlog\//,
   /^docs\//,
@@ -90,17 +92,17 @@ export function git(args) {
 
 // Exported for scripts/affected-scope.mjs, so the two scripts resolve the
 // same base the same way and cannot drift.
-export function resolveBase(explicit) {
+export function resolveBase(explicit, run = git) {
   if (explicit) {
     try {
-      git(['rev-parse', '--verify', `${explicit}^{commit}`]);
+      run(['rev-parse', '--verify', `${explicit}^{commit}`]);
       return explicit;
     } catch {
       return null;
     }
   }
   try {
-    return git(['merge-base', 'origin/main', 'HEAD']);
+    return run(['merge-base', 'origin/main', 'HEAD']);
   } catch {
     return null;
   }
@@ -187,41 +189,40 @@ function flag(argv, name) {
   return index >= 0 ? argv[index + 1] : undefined;
 }
 
-function resolvesToCommit(ref) {
+function resolvesToCommit(ref, run) {
   try {
-    git(['rev-parse', '--verify', `${ref}^{commit}`]);
+    run(['rev-parse', '--verify', `${ref}^{commit}`]);
     return true;
   } catch {
     return false;
   }
 }
 
-function main(argv) {
+export function main(argv = [], { cwd = process.cwd(), log = console.log, err = console.error } = {}) {
+  const run = (args) => execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
   const explicitBase = flag(argv, '--base');
   const head = flag(argv, '--head');
 
   // A fixed range needs a real base: an empty one (no previous deploy) must not
   // fall back to the merge base with origin/main.
-  const base = head !== undefined && !explicitBase ? null : resolveBase(explicitBase);
+  const base = head !== undefined && !explicitBase ? null : resolveBase(explicitBase, run);
   let scope = { docs_only: false };
   if (!base) {
-    console.error(`change-scope: no usable base (${explicitBase ?? 'origin/main'}); treating the change as touching everything.`);
-  } else if (head !== undefined && !resolvesToCommit(head)) {
-    console.error(`change-scope: no usable head (${head}); treating the change as touching everything.`);
+    err(`change-scope: no usable base (${explicitBase ?? 'origin/main'}); treating the change as touching everything.`);
+  } else if (head !== undefined && !resolvesToCommit(head, run)) {
+    err(`change-scope: no usable head (${head}); treating the change as touching everything.`);
   } else {
-    const files = changedFiles(base, head);
+    const files = changedFiles(base, head, run);
     scope = classify(files);
     if (scope.docs_only) {
-      console.error(`change-scope: all ${files.length} changed files since ${base.slice(0, 7)} are docs or backlog; only the backlog and guidance checks apply.`);
+      err(`change-scope: all ${files.length} changed files since ${base.slice(0, 7)} are docs or backlog; only the backlog and guidance checks apply.`);
     } else {
-      console.error(`change-scope: ${files.length} changed files since ${base.slice(0, 7)} are not all docs; the build and test jobs apply.`);
+      err(`change-scope: ${files.length} changed files since ${base.slice(0, 7)} are not all docs; the build and test jobs apply.`);
     }
   }
 
-  console.log(`docs_only=${scope.docs_only}`);
+  log(`docs_only=${scope.docs_only}`);
   return 0;
 }
 
-if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split('/').pop())) {
-  process.exit(main(process.argv.slice(2)));
-}
+if (isEntry(import.meta.url)) process.exit(main(process.argv.slice(2)));

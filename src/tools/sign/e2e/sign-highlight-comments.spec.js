@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import { test, expect } from '@playwright/test';
 import { PDFDocument, PDFName, PDFArray, PDFDict, PDFString, PDFHexString, PDFRef } from '@cantoo/pdf-lib';
 import { waitForIsland } from '../../../../e2e/support/tool.js';
@@ -74,7 +75,7 @@ async function exportBytes(page) {
   const download = pair.getByRole('button', { name: 'Download' });
   await download.scrollIntoViewIfNeeded();
   const [file] = await Promise.all([page.waitForEvent('download'), download.click()]);
-  return (await import('node:fs/promises')).readFile(await file.path());
+  return readFile(await file.path());
 }
 
 async function firstPageAnnots(bytes) {

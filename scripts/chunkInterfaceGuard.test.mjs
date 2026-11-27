@@ -140,6 +140,7 @@ const read = (dir, file) => readFileSync(path.join(dir, file), 'utf8');
 describe('a lazy chunk beside the other build’s shared chunk', () => {
   it('evaluates beside its own build’s shared chunk', async () => {
     const a = await buildFixture('a', SHARED_A);
+    // oxlint-disable-next-line landmines/no-cold-start-in-test -- built chunks must link in plain Node, because the vitest transform turns a missing named import into undefined
     expect(evaluate(a, 'shared/late.js')).toBe('OK [2,4]');
   });
 
@@ -147,7 +148,9 @@ describe('a lazy chunk beside the other build’s shared chunk', () => {
     const a = await buildFixture('a2', SHARED_A);
     const b = await buildFixture('b2', SHARED_B, PAGE_B_B);
     // the new lazy chunk beside the old shared chunk (the deployed-while-open case), and the other way round
+    // oxlint-disable-next-line landmines/no-cold-start-in-test -- built chunks must link in plain Node, because the vitest transform turns a missing named import into undefined
     expect(evaluate(mix(read(a, 'shared/shared.js'), path.join(b, 'shared/late.js')), 'shared/late.js')).toContain(`ERR Error: ${GUARD_ERROR} late`);
+    // oxlint-disable-next-line landmines/no-cold-start-in-test -- built chunks must link in plain Node, because the vitest transform turns a missing named import into undefined
     expect(evaluate(mix(read(b, 'shared/shared.js'), path.join(a, 'shared/late.js')), 'shared/late.js')).toContain(`ERR Error: ${GUARD_ERROR} late`);
   });
 
@@ -162,6 +165,7 @@ describe('a lazy chunk beside the other build’s shared chunk', () => {
   it('a pre-guard shared chunk (no guard export) fails to link, a failure chunkReload also recognises', async () => {
     const b = await buildFixture('b3', SHARED_B, PAGE_B_B);
     const dir = mix('export const first = (x) => x;\nexport const second = (x) => x;\n', path.join(b, 'shared/late.js'));
+    // oxlint-disable-next-line landmines/no-cold-start-in-test -- built chunks must link in plain Node, because the vitest transform turns a missing named import into undefined
     expect(evaluate(dir, 'shared/late.js')).toMatch(new RegExp(`^ERR SyntaxError: .*${GUARD_EXPORT}`));
   });
 
@@ -169,7 +173,9 @@ describe('a lazy chunk beside the other build’s shared chunk', () => {
     const a = await buildFixture('u-a', SHARED_A, PAGE_B_A, false);
     const b = await buildFixture('u-b', SHARED_B, PAGE_B_B, false);
     // build B's lazy chunk calls first(1) and second(2): beside A's shared chunk they bind to other functions
+    // oxlint-disable-next-line landmines/no-cold-start-in-test -- built chunks must link in plain Node, because the vitest transform turns a missing named import into undefined
     const own = evaluate(b, 'shared/late.js');
+    // oxlint-disable-next-line landmines/no-cold-start-in-test -- built chunks must link in plain Node, because the vitest transform turns a missing named import into undefined
     const mixed = evaluate(mix(read(a, 'shared/shared.js'), path.join(b, 'shared/late.js')), 'shared/late.js');
     // build B's first() adds 100; beside build A's shared chunk the same call runs A's first() and nobody is told
     expect(own).toBe('OK [101,4]');

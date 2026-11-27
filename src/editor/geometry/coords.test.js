@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { PDFDocument } from '@cantoo/pdf-lib';
+import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs';
 import {
   applyAffineTransform,
   clientDeltaToPagePercent,
@@ -140,7 +141,6 @@ describe('visiblePageBox', () => {
     const doc = await PDFDocument.create();
     const page = doc.addPage([200, 100]);
     page.setCropBox(...cropBox);
-    const { getDocument } = await import('pdfjs-dist/legacy/build/pdf.mjs');
     const pdf = await getDocument({ data: new Uint8Array(await doc.save()), useWorkerFetch: false, isEvalSupported: false }).promise;
     const viewed = (await pdf.getPage(1)).view;
     return { ours: visiblePageBox(page.getMediaBox(), page.getCropBox()), viewed };

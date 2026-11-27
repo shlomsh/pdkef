@@ -3,8 +3,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { describe, expect, it } from 'vitest';
-import { findSwallowed, scan } from './check-swallowed-errors.mjs';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { findSwallowed, main, scan } from './check-swallowed-errors.mjs';
 
 const script = fileURLToPath(new URL('./check-swallowed-errors.mjs', import.meta.url));
 const n = (src) => findSwallowed(src).length;
@@ -63,30 +63,41 @@ describe('expected reasons and walk', () => {
 });
 
 describe('--list', () => {
-  // The script scans the tree around it, so run a copy beside a planted src/ file instead of the real repo.
-  const runCopy = (...args) => {
+  // main scans the tree under its base, so point it at a temp dir with a planted src/ file instead of the real repo.
+  const runIn = (...args) => {
     const dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'swallow-cli-')));
     try {
-      fs.mkdirSync(path.join(dir, 'scripts'));
       fs.mkdirSync(path.join(dir, 'src'));
-      fs.copyFileSync(script, path.join(dir, 'scripts', 'check-swallowed-errors.mjs'));
-      fs.symlinkSync(path.join(path.dirname(script), '..', 'node_modules'), path.join(dir, 'node_modules'));
       fs.writeFileSync(path.join(dir, 'src', 'a.ts'), 'a()\ntry { a() } catch {}\n');
-      return spawnSync(process.execPath, [path.join(dir, 'scripts', 'check-swallowed-errors.mjs'), ...args], { encoding: 'utf8' });
+      const out = [];
+      const errs = [];
+      const status = main(args, { base: dir, log: (l) => out.push(String(l)), err: (l) => errs.push(String(l)) });
+      return { status, stdout: out.join('\n') + '\n', stderr: errs.join('\n') + '\n' };
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }
   };
 
   it('prints findings and exits 0', () => {
-    const r = runCopy('--list');
+    const r = runIn('--list');
     expect(r.status).toBe(0);
     expect(r.stdout.split('\n').filter(Boolean)).toEqual(['src/a.ts:2', 'swallowed-errors: 1 findings in 1 files']);
   });
 
   it('without --list the same findings fail the run', () => {
-    const r = runCopy();
+    const r = runIn();
     expect(r.status).toBe(1);
     expect(r.stderr).toContain('src/a.ts:2');
+  });
+});
+
+describe('CLI wiring', () => {
+  let cli;
+  beforeAll(() => {
+    cli = spawnSync(process.execPath, [script, '--list'], { encoding: 'utf8' });
+  });
+  it('runs as a script and exits 0 with --list', () => {
+    expect(cli.status).toBe(0);
+    expect(cli.stdout).toMatch(/swallowed-errors: (PASS|\d+ findings)/);
   });
 });

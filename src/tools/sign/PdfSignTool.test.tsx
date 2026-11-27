@@ -12,6 +12,7 @@ import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { waitUntil } from '../../test/support/waitUntil.ts';
 import { recentActions } from '#lib/telemetry/actionTrail.ts';
 import { PDFDocument, rgb } from '@cantoo/pdf-lib';
+import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { formDetectionEvent } from './lib/formDetectionEvent.ts';
 import '../../test/support/realPdfjs.ts';
 import { serveFonts } from '#editor/adapters/pdf/fontServer.test-helper.ts';
@@ -884,7 +885,6 @@ describe('PdfSignTool UI flow', () => {
     const exportedBlob = required<Blob>(savedBlob, 'exported PDF blob');
     
     // Assert on the resulting PDF
-    const { getDocument } = await import('pdfjs-dist/legacy/build/pdf.mjs');
     const documentOptions = {
       data: new Uint8Array(await exportedBlob.arrayBuffer()),
       useWorkerFetch: false,

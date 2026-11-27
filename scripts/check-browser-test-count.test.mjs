@@ -3,8 +3,8 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { afterEach, describe, expect, it } from 'vitest';
-import { browserTestCount, browserTestTotal, compareBrowserTests } from './check-browser-test-count.mjs';
+import { afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { main, browserTestCount, browserTestTotal, compareBrowserTests } from './check-browser-test-count.mjs';
 import { readRatchetLimits } from './ratchet-limits.mjs';
 
 const script = fileURLToPath(new URL('./check-browser-test-count.mjs', import.meta.url));
@@ -44,12 +44,27 @@ describe('check-browser-test-count', () => {
     dir = fs.mkdtempSync(path.join(os.tmpdir(), 'browser-tests-'));
     const file = path.join(dir, 'report.json');
     fs.writeFileSync(file, JSON.stringify(report({ numTotalTests: count })));
-    try {
-      return { code: 0, out: execFileSync(process.execPath, [script, file], { encoding: 'utf8', stdio: 'pipe' }) };
-    } catch (error) {
-      return { code: error.status, out: String(error.stderr) };
-    }
+    const out = [];
+    const err = [];
+    const code = main([file], { log: (l) => out.push(String(l)), err: (l) => err.push(String(l)) });
+    return { code, out: [...out, ...err].join('\n') };
   };
+  let cli;
+  beforeAll(() => {
+    const cliDir = fs.mkdtempSync(path.join(os.tmpdir(), 'browser-tests-cli-'));
+    const file = path.join(cliDir, 'report.json');
+    fs.writeFileSync(file, JSON.stringify(report({ numTotalTests: readRatchetLimits().browserTests.ci })));
+    try {
+      cli = { code: 0, out: execFileSync(process.execPath, [script, file], { encoding: 'utf8', stdio: 'pipe' }) };
+    } catch (error) {
+      cli = { code: error.status, out: String(error.stderr) };
+    }
+    fs.rmSync(cliDir, { recursive: true, force: true });
+  });
+  it('runs as a command', () => {
+    expect(cli.code).toBe(0);
+    expect(cli.out).toContain('browser test count: ok');
+  });
   const recorded = () => readRatchetLimits().browserTests.ci;
 
   it('passes at the recorded count', () => {
@@ -70,6 +85,6 @@ describe('check-browser-test-count', () => {
     expect(recorded()).toBe(before);
   });
   it('fails without a report', () => {
-    expect(() => execFileSync(process.execPath, [script, '/nowhere/report.json'], { stdio: 'pipe' })).toThrow();
+    expect(() => main(['/nowhere/report.json'], { log: () => {}, err: () => {} })).toThrow();
   });
 });

@@ -1,20 +1,32 @@
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { main } from './check-editor-dependency-directions.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const projectRoot = path.resolve(here, '..', '..');
+const projectRoot = path.resolve(here, '..');
 const script = path.join(projectRoot, 'scripts', 'check-editor-dependency-directions.mjs');
 const fixtures = path.join(projectRoot, 'scripts', 'fixtures', 'editor-dependency-directions');
 
 function runFixture(name) {
-  return spawnSync(process.execPath, [script, '--root', path.join(fixtures, name)], {
-    encoding: 'utf8',
-  });
+  const out = [];
+  const err = [];
+  const status = main(['--root', path.join(fixtures, name)], { log: (l) => out.push(String(l)), err: (l) => err.push(String(l)) });
+  return { status, stdout: out.join('\n'), stderr: err.join('\n') };
 }
 
+let cli;
+beforeAll(() => {
+  cli = spawnSync(process.execPath, [script, '--root', path.join(fixtures, 'positive')], { encoding: 'utf8' });
+});
+
 describe('editor dependency-direction guard', () => {
+  it('exits 0 and says passed when run as a command', () => {
+    expect(cli.status, cli.stderr).toBe(0);
+    expect(cli.stdout).toContain('passed');
+  });
+
   it('accepts resolved imports through the documented seams', () => {
     const result = runFixture('positive');
     expect(result.status, result.stderr).toBe(0);

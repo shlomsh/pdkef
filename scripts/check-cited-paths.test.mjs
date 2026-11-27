@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { citedPaths, findDeadPaths, scanRepo } from './check-cited-paths.mjs';
 
 const none = () => false;
@@ -54,30 +54,31 @@ describe('scanRepo only scans files git knows about', () => {
   };
   const deadIn = (root) => scanRepo(root).map((d) => d.file).sort();
 
+  let rootA;
+  let rootB;
+  beforeAll(() => {
+    rootA = makeRepo();
+    put(rootA, '.claude/agents/impeccable-applier.md', 'cites `src/App.jsx`\n');
+    put(rootA, '.claude/skills/impeccable/reference/live.md', 'cites `src/page.html`\n');
+    rootB = makeRepo();
+    put(rootB, '.claude/skills/impeccable/reference/live.md', 'local only\n');
+    put(rootB, 'src/real/a.ts', 'export {};\n');
+    put(rootB, 'docs/cites.md', 'dir `src/real/`, file `src/real/a.ts`, local `.claude/skills/impeccable/reference/live.md`\n');
+    git(rootB, 'add', 'src/real/a.ts', 'docs/cites.md');
+  });
+  afterAll(() => {
+    rmSync(rootA, { recursive: true, force: true });
+    rmSync(rootB, { recursive: true, force: true });
+  });
+
   it('flags a tracked file, skips a gitignored one, still flags an untracked unignored one', () => {
-    const root = makeRepo();
-    try {
-      put(root, '.claude/agents/impeccable-applier.md', 'cites `src/App.jsx`\n');
-      put(root, '.claude/skills/impeccable/reference/live.md', 'cites `src/page.html`\n');
-      expect(deadIn(root)).toEqual(['.claude/agents/implementer.md']);
-      put(root, 'docs/new-note.md', 'cites `src/missing-new.ts`\n');
-      expect(deadIn(root)).toEqual(['.claude/agents/implementer.md', 'docs/new-note.md']);
-    } finally {
-      rmSync(root, { recursive: true, force: true });
-    }
+    expect(deadIn(rootA)).toEqual(['.claude/agents/implementer.md']);
+    put(rootA, 'docs/new-note.md', 'cites `src/missing-new.ts`\n');
+    expect(deadIn(rootA)).toEqual(['.claude/agents/implementer.md', 'docs/new-note.md']);
   });
 
   it('judges a cited path by the same git-known set, so a gitignored-only target is dead as on CI', () => {
-    const root = makeRepo();
-    try {
-      put(root, '.claude/skills/impeccable/reference/live.md', 'local only\n');
-      put(root, 'src/real/a.ts', 'export {};\n');
-      put(root, 'docs/cites.md', 'dir `src/real/`, file `src/real/a.ts`, local `.claude/skills/impeccable/reference/live.md`\n');
-      git(root, 'add', 'src/real/a.ts', 'docs/cites.md');
-      const dead = scanRepo(root).filter((d) => d.file === 'docs/cites.md').map((d) => d.path);
-      expect(dead).toEqual(['.claude/skills/impeccable/reference/live.md']);
-    } finally {
-      rmSync(root, { recursive: true, force: true });
-    }
+    const dead = scanRepo(rootB).filter((d) => d.file === 'docs/cites.md').map((d) => d.path);
+    expect(dead).toEqual(['.claude/skills/impeccable/reference/live.md']);
   });
 });

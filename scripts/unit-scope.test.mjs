@@ -237,7 +237,7 @@ describe('selectUnitTests: each blind-spot widen rule fires', () => {
       'src/tools/scan/lib/camera/camera.worker.ts',
       'public/sw.js',
       'src/tools/sign/hooks/useFormFieldRegions.ts',
-      'scripts/check-editor-dependency-directions.mjs',
+      'scripts/fixtures/editor-dependency-directions/positive/src/editor/a.ts',
       'src/lib/text/format.js',
       'src/components/HeroDemo/HeroDemo.tsx',
       'backlog/tasks/ARCH-28.md',

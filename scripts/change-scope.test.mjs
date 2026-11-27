@@ -1,10 +1,10 @@
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { changedFiles, changedFilesWithStatus, classify, isDocsOnly } from './change-scope.mjs';
+import { main, changedFiles, changedFilesWithStatus, classify, isDocsOnly } from './change-scope.mjs';
 
 /* scripts/change-scope.mjs decides, for CI and for `npm run test:e2e`, whether
    a change is docs-only (no build, no browser). Whether the font screening
@@ -189,15 +189,18 @@ describe('changedFilesWithStatus', () => {
 // --head HEAD` and builds unless it prints docs_only=true. Driven through the
 // real CLI against a throwaway repo, since main() reads git directly.
 describe('CLI --head (a fixed commit range, the Vercel ignoreCommand form)', () => {
-  const script = fileURLToPath(new URL('./change-scope.mjs', import.meta.url));
   let repo;
   let first;
   let docsCommit;
   let srcCommit;
 
   const sh = (args) => execFileSync('git', args, { cwd: repo, encoding: 'utf8' }).trim();
-  const verdict = (args) =>
-    execFileSync('node', [script, ...args], { cwd: repo, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+  const verdict = (args) => {
+    const out = [];
+    main(args, { cwd: repo, log: (l) => out.push(String(l)), err: () => {} });
+    return out.join('\n').trim();
+  };
+  let cli;
 
   beforeAll(() => {
     repo = mkdtempSync(join(tmpdir(), 'change-scope-'));
@@ -220,6 +223,12 @@ describe('CLI --head (a fixed commit range, the Vercel ignoreCommand form)', () 
     srcCommit = sh(['rev-parse', 'HEAD']);
     // dirty tree and untracked file must not leak into a fixed range
     writeFileSync(join(repo, 'untracked.js'), '1');
+    cli = spawnSync(process.execPath, [fileURLToPath(new URL('./change-scope.mjs', import.meta.url)), '--base', first, '--head', docsCommit], { cwd: repo, encoding: 'utf8' });
+  });
+
+  it('the real CLI prints docs_only=true on stdout and exits 0', () => {
+    expect(cli.status).toBe(0);
+    expect(cli.stdout.trim()).toBe('docs_only=true');
   });
 
   afterAll(() => rmSync(repo, { recursive: true, force: true }));
@@ -244,9 +253,8 @@ describe('CLI --head (a fixed commit range, the Vercel ignoreCommand form)', () 
 describe('changedFilesWithStatus against a real repository', () => {
   const repo = mkdtempSync(join(tmpdir(), 'cs-git-'));
   const sh = (...args) => execFileSync('git', args, { cwd: repo, encoding: 'utf8' });
-  afterAll(() => rmSync(repo, { recursive: true, force: true }));
-
-  it('returns names with non-ASCII characters unquoted, and a rename as its destination', () => {
+  let base;
+  beforeAll(() => {
     sh('init', '-q');
     sh('config', 'user.email', 't@t');
     sh('config', 'user.name', 't');
@@ -254,10 +262,14 @@ describe('changedFilesWithStatus against a real repository', () => {
     writeFileSync(join(repo, 'keep.txt'), 'a\n');
     sh('add', '.');
     sh('commit', '-qm', 'base');
-    const base = sh('rev-parse', 'HEAD').trim();
+    base = sh('rev-parse', 'HEAD').trim();
     sh('mv', 'old name.txt', 'שלום é.txt');
     writeFileSync(join(repo, 'keep.txt'), 'b\n');
     writeFileSync(join(repo, 'חדש ü.txt'), 'x\n');
+  });
+  afterAll(() => rmSync(repo, { recursive: true, force: true }));
+
+  it('returns names with non-ASCII characters unquoted, and a rename as its destination', () => {
     const files = withCwd(repo, () => changedFilesWithStatus(base));
     expect(files).toEqual(
       expect.arrayContaining([

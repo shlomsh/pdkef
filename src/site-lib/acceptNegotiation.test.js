@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, it, expect } from 'vitest';
+import vercelConfig from '../../vercel.json' with { type: 'json' };
 import { acceptQuality, negotiateRepresentation, markdownRoute } from './acceptNegotiation.js';
 
 describe('acceptQuality', () => {
@@ -142,7 +143,6 @@ describe('markdownRoute', () => {
 
 describe('markdownRoute against the real vercel.json', () => {
   it('passes every real route non-slash form through and rejects a fake path', async () => {
-    const { default: vercelConfig } = await import('../../vercel.json');
     const sources = new Set(vercelConfig.redirects.map((r) => r.source));
     expect(markdownRoute('/compress', sources)).toEqual({ kind: 'passthrough' });
     expect(markdownRoute('/about', sources)).toEqual({ kind: 'passthrough' });

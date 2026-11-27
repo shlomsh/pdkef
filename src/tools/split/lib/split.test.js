@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { describe, expect, it } from 'vitest';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
+import { PDFDocument } from '@cantoo/pdf-lib';
 import { splitPdf } from './split.js';
 
 function fixture(name) {
@@ -83,7 +84,6 @@ describe('splitPdf library integration with real fixtures', () => {
   });
 
   it('applies the per-page rotation map in both modes (pageOps.js, shared with Merge and Edit Pages)', async () => {
-    const { PDFDocument } = await import('@cantoo/pdf-lib');
     const file = getFixtureFile('num-5.pdf');
 
     const combined = await splitPdf(file, {

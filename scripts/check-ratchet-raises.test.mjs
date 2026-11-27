@@ -1,15 +1,15 @@
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterAll, beforeAll } from 'vitest';
 import { execFileSync, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { raisesSince, oxlintAllowSections } from './check-ratchet-raises.mjs';
+import { raisesSince, oxlintAllowSections, main } from './check-ratchet-raises.mjs';
 
 const script = path.join(path.dirname(fileURLToPath(import.meta.url)), 'check-ratchet-raises.mjs');
 const dirs = [];
 
-afterEach(() => {
+afterAll(() => {
   while (dirs.length) fs.rmSync(dirs.pop(), { recursive: true, force: true });
 });
 
@@ -33,36 +33,55 @@ function repoWithLimits(values) {
   return { cwd, commits };
 }
 
+const capture = () => {
+  const out = [];
+  const errs = [];
+  return { out, errs, io: (cwd) => ({ cwd, log: (l) => out.push(String(l)), err: (l) => errs.push(String(l)) }) };
+};
+
 describe('raisesSince', () => {
+  // The three histories are only read, so each is built once.
+  let raised;
+  let lowered;
+  let noBase;
+  let cli;
+
+  beforeAll(() => {
+    raised = repoWithLimits([10, 12]);
+    lowered = repoWithLimits([10, 8]);
+    noBase = repoWithLimits([null, 12]);
+    cli = spawnSync(process.execPath, [script, '--base', raised.commits[0]], { cwd: raised.cwd, encoding: 'utf8' });
+  });
+
   it('reports a limit raised by a direct push to main', () => {
-    const { cwd, commits } = repoWithLimits([10, 12]);
-    const result = raisesSince(commits[0], { cwd });
+    const result = raisesSince(raised.commits[0], { cwd: raised.cwd });
     expect(result.status).toBe('raised');
     expect(result.raises).toEqual([{ path: 'sizes.a.ts', before: 10, after: 12, kind: 'raised' }]);
   });
 
   it('the real CLI exits 1 and names the path', () => {
-    const { cwd, commits } = repoWithLimits([10, 12]);
-    const run = spawnSync(process.execPath, [script, '--base', commits[0]], { cwd, encoding: 'utf8' });
-    expect(run.status).toBe(1);
-    expect(run.stderr).toContain('sizes.a.ts: 10 -> 12');
+    expect(cli.status).toBe(1);
+    expect(cli.stderr).toContain('sizes.a.ts: 10 -> 12');
   });
 
-  it('the real CLI exits 0 when the value is lowered', () => {
-    const { cwd, commits } = repoWithLimits([10, 8]);
-    const run = spawnSync(process.execPath, [script, '--base', commits[0]], { cwd, encoding: 'utf8' });
-    expect(run.status).toBe(0);
-    expect(run.stdout).toContain('no limit rose since');
+  it('main returns 1 and names the path', () => {
+    const c = capture();
+    expect(main(['--base', raised.commits[0]], c.io(raised.cwd))).toBe(1);
+    expect(c.errs.join('\n')).toContain('sizes.a.ts: 10 -> 12');
+  });
+
+  it('main returns 0 when the value is lowered', () => {
+    const c = capture();
+    expect(main(['--base', lowered.commits[0]], c.io(lowered.cwd))).toBe(0);
+    expect(c.out.join('\n')).toContain('no limit rose since');
   });
 
   it('passes a lowered value', () => {
-    const { cwd, commits } = repoWithLimits([10, 8]);
-    expect(raisesSince(commits[0], { cwd })).toEqual({ status: 'ok', raises: [] });
+    expect(raisesSince(lowered.commits[0], { cwd: lowered.cwd })).toEqual({ status: 'ok', raises: [] });
   });
 
   it('has nothing to compare when the base has no limits file', () => {
-    const { cwd, commits } = repoWithLimits([null, 12]);
-    expect(raisesSince(commits[0], { cwd })).toEqual({ status: 'no-base-file', raises: [] });
+    expect(raisesSince(noBase.commits[0], { cwd: noBase.cwd })).toEqual({ status: 'no-base-file', raises: [] });
   });
 });
 
@@ -98,30 +117,39 @@ function repoWithOxlint(base, head) {
 }
 
 describe('raisesSince with .oxlintrc.json allow maps', () => {
+  let rawRaised;
+  let newFile;
+  let newRule;
+  let lowered;
+  let noBase;
+
+  beforeAll(() => {
+    rawRaised = repoWithOxlint(rc({ 'a.ts': 1 }), rc({ 'a.ts': 2 }));
+    newFile = repoWithOxlint(rc({ 'a.ts': 1 }), rc({ 'a.ts': 1, 'b.ts': 1 }));
+    newRule = repoWithOxlint(rc({ 'a.ts': 1 }), { rules: { ...rc({ 'a.ts': 1 }).rules, 'n/new': ['error', { allow: { 'c.ts': 3 } }] } });
+    lowered = repoWithOxlint(rc({ 'a.ts': 3, 'b.ts': 1 }), rc({ 'a.ts': 2 }));
+    noBase = repoWithOxlint(null, rc({ 'a.ts': 2 }));
+  });
+
   it('flags a raised per-file count and names rule and file', () => {
-    const { cwd, base } = repoWithOxlint(rc({ 'a.ts': 1 }), rc({ 'a.ts': 2 }));
-    const r = raisesSince(base, { cwd });
+    const r = raisesSince(rawRaised.base, { cwd: rawRaised.cwd });
     expect(r.status).toBe('raised');
     expect(r.raises).toEqual([{ path: 'oxlint:p/r.a.ts', before: 1, after: 2, kind: 'raised' }]);
   });
 
   it('flags a new file added to an existing allow map', () => {
-    const { cwd, base } = repoWithOxlint(rc({ 'a.ts': 1 }), rc({ 'a.ts': 1, 'b.ts': 1 }));
-    expect(raisesSince(base, { cwd }).raises.map((x) => x.path)).toEqual(['oxlint:p/r.b.ts']);
+    expect(raisesSince(newFile.base, { cwd: newFile.cwd }).raises.map((x) => x.path)).toEqual(['oxlint:p/r.b.ts']);
   });
 
   it('passes a whole new rule with an allow map', () => {
-    const { cwd, base } = repoWithOxlint(rc({ 'a.ts': 1 }), { rules: { ...rc({ 'a.ts': 1 }).rules, 'n/new': ['error', { allow: { 'c.ts': 3 } }] } });
-    expect(raisesSince(base, { cwd }).status).toBe('ok');
+    expect(raisesSince(newRule.base, { cwd: newRule.cwd }).status).toBe('ok');
   });
 
   it('passes lowered and removed entries', () => {
-    const { cwd, base } = repoWithOxlint(rc({ 'a.ts': 3, 'b.ts': 1 }), rc({ 'a.ts': 2 }));
-    expect(raisesSince(base, { cwd }).status).toBe('ok');
+    expect(raisesSince(lowered.base, { cwd: lowered.cwd }).status).toBe('ok');
   });
 
   it('a base with no .oxlintrc.json contributes nothing', () => {
-    const { cwd, base } = repoWithOxlint(null, rc({ 'a.ts': 2 }));
-    expect(raisesSince(base, { cwd })).toEqual({ status: 'no-base-file', raises: [] });
+    expect(raisesSince(noBase.base, { cwd: noBase.cwd })).toEqual({ status: 'no-base-file', raises: [] });
   });
 });

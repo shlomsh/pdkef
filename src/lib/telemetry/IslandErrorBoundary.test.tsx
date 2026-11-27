@@ -1,6 +1,6 @@
 import { render } from 'preact';
 import { useState } from 'preact/hooks';
-import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
 
 // The real reporter runs; the spy only watches which errors reach it.
 vi.mock('./errorReport.ts', { spy: true });
@@ -9,6 +9,12 @@ let reportError: MockInstance;
 function Boom({ error }: { error: unknown }): null {
   throw error;
 }
+
+// Warm both modules once so the per-test re-imports below only re-evaluate them.
+beforeAll(async () => {
+  await import('./IslandErrorBoundary.tsx');
+  await import('./errorReport.ts');
+});
 
 let container: HTMLElement | null = null;
 beforeEach(() => {

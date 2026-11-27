@@ -41,6 +41,7 @@ describe('answerNetwork in the browser', () => {
   });
 
   it('passes the page’s own module, font, image and pdf.js codec loads through to Vite', async () => {
+    // oxlint-disable-next-line landmines/no-cold-import-in-test -- the module load passing through to Vite is what this test checks
     const { networkCore } = await import('./networkCore.ts');
     const codec = await fetch('/pdfjs-dist-wasm/openjpeg.wasm');
     const font = await new FontFace('Alef', `url(/fonts/Alef-Regular.ttf)`).load();

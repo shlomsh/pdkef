@@ -1,3 +1,4 @@
+import { createServer } from 'node:http';
 import { describe, expect, it } from 'vitest';
 import { answerInTurn, answerNetwork, missedRequests, sentHeaders } from './network.ts';
 
@@ -19,7 +20,6 @@ describe('sentHeaders', () => {
 
 describe('answerNetwork', () => {
   it('lets no unhandled request through, a file-looking URL included', async () => {
-    const { createServer } = await import('node:http');
     let hits = 0;
     const local = createServer((_req, res) => { hits += 1; res.end('real'); });
     await new Promise<void>((resolve) => { local.listen(0, '127.0.0.1', resolve); });

@@ -4,9 +4,10 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { main } from './verify-csp.js';
 
-// verify-csp.js reads <cwd>/dist, so each case plants a small dist/ in a temp dir and runs the real CLI there.
+// verify-csp.js reads <cwd>/dist, so each case plants a small dist/ in a temp dir and calls main() in-process there; one real CLI run in beforeAll keeps the wiring proven.
 const script = fileURLToPath(new URL('./verify-csp.js', import.meta.url));
 const sha = (text) => `'sha256-${crypto.createHash('sha256').update(text).digest('base64')}'`;
 
@@ -29,7 +30,7 @@ const videoFrame = '; frame-src https://www.youtube-nocookie.com';
 const { PUBLIC_ANALYTICS_HOST: _host, PUBLIC_ANALYTICS_KEY: _key, ...baseEnv } = process.env;
 
 // A clean two-page dist; `overrides` replaces or adds files by dist-relative path.
-function run(overrides = {}, env = baseEnv, extraFiles = {}) {
+function plantDist(overrides = {}, extraFiles = {}) {
   const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'verify-csp-'));
   const files = {
     'index.html': page({ csp: goodCsp(videoFrame), body: goodBody }),
@@ -41,11 +42,38 @@ function run(overrides = {}, env = baseEnv, extraFiles = {}) {
     fs.writeFileSync(path.join(cwd, 'dist', rel), html);
   }
   for (const [rel, text] of Object.entries(extraFiles)) fs.writeFileSync(path.join(cwd, rel), text);
-  const r = spawnSync(process.execPath, [script], { cwd, encoding: 'utf8', env });
-  return { status: r.status, err: r.stderr };
+  return cwd;
 }
 
+function run(overrides = {}, env = baseEnv, extraFiles = {}) {
+  const cwd = plantDist(overrides, extraFiles);
+  const out = [];
+  const errLines = [];
+  let status;
+  try {
+    status = main([], { cwd, env, log: (l) => out.push(String(l)), err: (l) => errLines.push(String(l)) });
+  } catch (e) {
+    // The CLI lets a thrown error reach stderr and exit non-zero.
+    status = 1;
+    errLines.push(String(e.stack ?? e));
+  }
+  return { status, err: errLines.map((l) => `${l}\n`).join(''), stdout: out.map((l) => `${l}\n`).join('') };
+}
+
+let cli;
+beforeAll(() => {
+  const cwd = plantDist();
+  const r = spawnSync(process.execPath, [script], { cwd, encoding: 'utf8', env: baseEnv });
+  cli = { status: r.status, stdout: r.stdout, err: r.stderr };
+});
+
 describe('verify-csp CLI', () => {
+  it('the real CLI exits 0 and prints the verified line on a clean dist', () => {
+    expect(cli.err).toBe('');
+    expect(cli.status).toBe(0);
+    expect(cli.stdout).toContain('Verified CSP hashes in 2 HTML files.');
+  });
+
   it('passes a build whose inline scripts and styles are all hashed and only /drive/ allows Google', () => {
     const r = run();
     expect(r.err).toBe('');

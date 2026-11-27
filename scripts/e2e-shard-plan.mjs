@@ -12,6 +12,7 @@ import { spawnSync } from 'node:child_process';
 import { readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { isEntry } from './is-entry.mjs';
 
 const SECONDS_FILE = new URL('./e2e-spec-seconds.json', import.meta.url);
 const median = (xs) => {
@@ -59,7 +60,7 @@ export function parseShard(value) {
   return { i, n };
 }
 
-function record(dir) {
+function record(dir, err) {
   const runs = [];
   const walk = (d) => {
     for (const name of readdirSync(d)) {
@@ -86,35 +87,36 @@ function record(dir) {
   for (const m of perRun.values()) for (const [f, s] of Object.entries(m)) (all[f] ??= []).push(s);
   const out = Object.fromEntries(Object.keys(all).sort().map((f) => [f, Math.round(median(all[f]) * 10) / 10]));
   writeFileSync(SECONDS_FILE, `${JSON.stringify(out, null, 2)}\n`);
-  console.error(`e2e-shard-plan: ${Object.keys(out).length} files from ${perRun.size} runs`);
+  err(`e2e-shard-plan: ${Object.keys(out).length} files from ${perRun.size} runs`);
 }
 
-function main() {
-  const argv = process.argv.slice(2);
-  const arg = (name) => (argv.includes(name) ? (argv[argv.indexOf(name) + 1] ?? '') : undefined);
-  if (arg('--record') !== undefined) return record(arg('--record'));
-  const { i, n } = parseShard(arg('--shard'));
-  const paths = (arg('--paths') ?? '').trim().split(/\s+/).filter(Boolean);
-  const res = spawnSync('npx', ['playwright', 'test', '--list', '--project=chromium', '--reporter=json', '--pass-with-no-tests', ...paths], {
-    encoding: 'utf8',
-    maxBuffer: 256 * 1024 * 1024,
-  });
-  if (res.error || res.status !== 0) throw new Error(`playwright --list failed (${res.error?.message ?? `exit ${res.status}`})`);
-  let report;
+export function main(argv = [], { log = console.log, err = console.error } = {}) {
   try {
-    report = JSON.parse(res.stdout);
-  } catch {
-    throw new Error('could not parse playwright --list output');
-  }
-  const seconds = JSON.parse(readFileSync(SECONDS_FILE, 'utf8'));
-  console.log(splitByTime(specFiles(report), seconds, n)[i - 1].map((f) => toFilter(f)).join(' '));
-}
-
-if (import.meta.url === `file://${process.argv[1]}`) {
-  try {
-    main();
+    const arg = (name) => (argv.includes(name) ? (argv[argv.indexOf(name) + 1] ?? '') : undefined);
+    if (arg('--record') !== undefined) {
+      record(arg('--record'), err);
+      return 0;
+    }
+    const { i, n } = parseShard(arg('--shard'));
+    const paths = (arg('--paths') ?? '').trim().split(/\s+/).filter(Boolean);
+    const res = spawnSync('npx', ['playwright', 'test', '--list', '--project=chromium', '--reporter=json', '--pass-with-no-tests', ...paths], {
+      encoding: 'utf8',
+      maxBuffer: 256 * 1024 * 1024,
+    });
+    if (res.error || res.status !== 0) throw new Error(`playwright --list failed (${res.error?.message ?? `exit ${res.status}`})`);
+    let report;
+    try {
+      report = JSON.parse(res.stdout);
+    } catch {
+      throw new Error('could not parse playwright --list output');
+    }
+    const seconds = JSON.parse(readFileSync(SECONDS_FILE, 'utf8'));
+    log(splitByTime(specFiles(report), seconds, n)[i - 1].map((f) => toFilter(f)).join(' '));
+    return 0;
   } catch (e) {
-    console.error(`e2e-shard-plan: ${e.message}`);
-    process.exit(1);
+    err(`e2e-shard-plan: ${e.message}`);
+    return 1;
   }
 }
+
+if (isEntry(import.meta.url)) process.exit(main(process.argv.slice(2)));

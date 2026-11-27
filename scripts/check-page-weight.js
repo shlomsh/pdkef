@@ -6,11 +6,10 @@ import { availableParallelism } from 'node:os';
 import { distSheetReader, pageCssBlocks } from './pageCss.mjs';
 import { scriptRefs } from './precacheClosure.mjs';
 import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
+import { isEntry } from './is-entry.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const distDir = path.join(__dirname, '..', 'dist');
-const readSheet = distSheetReader(distDir);
 
 // This file is also its own worker: `runCompressionPool` below respawns it via
 // `new Worker(new URL(import.meta.url), ...)`, so importing it re-runs every
@@ -332,7 +331,7 @@ function srcsetUrls(value) {
 // Every image the document makes the browser fetch before it is usable, as a
 // map of resolved dist path -> bytes. Deduped by URL, because two elements
 // pointing at the same file cost one download.
-function eagerImages(html) {
+function eagerImages(html, distDir) {
   const found = new Map();
 
   const consider = (urls) => {
@@ -378,16 +377,19 @@ function eagerImages(html) {
   return found;
 }
 
-async function main() {
+// `cwd` is the folder holding dist/ (the repo root; the default is this file's parent, as before).
+export async function main(_argv = [], { cwd = path.join(__dirname, '..'), log = console.log, err = console.error } = {}) {
+  const distDir = path.join(cwd, 'dist');
+  const readSheet = distSheetReader(distDir);
   if (!fs.existsSync(distDir)) {
-    console.error(`dist directory not found: ${distDir}. Run npm run build first.`);
-    process.exit(1);
+    err(`dist directory not found: ${distDir}. Run npm run build first.`);
+    return 1;
   }
 
   const htmlFiles = getHtmlFiles(distDir).sort();
   if (htmlFiles.length === 0) {
-    console.error('No HTML files found in the build output.');
-    process.exit(1);
+    err('No HTML files found in the build output.');
+    return 1;
   }
 
   // Phase 1: read every page and work out what it needs compressed - the
@@ -417,7 +419,7 @@ async function main() {
     }
 
     // Raw, not brotli: images are already compressed and served as-is.
-    const images = eagerImages(html);
+    const images = eagerImages(html, distDir);
     let imgBytes = 0;
     for (const bytes of images.values()) imgBytes += bytes;
 
@@ -465,12 +467,12 @@ async function main() {
   const worst = rows.reduce((a, b) => (b.total > a.total ? b : a));
   const worstImage = rows.reduce((a, b) => (b.img > a.img ? b : a));
 
-  console.log(
+  log(
     `First-load weight, ${rows.length} pages. Document and JS are brotli; images are raw ` +
       '(already compressed, served as-is):',
   );
   for (const row of rows) {
-    console.log(
+    log(
       `  ${row.label.padEnd(16)} ${String(row.doc).padStart(6)} doc + ${String(row.linkedCss).padStart(5)} css + ${String(row.js).padStart(6)} js` +
         ` + ${String(row.img).padStart(5)} img` +
         `   (inline css ${row.css} of doc, ${row.modules} module${row.modules === 1 ? '' : 's'},` +
@@ -481,7 +483,7 @@ async function main() {
   let failed = false;
 
   if (worst.total > MAX_FIRST_LOAD_BROTLI) {
-    console.error(
+    err(
       `\nPage weight budget exceeded: ${worst.label} is ${worst.total} bytes brotli on first load ` +
         `(${worst.doc} document + ${worst.linkedCss} linked CSS + ${worst.js} eager JS), over the ${MAX_FIRST_LOAD_BROTLI} byte limit. ` +
         'If a chunk that used to load behind a user action is now referenced by the HTML, that is the regression; ' +
@@ -491,7 +493,7 @@ async function main() {
   }
 
   if (worstImage.img > MAX_EAGER_IMAGE_BYTES) {
-    console.error(
+    err(
       `\nEager image budget exceeded: ${worstImage.label} fetches ${worstImage.img} raw bytes of images ` +
         `before first paint, over the ${MAX_EAGER_IMAGE_BYTES} byte limit. ` +
         'The usual cause is a full-size asset referenced at display size instead of going through ' +
@@ -501,12 +503,13 @@ async function main() {
     failed = true;
   }
 
-  if (failed) process.exit(1);
+  if (failed) return 1;
 
-  console.log(
+  log(
     `\nPage weight check passed. Worst document+CSS+JS ${worst.label}: ${worst.total} / ${MAX_FIRST_LOAD_BROTLI} brotli. ` +
       `Worst eager images ${worstImage.label}: ${worstImage.img} / ${MAX_EAGER_IMAGE_BYTES} raw.`,
   );
+  return 0;
 }
 
-if (isMainThread) await main();
+if (isMainThread && isEntry(import.meta.url)) process.exitCode = await main(process.argv.slice(2));

@@ -406,10 +406,10 @@ export const WIDEN_RULES = [
     tests: ['src/tools/sign/hooks/useFormFieldRegions.wiring.test.js'],
   },
   {
-    id: 'editor-dependency-directions-subprocess',
-    reason: 'the checker script runs as a child process against fixture trees, not an import',
-    match: (f) => f === 'scripts/check-editor-dependency-directions.mjs' || f.startsWith('scripts/fixtures/editor-dependency-directions/'),
-    tests: ['src/editor/dependencyDirections.test.js'],
+    id: 'editor-dependency-directions-fixtures',
+    reason: 'the checker reads its fixture trees from disk, not through an import (LAND-09: the checker itself is imported)',
+    match: (f) => f.startsWith('scripts/fixtures/editor-dependency-directions/'),
+    tests: ['scripts/check-editor-dependency-directions.fixtures.test.mjs'],
   },
   {
     id: 'whole-src-render-call-scan',

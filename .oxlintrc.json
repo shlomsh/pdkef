@@ -106,6 +106,8 @@
     ],
     "landmines/no-elapsed-time-bound": "error",
     "landmines/no-silent-catch": "error",
+    "landmines/no-cold-import-in-test": "error",
+    "landmines/no-cold-start-in-test": "error",
     "landmines/no-conditional-expect": "error",
     "landmines/declared-test-inputs": "off",
     "no-restricted-imports": [

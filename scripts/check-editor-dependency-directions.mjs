@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { aliasTarget } from './import-aliases.mjs';
 import { collectSourceFiles, importSpecifiers } from './check-module-boundaries.mjs';
+import { isEntry } from './is-entry.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -289,25 +290,25 @@ function checkProject(projectRoot) {
   return { violations, stale: staleExceptions(edges, EXCEPTIONS) };
 }
 
-function main() {
-  const projectRoot = parseRoot(process.argv.slice(2));
+export function main(argv = [], { log = console.log, err = console.error } = {}) {
+  const projectRoot = parseRoot(argv);
   const { violations, stale } = checkProject(projectRoot);
   if (violations.length > 0 || stale.length > 0) {
-    console.error('Editor dependency-direction guard failed:');
+    err('Editor dependency-direction guard failed:');
     for (const violation of violations) {
       const destination = violation.target || violation.specifier;
-      console.error(`  ${violation.from} -> ${destination}: ${violation.reason}`);
+      err(`  ${violation.from} -> ${destination}: ${violation.reason}`);
     }
     if (stale.length > 0) {
-      console.error('\nStale exceptions (remove them): no resolved import matches these EXCEPTIONS entries any more.');
+      err('\nStale exceptions (remove them): no resolved import matches these EXCEPTIONS entries any more.');
       for (const exception of stale) {
-        console.error(`  ${exception.from} -> ${exception.target || exception.package}: ${exception.reason}`);
+        err(`  ${exception.from} -> ${exception.target || exception.package}: ${exception.reason}`);
       }
     }
-    process.exitCode = 1;
-    return;
+    return 1;
   }
-  console.log('Editor dependency-direction guard passed: resolved static imports respect the editor matrix.');
+  log('Editor dependency-direction guard passed: resolved static imports respect the editor matrix.');
+  return 0;
 }
 
-main();
+if (isEntry(import.meta.url)) process.exitCode = main(process.argv.slice(2));

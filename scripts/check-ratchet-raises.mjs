@@ -6,9 +6,10 @@
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+
 import { resolveBase } from './change-scope.mjs';
 import { findRaises, parseRenames, readRatchetLimits } from './ratchet-limits.mjs';
+import { isEntry } from './is-entry.mjs';
 
 const gitIn = (cwd, args) => execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
 
@@ -59,31 +60,31 @@ export function raisesSince(base, { cwd = process.cwd() } = {}) {
   return { status: raises.length === 0 ? 'ok' : 'raised', raises };
 }
 
-function main() {
-  const args = process.argv.slice(2);
-  const i = args.indexOf('--base');
-  const explicit = i >= 0 ? args[i + 1] : undefined;
+export function main(argv = [], { cwd = process.cwd(), log = console.log, err = console.error } = {}) {
+  const i = argv.indexOf('--base');
+  const explicit = i >= 0 ? argv[i + 1] : undefined;
+  const run = (args) => gitIn(cwd, args).trim();
   // An explicit base that does not resolve (a force-pushed `before`) falls back to the merge base.
-  const base = resolveBase(explicit || undefined) ?? resolveBase(undefined);
+  const base = resolveBase(explicit || undefined, run) ?? resolveBase(undefined, run);
 
   if (!base) {
-    console.log('ratchet-raises: no usable base; nothing to compare against.');
+    log('ratchet-raises: no usable base; nothing to compare against.');
     return 0;
   }
-  const { status, raises } = raisesSince(base);
+  const { status, raises } = raisesSince(base, { cwd });
   if (status === 'no-base-file') {
-    console.log(`ratchet-raises: ${base.slice(0, 7)} has no scripts/ratchet-limits.json or .oxlintrc.json; nothing to compare against.`);
+    log(`ratchet-raises: ${base.slice(0, 7)} has no scripts/ratchet-limits.json or .oxlintrc.json; nothing to compare against.`);
     return 0;
   }
   if (status === 'ok') {
-    console.log(`ratchet-raises: no limit rose since ${base.slice(0, 7)}.`);
+    log(`ratchet-raises: no limit rose since ${base.slice(0, 7)}.`);
     return 0;
   }
-  console.error('Ratchet limits and oxlint allowances only go down. Narrow what the code carries instead of raising a limit:');
+  err('Ratchet limits and oxlint allowances only go down. Narrow what the code carries instead of raising a limit:');
   for (const r of raises) {
-    console.error(r.kind === 'added' ? `  ${r.path}: new entry (${JSON.stringify(r.after)}) in an existing section` : `  ${r.path}: ${r.before} -> ${r.after}`);
+    err(r.kind === 'added' ? `  ${r.path}: new entry (${JSON.stringify(r.after)}) in an existing section` : `  ${r.path}: ${r.before} -> ${r.after}`);
   }
   return 1;
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) process.exit(main());
+if (isEntry(import.meta.url)) process.exit(main(process.argv.slice(2)));

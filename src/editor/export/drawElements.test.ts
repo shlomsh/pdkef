@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi, afterEach } from 'vitest';
+import { getDocument, OPS } from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { PDFDocument, PDFName, PDFNumber, degrees } from '@cantoo/pdf-lib';
 import * as fontkit from 'fontkit';
 import { drawElements } from './drawElements.ts';
@@ -48,7 +49,6 @@ describe('drawElements', () => {
     ]) as EditorElement[];
 
     await drawElements(pdfDoc, elements, { loadCustomFont: loaderFor(pdfDoc) });
-    const { getDocument, OPS } = await import('pdfjs-dist/legacy/build/pdf.mjs');
     const loadingTask = getDocument({
       data: new Uint8Array(await pdfDoc.save()),
       useWorkerFetch: false,

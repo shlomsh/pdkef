@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { PDFDocument } from '@cantoo/pdf-lib';
+import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -227,7 +228,6 @@ async function pagesOf(blob: Blob) {
 
 /** What each output page says in text: only the stamped page numbers are text in these fixtures. */
 async function pageTexts(blob: Blob) {
-  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
   const loadingTask = pdfjs.getDocument({ data: new Uint8Array(await blob.arrayBuffer()) });
   const pdf = await loadingTask.promise;
   const texts: string[] = [];

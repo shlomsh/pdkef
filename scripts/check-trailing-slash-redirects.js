@@ -14,19 +14,21 @@
 // place and not the other is exactly the failure mode both are named to prevent.
 import fs from 'fs';
 import path from 'path';
+import { isEntry } from './is-entry.mjs';
 
-const distDir = path.join(process.cwd(), 'dist');
-const vercelConfigPath = path.join(process.cwd(), 'vercel.json');
+export function main(argv = [], { cwd = process.cwd(), log = console.log, err = console.error } = {}) {
+const distDir = path.join(cwd, 'dist');
+const vercelConfigPath = path.join(cwd, 'vercel.json');
 
 if (!fs.existsSync(distDir)) {
-  console.error('[ERROR] dist/ not found - run `npm run build` first.');
-  process.exit(1);
+  err('[ERROR] dist/ not found - run `npm run build` first.');
+  return 1;
 }
 
 const vercelConfig = JSON.parse(fs.readFileSync(vercelConfigPath, 'utf8'));
 let hasError = false;
 const error = (msg) => {
-  console.error(`[ERROR] ${msg}`);
+  err(`[ERROR] ${msg}`);
   hasError = true;
 };
 
@@ -82,8 +84,9 @@ for (const route of realRoutes) {
   }
 }
 
-if (hasError) {
-  process.exit(1);
-} else {
-  console.log(`✅ Trailing-slash redirects verified for ${realRoutes.length} real route(s).`);
+if (hasError) return 1;
+log(`✅ Trailing-slash redirects verified for ${realRoutes.length} real route(s).`);
+return 0;
 }
+
+if (isEntry(import.meta.url)) process.exitCode = main(process.argv.slice(2));

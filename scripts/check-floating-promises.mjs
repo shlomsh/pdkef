@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
+import { isEntry } from './is-entry.mjs';
 
 // ARCH-73: a promise nobody awaits must say what happens when it rejects.
 // A finding is an expression statement (a statement whose value is dropped) that is
@@ -122,23 +123,24 @@ function scan() {
   return result;
 }
 
-function main() {
+export function main(argv = [], { log = console.log, err = console.error } = {}) {
   const found = scan();
   const files = Object.keys(found).sort();
   const total = files.reduce((n, f) => n + found[f].length, 0);
-  const list = process.argv.includes('--list');
+  const list = argv.includes('--list');
   if (total === 0) {
-    console.log('floating-promises: PASS (0 findings)');
-    return;
+    log('floating-promises: PASS (0 findings)');
+    return 0;
   }
-  const out = list ? console.log : console.error;
+  const out = list ? log : err;
   if (!list) out('floating-promises: a promise statement needs a rejection handler (.catch / .then(ok, err), e.g. reportError), await, or "void ...; // reason: <why>". Findings:');
   for (const f of files) for (const l of found[f]) out(`${f}:${l}`);
   out(`floating-promises: ${total} findings in ${files.length} files`);
   if (!list) {
-    console.error('floating-promises: FAIL');
-    process.exit(1);
+    err('floating-promises: FAIL');
+    return 1;
   }
+  return 0;
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === __filename) main();
+if (isEntry(import.meta.url)) process.exitCode = main(process.argv.slice(2));

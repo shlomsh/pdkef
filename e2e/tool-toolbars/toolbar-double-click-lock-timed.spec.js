@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test, expect } from '@playwright/test';
@@ -117,7 +118,6 @@ test.describe('A real double-click (with a human-scale gap) locks the tool, on b
   // real double-click - landed. A 0ms synthetic double-click never gives that
   // re-render a window to run in; this one does.
   test('Sign: Text on a document with detected fields locks with a 250ms gap between clicks', async ({ page }) => {
-    const fs = await import('node:fs');
     const toolbar = await openTool(page, '/sign/?next=0', 'PDF annotations', '[class*="page-overlay"]', fs.readFileSync(FIELDS_FIXTURE));
     const btn = toolbar.getByRole('button', { name: 'Text', exact: true });
 

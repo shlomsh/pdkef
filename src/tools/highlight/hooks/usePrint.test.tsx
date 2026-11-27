@@ -16,6 +16,7 @@ import { reportToolLifecycleEvent, resetUsageEventsForTests } from '#lib/telemet
 import { drainPromises } from '../../../test/support/drainPromises.ts';
 import { waitUntil } from '../../../test/support/waitUntil.ts';
 import { PRINT_TIMEOUT_MS, usePrint } from './usePrint.ts';
+import { _resetForTest, hatchIfLoaded } from '../lib/outline/hatchLoader.ts';
 
 let container: HTMLElement | null = null;
 let api: ReturnType<typeof usePrint>;
@@ -153,7 +154,6 @@ describe('usePrint', () => {
 
   describe('READ-14: a pencil mark waits for rough.js', () => {
     it('mounts the sheets only after the hatch has loaded, and ignores a second request meanwhile', async () => {
-      const { _resetForTest, hatchIfLoaded } = await import('../lib/outline/hatchLoader.ts');
       _resetForTest();
       const pencil = { id: 'p', type: 'highlight', pageIndex: 0, left: 0, top: 0, width: 10, height: 10, color: '#FFF34D', style: 'pencil', bands: [{ left: 0, top: 0, width: 100, height: 100 }] } as EditorElement;
       function PencilProbe() {

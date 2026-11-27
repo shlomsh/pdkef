@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { EditorElement } from './editorModel.ts';
+import { createPageGeometry } from '../geometry/coords.ts';
 import { pushCommand, redoStep, revertCommands } from './historyStack.ts';
 import {
   applyHistoryEntries,
@@ -495,7 +496,6 @@ describe('remove-place entries', () => {
 
 describe('restored turn-page entries (SIGN-43)', () => {
   it('refuses a turn-page entry whose cropBox has no area, so undo cannot throw', async () => {
-    const { createPageGeometry } = await import('../geometry/coords.ts');
     const geometry = createPageGeometry({ cropBox: { x: 0, y: 0, width: 612, height: 792 } });
     const entry = (cropBox: typeof geometry.cropBox) => ({
       id: 't1', timestamp: 1, operation: 'turn-page', type: 'ROTATE_PAGE', pageIndex: 0,
@@ -508,7 +508,6 @@ describe('restored turn-page entries (SIGN-43)', () => {
   });
 
   it('validates textWidths: absent or a plain object of finite numbers >= 0', async () => {
-    const { createPageGeometry } = await import('../geometry/coords.ts');
     const geometry = createPageGeometry({ cropBox: { x: 0, y: 0, width: 612, height: 792 } });
     const entry = (textWidths?: unknown) => ({
       id: 't1', timestamp: 1, operation: 'turn-page', type: 'ROTATE_PAGE', pageIndex: 0,

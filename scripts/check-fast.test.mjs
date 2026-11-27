@@ -171,6 +171,7 @@ await exitWithMain(async () => {
 }, []);
 `,
     );
+    // oxlint-disable-next-line landmines/no-cold-start-in-test -- stdout surviving the process exit is the behaviour
     const child = spawn(process.execPath, [file], { stdio: ['ignore', 'pipe', 'inherit'] });
     let out = '';
     child.stdout.on('data', (c) => (out += c));

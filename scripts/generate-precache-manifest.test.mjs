@@ -4,6 +4,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { main } from './generate-precache-manifest.mjs';
 
 const script = fileURLToPath(new URL('./generate-precache-manifest.mjs', import.meta.url));
 const page = (body) => `<!doctype html><html><head>${body}</head><body></body></html>`;
@@ -32,8 +33,13 @@ let work;
 let manifest;
 let distDir;
 
+let cliRun;
+
+// The one real CLI run: the script as `node scripts/generate-precache-manifest.mjs` in a work dir.
 beforeAll(() => {
-  ({ work, manifest } = generate(VERCEL_HEADERS));
+  work = plant(VERCEL_HEADERS);
+  cliRun = spawnSync(process.execPath, [script], { cwd: work, encoding: 'utf8' });
+  manifest = readManifest(work);
   distDir = path.join(work, 'dist');
 });
 
@@ -42,20 +48,31 @@ const extraWorkDirs = [];
 
 // The generator rewrites dist/ in place, so each run gets its own work dir: DIST, plus a
 // vercel.json with `headers` beside it. Returns the dir and the manifest.
-function generate(headers) {
+function plant(headers) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'precache-manifest-'));
   for (const [file, content] of Object.entries(DIST)) {
     fs.mkdirSync(path.dirname(path.join(dir, 'dist', file)), { recursive: true });
     fs.writeFileSync(path.join(dir, 'dist', file), content);
   }
   fs.writeFileSync(path.join(dir, 'vercel.json'), JSON.stringify({ headers }));
-  const run = spawnSync(process.execPath, [script], { cwd: dir, encoding: 'utf8' });
-  if (run.status !== 0) throw new Error(`generator failed: ${run.stderr}`);
-  return { work: dir, manifest: JSON.parse(fs.readFileSync(path.join(dir, 'dist', 'precache-manifest.json'), 'utf8')) };
+  return dir;
+}
+
+const readManifest = (dir) => JSON.parse(fs.readFileSync(path.join(dir, 'dist', 'precache-manifest.json'), 'utf8'));
+
+function generate(headers) {
+  const dir = plant(headers);
+  main({ cwd: dir, log: () => {} });
+  return { work: dir, manifest: readManifest(dir) };
 }
 
 afterAll(() => {
   for (const dir of [work, ...extraWorkDirs]) fs.rmSync(dir, { recursive: true, force: true });
+});
+
+it('the CLI run prints its summary line and exits 0', () => {
+  expect(cliRun.status).toBe(0);
+  expect(cliRun.stdout).toMatch(/Precache manifest: \d+ shell files/);
 });
 
 describe('generate-precache-manifest', () => {

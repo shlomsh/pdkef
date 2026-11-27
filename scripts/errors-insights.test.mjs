@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   RISING,
@@ -335,7 +336,6 @@ describe('DEBT-44: drops, rejects and build-stamped usage', () => {
 
 describe('TOOL_AREAS names real areas (DEBT-44)', () => {
   it('every area is on ERROR_AREAS in src/lib/telemetry/errorReportSchema.ts', async () => {
-    const { readFileSync } = await import('node:fs');
     const source = readFileSync(new URL('../src/lib/telemetry/errorReportSchema.ts', import.meta.url), 'utf8');
     const block = /export const ERROR_AREAS = \[([\s\S]*?)\] as const;/.exec(source)[1];
     const areas = [...block.matchAll(/^\s*'([a-z_]+)'/gm)].map((m) => m[1]);

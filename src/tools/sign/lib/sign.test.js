@@ -5,6 +5,8 @@ import path from 'path';
 import { execFileSync } from 'child_process';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import { PDFDocument, PDFName, degrees } from '@cantoo/pdf-lib';
+import { getDocument, OPS } from 'pdfjs-dist/legacy/build/pdf.mjs';
+import { noPagesKey, ORIGINAL_WIDTHS } from '../../../test/support/pdfPageTreeFixtures';
 import {
   FontUnavailableError,
   FormFlattenError,
@@ -45,7 +47,6 @@ async function buildAcroFormFixture() {
 
 
 async function getTextItems(blob) {
-  const { getDocument } = await import('pdfjs-dist/legacy/build/pdf.mjs');
   const loadingTask = getDocument({
     data: new Uint8Array(await blob.arrayBuffer()),
     useWorkerFetch: false,
@@ -88,7 +89,6 @@ describe('sign.js signPdf', () => {
     // DEBT-55: a catalog that lost its /Pages loads but throws at the page
     // count; the export repairs it through openPdfDoc's page-tree repair.
     it('exports a file whose page list was lost but one page tree survives', async () => {
-      const { noPagesKey, ORIGINAL_WIDTHS } = await import('../../../test/support/pdfPageTreeFixtures');
       const file = new File([noPagesKey()], 'lost-pages.pdf', { type: 'application/pdf' });
       const out = await PDFDocument.load(await (await signPdf(file, [])).arrayBuffer());
       expect(out.getPages().map((p) => p.getSize().width)).toEqual(ORIGINAL_WIDTHS);
@@ -104,7 +104,6 @@ describe('sign.js signPdf', () => {
       const file = await buildPages([0]);
       const rectangle = { id: 'r', type: 'rectangle', pageIndex: 0, left: 10, top: 20, width: 20, height: 10, color: '#1463ff', strokeWidth: 2 };
       const blob = await signPdf(file, [rectangle], undefined, { pageTurns: { 0: 1 } });
-      const { getDocument, OPS } = await import('pdfjs-dist/legacy/build/pdf.mjs');
       const task = getDocument({ data: new Uint8Array(await blob.arrayBuffer()), useWorkerFetch: false, isEvalSupported: false });
       const page = await (await task.promise).getPage(1);
       expect(page.rotate).toBe(90);

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { spawnSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, readdirSync, existsSync, appendFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -90,6 +90,7 @@ describe('CI apt steps are bounded', () => {
 
 describe('ci-bounded-apt.sh usage', () => {
   it('needs two bounds and a command', () => {
+    // oxlint-disable-next-line landmines/no-cold-start-in-test -- the bash wrapper's timeout and retries are what this runs
     const r = run(['5', 'echo']);
     expect(r.status).toBe(2);
     expect(r.stderr).toMatch(/usage/);
@@ -97,9 +98,13 @@ describe('ci-bounded-apt.sh usage', () => {
 });
 
 describe('ci-bounded-apt.sh without timeout', () => {
+  let bash;
+  beforeAll(() => {
+    bash = spawnSync('bash', ['-c', 'command -v bash'], { encoding: 'utf8' }).stdout.trim();
+  });
   it('fails with a clear message instead of running unbounded', () => {
-    const bash = spawnSync('bash', ['-c', 'command -v bash'], { encoding: 'utf8' }).stdout.trim();
     const dir = mkdtempSync(join(tmpdir(), 'nopath-'));
+    // oxlint-disable-next-line landmines/no-cold-start-in-test -- the bash wrapper's timeout and retries are what this runs
     const r = spawnSync(bash, [SCRIPT, '5', '5', 'echo', 'ran'], {
       env: { PATH: dir, CI_BOUNDED_APT_PREFIX: '' },
       encoding: 'utf8',
@@ -116,6 +121,7 @@ describe.runIf(process.platform === 'linux')('ci-bounded-apt.sh behaviour (GNU t
 
   it('runs once and exits 0 on first success', () => {
     const f = counter();
+    // oxlint-disable-next-line landmines/no-cold-start-in-test -- the bash wrapper's timeout and retries are what this runs
     const r = run(['5', '5', 'bash', '-c', `printf x >> ${f}`]);
     expect(r.status).toBe(0);
     expect(count(f)).toBe(1);
@@ -123,6 +129,7 @@ describe.runIf(process.platform === 'linux')('ci-bounded-apt.sh behaviour (GNU t
 
   it('runs exactly twice on persistent failure and returns its status', () => {
     const f = counter();
+    // oxlint-disable-next-line landmines/no-cold-start-in-test -- the bash wrapper's timeout and retries are what this runs
     const r = run(['5', '5', 'bash', '-c', `printf x >> ${f}; exit 7`]);
     expect(r.status).toBe(7);
     expect(count(f)).toBe(2);
@@ -131,6 +138,7 @@ describe.runIf(process.platform === 'linux')('ci-bounded-apt.sh behaviour (GNU t
 
   it('succeeds on the retry after one failure', () => {
     const f = counter();
+    // oxlint-disable-next-line landmines/no-cold-start-in-test -- the bash wrapper's timeout and retries are what this runs
     const r = run(['5', '5', 'bash', '-c', `printf x >> ${f}; [ "$(wc -c < ${f})" -ge 2 ]`]);
     expect(r.status).toBe(0);
     expect(count(f)).toBe(2);
@@ -139,6 +147,7 @@ describe.runIf(process.platform === 'linux')('ci-bounded-apt.sh behaviour (GNU t
   it('kills a command that outlives the bound and retries', () => {
     const f = counter();
     const t0 = Date.now();
+    // oxlint-disable-next-line landmines/no-cold-start-in-test -- the bash wrapper's timeout and retries are what this runs
     const r = run(['1', '1', 'bash', '-c', `printf x >> ${f}; sleep 5`]);
     // oxlint-disable-next-line landmines/no-elapsed-time-bound -- the bound is the behaviour: unkilled, the two 5 s attempts take 10 s
     expect(Date.now() - t0).toBeLessThan(10000);
@@ -152,6 +161,7 @@ describe.runIf(process.platform === 'linux')('ci-bounded-apt.sh behaviour (GNU t
   // so this proves the process-group kill on the image CI actually uses.
   it('kills the grandchildren of a command that outlives the bound', () => {
     const pids = counter();
+    // oxlint-disable-next-line landmines/no-cold-start-in-test -- the bash wrapper's timeout and retries are what this runs
     run(['1', '1', 'bash', '-c', `sleep 30 & echo $! >> ${pids}; wait`]);
     const alive = (pid) => {
       try { process.kill(Number(pid), 0); return true; } catch { return false; }
@@ -161,7 +171,7 @@ describe.runIf(process.platform === 'linux')('ci-bounded-apt.sh behaviour (GNU t
     const deadline = Date.now() + 3000;
     let left = all.filter(alive);
     while (left.length && Date.now() < deadline) {
-      spawnSync('sleep', ['0.1']);
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 100);
       left = all.filter(alive);
     }
     expect(left).toEqual([]);
@@ -170,6 +180,7 @@ describe.runIf(process.platform === 'linux')('ci-bounded-apt.sh behaviour (GNU t
   it('bounds the retry by the second number', () => {
     const f = counter();
     // attempt 1 fails fast; attempt 2 sleeps 2 s: over the 1 s first bound, within the 4 s retry bound.
+    // oxlint-disable-next-line landmines/no-cold-start-in-test -- the bash wrapper's timeout and retries are what this runs
     const r = run(['1', '4', 'bash', '-c', `printf x >> ${f}; n=$(wc -c < ${f}); if [ "$n" -ge 2 ]; then sleep 2; else exit 1; fi`]);
     expect(r.status).toBe(0);
     expect(count(f)).toBe(2);
