@@ -97,6 +97,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 ### Honest tests: adopt landmines
 
 - [LAND-07](backlog/tasks/LAND-07.md) P2 · Expected values live in the case table, wall-clock bounds are deliberate, silent catches say why (in progress)
+- [LAND-08](backlog/tasks/LAND-08.md) P2 · No assertion is skipped by a branch (in progress)
 - [LAND-05](backlog/tasks/LAND-05.md) P3 · Tests live beside what they test (in progress)
 
 ### Polish

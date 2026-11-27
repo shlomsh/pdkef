@@ -1,7 +1,7 @@
 ---
 id: "LAND-08"
 title: "No assertion is skipped by a branch"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "honest-tests"
 horizon: "next"
