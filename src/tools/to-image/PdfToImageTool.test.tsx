@@ -83,17 +83,22 @@ describe('PdfToImageTool', () => {
   });
 
   it.each([
-    { pages: 31, builds: 0 },
     { pages: 30, builds: 1 },
   ])('with $pages pages it makes $builds builds on its own, and says Made when you tap only above 30', async ({ pages, builds }) => {
     await s.open(pages);
     await s.drain();
     expect(conversions()).toBe(builds);
     expect(s.downloadElement().dataset.state).toBe('ready');
-    if (builds === 1) {
-      expect(s.downloadText()).not.toContain('Made when you tap');
-      return;
-    }
+    expect(s.downloadText()).not.toContain('Made when you tap');
+  });
+
+  it.each([
+    { pages: 31, builds: 0 },
+  ])('with $pages pages it makes $builds builds on its own, and says Made when you tap only above 30', async ({ pages, builds }) => {
+    await s.open(pages);
+    await s.drain();
+    expect(conversions()).toBe(builds);
+    expect(s.downloadElement().dataset.state).toBe('ready');
     expect(s.downloadText()).toContain('Made when you tap');
     await s.press();
     await waitUntil(() => {

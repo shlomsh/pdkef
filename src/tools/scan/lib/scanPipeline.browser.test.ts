@@ -244,11 +244,11 @@ describe('buildScanPdf: the size limit', () => {
     const seen: number[] = [];
     await buildScanPdf(input, { pageSize: 'fit', budgetBytes: Math.floor(full.blob.size * 0.6), onProgress: (f) => seen.push(f) });
     expect(seen.length, 'progress steps').toBeGreaterThan(1);
-    seen.forEach((f, i) => {
+    seen.forEach((f) => {
       expect(f, 'progress above 0').toBeGreaterThan(0);
       expect(f, 'progress under done').toBeLessThan(1);
-      if (i > 0) expect(f, 'progress forward').toBeGreaterThan(seen[i - 1]);
     });
+    seen.slice(1).forEach((f, i) => expect(f, 'progress forward').toBeGreaterThan(seen[i]));
   });
 
   it('steps the JPEG quality down until the PDF is under the limit, then shrinks the pixels when quality alone cannot reach it, and keeps the printed size', async () => {

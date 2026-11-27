@@ -316,6 +316,7 @@ describe('HighlightWorkspace notes (R28, R29)', () => {
   });
 
   it('prints at once when there is only one way to print: no comment means no menu, in the row or the lamp', () => {
+    const chevrons: (Element | null)[] = [];
     for (const fullscreen of [false, true]) {
       vi.mocked(PrintSheets).mockClear();
       const ws = mount({ fullscreen, pseudoFullscreen: false });
@@ -323,10 +324,11 @@ describe('HighlightWorkspace notes (R28, R29)', () => {
       expect(trigger.hasAttribute('aria-haspopup')).toBe(false);
       act(() => { trigger.click(); });
       expect(printedWith()).toBe('none');
-      if (!fullscreen) expect(trigger.querySelector(`.${toolbarStyles.chevron}`)).toBeNull();
+      chevrons.push(trigger.querySelector(`.${toolbarStyles.chevron}`));
       expect(container!.querySelector('[role="menu"]')).toBeNull();
       act(() => render(null, container!));
     }
+    expect(chevrons).toEqual([null, null]);
   });
 
   it('opens the print menu 8 px under the capsule in the lamp, and under its own tile in the row', () => {

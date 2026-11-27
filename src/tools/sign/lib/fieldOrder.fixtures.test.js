@@ -22,6 +22,7 @@ const FIXTURE = path.resolve(here, './fields/__fixtures__/income-tax-101-page1-g
 const overlapVertically = (a, b) => (
   a.region.top < b.region.top + b.region.height && b.region.top < a.region.top + a.region.height
 );
+const neighbourPairs = (fields) => fields.slice(1).map((current, i) => [fields[i], current]);
 const rightEdge = (field) => field.region.left + field.region.width;
 
 describe('income tax form 101, page 1, in fill order', () => {
@@ -38,29 +39,22 @@ describe('income tax form 101, page 1, in fill order', () => {
   });
 
   it('never goes back up the page: each row starts at or below the one before', () => {
-    for (let i = 1; i < order.length; i += 1) {
-      const previous = order[i - 1];
-      const current = order[i];
-      if (!overlapVertically(previous, current)) {
-        expect(current.region.top).toBeGreaterThan(previous.region.top);
-      }
-    }
+    const rowStarts = neighbourPairs(order).filter(([previous, current]) => !overlapVertically(previous, current));
+    expect(rowStarts.length).toBeGreaterThan(0);
+    rowStarts.forEach(([previous, current]) => {
+      expect(current.region.top).toBeGreaterThan(previous.region.top);
+    });
   });
 
   it('walks each row right to left, the way the Hebrew form reads', () => {
-    let rowsWithTwoOrMore = 0;
-    for (let i = 1; i < order.length; i += 1) {
-      const previous = order[i - 1];
-      const current = order[i];
-      if (overlapVertically(previous, current)) {
-        rowsWithTwoOrMore += 1;
-        expect(rightEdge(current)).toBeLessThan(rightEdge(previous));
-      }
-    }
+    const sameRow = neighbourPairs(order).filter(([previous, current]) => overlapVertically(previous, current));
+    sameRow.forEach(([previous, current]) => {
+      expect(rightEdge(current)).toBeLessThan(rightEdge(previous));
+    });
     // The children's table alone has thirteen rows of two runs, so this
     // assertion has real work to do; a page read as 38 single-field rows
     // would pass the loop vacuously.
-    expect(rowsWithTwoOrMore).toBeGreaterThanOrEqual(13);
+    expect(sameRow.length).toBeGreaterThanOrEqual(13);
   });
 
   it('reads the identity row right to left: identity number, then the two dates beside it', () => {

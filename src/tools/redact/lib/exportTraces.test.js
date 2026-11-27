@@ -69,10 +69,11 @@ describe.each(Object.keys(paths))('%s export', (path) => {
     )));
     const out = await paths[path](await fixture.save());
     const reloaded = await PDFDocument.load(out, { updateMetadata: false });
-    for (const [, o] of reloaded.context.enumerateIndirectObjects()) {
-      const d = o instanceof PDFStream ? o.dict : o;
-      if (d instanceof PDFDict) expect(d.has(PDFName.of('PieceInfo'))).toBe(false);
-    }
+    const dicts = [...reloaded.context.enumerateIndirectObjects()]
+      .map(([, o]) => (o instanceof PDFStream ? o.dict : o))
+      .filter((d) => d instanceof PDFDict);
+    expect(dicts.length).toBeGreaterThan(0);
+    for (const d of dicts) expect(d.has(PDFName.of('PieceInfo'))).toBe(false);
     expect(reloaded.catalog.has(PDFName.of('PieceInfo'))).toBe(false);
     expect(readDocumentTraces(reloaded).pieceInfo).toBe(false);
     const xmp = reloaded.catalog.lookup(PDFName.of('Metadata'));

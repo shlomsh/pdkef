@@ -524,8 +524,14 @@ spawnGroup(${JSON.stringify(lateWriter(marker))}, { shell: true, stdio: ['ignore
 
 describe('every guard check:fast and check:push run resolves against package.json', () => {
   const { scripts } = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
-  it.each(GUARD_STEPS)('check:fast guard %s', (name) => {
-    if (scripts[name] === undefined) return expect(['check-orphaned-selectors', 'check-class-resolution']).toContain(name);
+  const scriptless = GUARD_STEPS.filter((name) => scripts[name] === undefined);
+  it('the only listed guards with no package.json script are the two that run as files', () => {
+    expect(scriptless).toEqual(['check-orphaned-selectors', 'check-class-resolution']);
+  });
+  it.each(scriptless)('check:fast guard %s', (name) => {
+    expect(['check-orphaned-selectors', 'check-class-resolution']).toContain(name);
+  });
+  it.each(GUARD_STEPS.filter((name) => scripts[name] !== undefined))('check:fast guard %s', (name) => {
     expect(() => resolveGuardCommand(name, scripts)).not.toThrow();
   });
   it.each(ALWAYS_GUARD_STEPS)('check:push guard %s', (name) => {

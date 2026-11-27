@@ -57,9 +57,13 @@ describe('language/font acceptance matrix', () => {
   });
 
   it('links every shipped shaping/visual claim to a real guard and every named baseline case to the corpus', () => {
-    for (const row of LANGUAGE_ACCEPTANCE_MATRIX.filter((entry) => entry.status === 'shipped')) {
-      if (row.shaping.status === 'guarded') expect(row.shaping.guards.length, row.id).toBeGreaterThan(0);
-      else expect(row.shaping.reason, row.id).toBeTruthy();
+    const shipped = LANGUAGE_ACCEPTANCE_MATRIX.filter((entry) => entry.status === 'shipped');
+    const guarded = shipped.filter((row) => row.shaping.status === 'guarded');
+    const unguarded = shipped.filter((row) => row.shaping.status !== 'guarded');
+    expect(guarded.length).toBeGreaterThan(0);
+    for (const row of guarded) expect(row.shaping.guards.length, row.id).toBeGreaterThan(0);
+    for (const row of unguarded) expect(row.shaping.reason, row.id).toBeTruthy();
+    for (const row of shipped) {
       const guards = [...(row.shaping.guards || []), ...row.visual.guards];
       expect(row.visual.guards.length, row.id).toBeGreaterThan(0);
       for (const guard of guards) expect(existsSync(join(process.cwd(), guard)), `${row.id}: ${guard}`).toBe(true);

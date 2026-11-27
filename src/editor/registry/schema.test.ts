@@ -25,13 +25,30 @@ const validElements = {
 } as const;
 
 describe('element registry schemas', () => {
-  it.each(Object.keys(validElements))('exposes the complete module seam for %s', (type) => {
-    const definition = getElementDefinition(type as keyof typeof validElements);
+  const types = Object.keys(validElements) as (keyof typeof validElements)[];
+  const external = types.filter((type) => getElementDefinition(type).creation.mode === 'external');
+  const created = types.filter((type) => getElementDefinition(type).creation.mode !== 'external');
+
+  it('splits the types into those a tool creates and those made elsewhere', () => {
+    expect(external.length).toBeGreaterThan(0);
+    expect(created.length).toBeGreaterThan(0);
+    expect([...external, ...created].sort()).toEqual([...types].sort());
+  });
+
+  it.each(external)('exposes the complete module seam for %s', (type) => {
+    const definition = getElementDefinition(type);
     expect(typeof definition.schema).toBe('function');
-    expect(typeof elementRenderers[type as keyof typeof validElements]).toBe('function');
+    expect(typeof elementRenderers[type]).toBe('function');
     expect(typeof definition.serialize).toBe('function');
-    if (definition.creation.mode === 'external') expect(definition.creation.create).toBeUndefined();
-    else expect(typeof definition.creation.create).toBe('function');
+    expect(definition.creation.create).toBeUndefined();
+  });
+
+  it.each(created)('exposes the complete module seam for %s', (type) => {
+    const definition = getElementDefinition(type);
+    expect(typeof definition.schema).toBe('function');
+    expect(typeof elementRenderers[type]).toBe('function');
+    expect(typeof definition.serialize).toBe('function');
+    expect(typeof definition.creation.create).toBe('function');
   });
 
   it.each(Object.entries(validElements))('accepts a valid %s element', (type, element) => {

@@ -95,14 +95,16 @@ describe('pageAspect', () => {
     for (const focal of [0.65, 0.75, 0.9]) {
       it(`recovers ${name} within 3% tilted back square to a camera of focal ${focal}`, () => {
         // Up to 25 degrees; at 40 a 0.65 or 0.9 camera is 6-7% off the assumed 0.75 (still beats edges).
+        const shoot = (tilt: number) => photograph(ratio, { focal, tilt, shift: { x: 0.1, y: 0.05 } });
         for (const tilt of [10, 20, 25]) {
-          const quad = photograph(ratio, { focal, tilt, shift: { x: 0.1, y: 0.05 } });
+          const quad = shoot(tilt);
           expect(quad[0].y).toBeCloseTo(quad[1].y, 6); // the top edge really is level
-          const { width, height } = warpSizeFor(quad, 1e6, null);
           const aspect = pageAspect(quad, W, H) as number;
           expect(Math.abs(aspect / ratio - 1)).toBeLessThan(0.03);
-          if (tilt >= 25) expect(Math.abs(width / height / ratio - 1)).toBeGreaterThan(0.05);
         }
+        // At 25 degrees the size the corners alone suggest is visibly off, which is what the aspect fixes.
+        const { width, height } = warpSizeFor(shoot(25), 1e6, null);
+        expect(Math.abs(width / height / ratio - 1)).toBeGreaterThan(0.05);
       });
     }
   }

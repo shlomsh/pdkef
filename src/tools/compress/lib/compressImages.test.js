@@ -287,7 +287,8 @@ describe('compressPdfImages', () => {
     const result = await compressPdfImages(file, { maxLongSidePx: 1000, quality: 0.7, encodeImage: big });
     expect(result.rewritten).toBe(0);
     expect(big.calls.length).toBeGreaterThan(0);
-    if (result.reason === 'no-gain') expect(result.blob).toBe(file);
+    expect(result.reason).toBe('no-gain');
+    expect(result.blob).toBe(file);
   });
 
   it('keeps an image the encoder cannot decode', async () => {

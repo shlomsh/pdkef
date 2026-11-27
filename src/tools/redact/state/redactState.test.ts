@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { assert, describe, expect, it } from 'vitest';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import {
   brushKindOf,
@@ -624,10 +624,9 @@ describe('EDIT_COMMITTED history coalescing', () => {
     expect(s.edits.history.past).toHaveLength(2);
     const top = s.edits.history.past[0];
     expect(top.operation).toBe('update');
-    if (top.operation === 'update') {
-      expect(top.updates[0].before).toEqual({ left: 1 });
-      expect(top.updates[0].after).toEqual({ left: 40 });
-    }
+    assert(top.operation === 'update');
+    expect(top.updates[0].before).toEqual({ left: 1 });
+    expect(top.updates[0].after).toEqual({ left: 40 });
     expect(s.edits.elements[0].left).toBe(40);
     expect(s.edits.documentRevision).toBe(3);
   });

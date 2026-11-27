@@ -857,7 +857,7 @@ describe('PdfCompressTool flows in a real browser', () => {
       expect(runNo()).toBe('1');
 
       // A stale "needs a password" answer, after a newer PDF pick and after a newer image pick, lands nothing.
-      for (const newer of ['pdf', 'image'] as const) {
+      for (const [newer, builds] of [['pdf', 1], ['image', 0]] as const) {
         mount();
         vi.mocked(imagesLib.compressPdfImages).mockClear();
         // The first check (a password file) is held open by its file while a newer pick lands. The spy on its read
@@ -879,7 +879,7 @@ describe('PdfCompressTool flows in a real browser', () => {
         expect(statusOf()).toBe('done');
         expect(runNo()).toBe('1');
         // An image is never probed and builds on its own; a stale PDF build would have made the counter 2.
-        if (newer === 'image') expect(imagesLib.compressPdfImages).not.toHaveBeenCalled();
+        expect(imagesLib.compressPdfImages).toHaveBeenCalledTimes(builds);
       }
     });
   });

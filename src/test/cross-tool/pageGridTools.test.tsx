@@ -144,6 +144,8 @@ describe.each(OPENED)('$name with a PDF opened on the shared page workspace', ({
   };
   const heading = () => find('#page-grid-heading');
   const rangeField = () => find<HTMLInputElement>('#page-selector-input');
+  // Split and PDF to Image show the page range; Edit Pages has no range field, and says so by it being absent.
+  const expectRange = (shown: string) => expect(root().querySelector<HTMLInputElement>('#page-selector-input')?.value ?? null).toBe(hasField ? shown : null);
   const downloadElement = () => root().querySelector<HTMLElement>('a[data-state]');
   const download = () => {
     const found = downloadElement();
@@ -189,13 +191,13 @@ describe.each(OPENED)('$name with a PDF opened on the shared page workspace', ({
     expect(skipped()).toEqual([true, true, true, true, true]);
     expect(download().getAttribute('data-state')).toBe('nothing');
     expect(download().textContent).toContain('Every page is skipped');
-    if (hasField) expect(rangeField().value).toBe('');
+    expectRange('');
     await click(button('Include all'));
     expect(skipped()).toEqual([false, false, false, false, false]);
     await click(skipButton(1));
     await click(button('Invert'));
     expect(skipped()).toEqual([false, true, true, true, true]);
-    if (hasField) expect(rangeField().value).toBe('1');
+    expectRange('1');
     await undo();
     expect(skipped()).toEqual([true, false, false, false, false]);
     await undo();
@@ -212,11 +214,11 @@ describe.each(OPENED)('$name with a PDF opened on the shared page workspace', ({
     expect(cells()[1].hasAttribute('data-skipped')).toBe(true);
     expect(heading().textContent).toContain(`4 ${noun}`);
     expect(heading().textContent).toContain('1 page skipped');
-    if (hasField) expect(rangeField().value).toBe('1, 3-5');
+    expectRange('1, 3-5');
     await click(skipButton(2));
     expect(isSkipped(2)).toBe(false);
     expect(heading().textContent).not.toContain('skipped');
-    if (hasField) expect(rangeField().value).toBe('1-5');
+    expectRange('1-5');
 
     if (!hasField) return;
     // Typing a range skips the other pages, as one Undo step.

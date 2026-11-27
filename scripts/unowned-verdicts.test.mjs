@@ -111,14 +111,18 @@ describe('packageJsonReachesE2e (QUAL-43)', () => {
     ['a changed postinstall', (p) => { p.scripts.postinstall = 'patch-package'; }],
     ['a new prepare', (p) => { p.scripts.prepare = 'node x.mjs'; }],
     ['a new preinstall', (p) => { p.scripts.preinstall = 'node x.mjs'; }],
+  ])('%s reaches e2e', (_, fn) => {
+    expect(reaches(edit(fn))).toBe(true);
+  });
+
+  it.each([
     // A callee is found by its name, however the path script runs it.
     ['a script build runs through npm run-script', (p) => { p.scripts.build = 'npm run-script gen && astro build'; p.scripts.gen = 'node a.mjs'; }, (p) => { p.scripts.build = 'npm run-script gen && astro build'; p.scripts.gen = 'node b.mjs'; }],
     ['a script build runs through npm --silent run', (p) => { p.scripts.build = 'npm --silent run gen'; p.scripts.gen = 'node a.mjs'; }, (p) => { p.scripts.build = 'npm --silent run gen'; p.scripts.gen = 'node b.mjs'; }],
     ['a script build runs through node --run', (p) => { p.scripts.build = 'node --run gen'; p.scripts.gen = 'node a.mjs'; }, (p) => { p.scripts.build = 'node --run gen'; p.scripts.gen = 'node b.mjs'; }],
     ['the test script when build runs npm test', (p) => { p.scripts.build = 'npm test && astro build'; p.scripts.test = 'vitest'; }, (p) => { p.scripts.build = 'npm test && astro build'; p.scripts.test = 'vitest run'; }],
   ])('%s reaches e2e', (_, fn, beforeFn) => {
-    if (beforeFn) { expect(reaches(edit(beforeFn), edit(fn))).toBe(true); return; }
-    expect(reaches(edit(fn))).toBe(true);
+    expect(reaches(edit(beforeFn), edit(fn))).toBe(true);
   });
 
   it('a script called only by a newly added path script is followed on the after side', () => {

@@ -237,9 +237,9 @@ describe('ci.yml builds once (QUAL-42)', () => {
   });
 
   it('every job that reads a plan output lists plan in needs', () => {
-    for (const [name, job] of Object.entries(jobs)) {
-      if (JSON.stringify(job).includes('needs.plan.')) expect(needsOf(name), name).toContain('plan');
-    }
+    const readers = Object.entries(jobs).filter(([, job]) => JSON.stringify(job).includes('needs.plan.'));
+    expect(readers.length).toBeGreaterThan(0);
+    for (const [name] of readers) expect(needsOf(name), name).toContain('plan');
   });
 
   it('every consumer requires plan to have succeeded', () => {

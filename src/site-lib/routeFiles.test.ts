@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { assert, describe, expect, it } from 'vitest';
 import { listedTools } from '../data/tools.js';
 import { handoffKeyFor, routeFiles } from './routeFiles';
 
@@ -22,21 +22,33 @@ describe('routeFiles', () => {
     ['pdf and photo', [f('a.pdf'), f('p.jpg'), f('n.txt')], 'open', 'merge', ['a.pdf', 'p.jpg'], ['n.txt']],
     ['photo, pdf, photo keep pick order', [f('p.jpg'), f('a.pdf'), f('q.PNG')], 'open', 'merge', ['p.jpg', 'a.pdf', 'q.PNG'], []],
     ['only unsupported', [f('n.txt'), f('p.heic')], 'none', 'unsupported', [], ['n.txt', 'p.heic']],
-  ] as const)('%s', (_label, input, kind, what, files, skipped) => {
-    const r = routeFiles(input);
-    expect(r.kind).toBe(kind);
-    if (r.kind === 'open') expect(r.tool).toBe(what);
-    if (r.kind === 'choose') expect(r.tools).toEqual(what);
-    if (r.kind === 'none') expect(r.reason).toBe(what);
-    if (r.kind !== 'none') expect(names(r.files)).toEqual(files);
-    expect(names(r.skipped)).toEqual(skipped);
+  ].map(([label, input, kind, what, files, skipped]) => [
+    label,
+    input,
+    // Every case carries every field it expects; a field the kind does not have is expected absent.
+    {
+      kind,
+      tool: kind === 'open' ? what : undefined,
+      tools: kind === 'choose' ? what : undefined,
+      reason: kind === 'none' ? what : undefined,
+      files: kind === 'none' ? undefined : files,
+      skipped,
+    },
+  ] as const))('%s', (_label, input, expected) => {
+    const r: { kind: string; tool?: string; tools?: string[]; reason?: string; files?: File[]; skipped: File[] } = routeFiles(input as File[]);
+    expect(r.kind).toBe(expected.kind);
+    expect(r.tool).toEqual(expected.tool);
+    expect(r.tools).toEqual(expected.tools);
+    expect(r.reason).toEqual(expected.reason);
+    expect(r.files && names(r.files)).toEqual(expected.files);
+    expect(names(r.skipped)).toEqual(expected.skipped);
   });
 
   it('lists choices in src/data/tools.js order', () => {
     const order = listedTools.map((t: { slug: string }) => t.slug);
     for (const input of [[f('a.pdf')], [f('p.jpg')]]) {
-      const r = routeFiles(input);
-      if (r.kind !== 'choose') throw new Error('expected choose');
+      const r = routeFiles(input as File[]);
+      assert(r.kind === 'choose');
       expect(r.tools).toEqual(order.filter((s: string) => r.tools.includes(s as never)));
     }
   });

@@ -169,10 +169,9 @@ describe('stepGuidance: priority', () => {
 describe('stepGuidance: steady', () => {
   it('a hint stays at least minShowMs, and the next shows once wanted for settleMs', () => {
     const seq = run([...frames(0, 2 * FRAME, (t) => page(t)), ...frames(2 * FRAME, 2000, (t) => page(t, { keystone: 0.5 }))]);
-    seq.forEach((g, i) => {
-      const t = i * FRAME;
-      if (t < P.minShowMs) expect(g.hint).toBe('hold');
-    });
+    const early = seq.filter((_, i) => i * FRAME < P.minShowMs);
+    expect(early.length).toBeGreaterThan(0);
+    expect(early.map((g) => g.hint)).toEqual(early.map(() => 'hold'));
     const shownAt = seq.findIndex((g) => g.hint === 'flatter') * FRAME;
     expect(shownAt).toBeGreaterThanOrEqual(P.minShowMs);
     expect(shownAt).toBeLessThan(P.minShowMs + 2 * FRAME);

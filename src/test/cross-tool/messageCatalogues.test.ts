@@ -19,20 +19,20 @@ const tokens = (s: string) => (s.match(/\{\w+\}/g) ?? []).sort();
 
 describe.each(CATALOGUES)('%s message catalogue', (_name, english, hebrew) => {
   it('gives every Hebrew string the same {placeholders} as its English twin', () => {
-    for (const [key, value] of Object.entries(hebrew)) {
-      if (typeof value !== 'string') continue;
-      const expected = tokens(String(english[key]));
-      // Hebrew spells a singular ("...One") as a word, so it may drop {count}, never add a token.
-      if (key.endsWith('One')) expect(expected, key).toEqual(expect.arrayContaining(tokens(value)));
-      else expect(tokens(value), key).toEqual(expected);
-    }
+    const strings = Object.entries(hebrew).filter((entry): entry is [string, string] => typeof entry[1] === 'string');
+    const singular = strings.filter(([key]) => key.endsWith('One'));
+    const rest = strings.filter(([key]) => !key.endsWith('One'));
+    expect(rest.length).toBeGreaterThan(0);
+    for (const [key, value] of rest) expect(tokens(value), key).toEqual(tokens(String(english[key])));
+    // Hebrew spells a singular ("...One") as a word, so it may drop {count}, never add a token.
+    for (const [key, value] of singular) expect(tokens(String(english[key])), key).toEqual(expect.arrayContaining(tokens(value)));
   });
 
   it('uses no em dashes in either language', () => {
     for (const catalogue of [english, hebrew]) {
-      for (const [key, value] of Object.entries(catalogue)) {
-        if (typeof value === 'string') expect(value, key).not.toContain('\u2014');
-      }
+      const strings = Object.entries(catalogue).filter((entry): entry is [string, string] => typeof entry[1] === 'string');
+      expect(strings.length).toBeGreaterThan(0);
+      for (const [key, value] of strings) expect(value, key).not.toContain('\u2014');
     }
   });
 });

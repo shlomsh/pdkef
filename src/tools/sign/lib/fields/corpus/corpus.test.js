@@ -76,7 +76,24 @@ describe.each(ELEMENT_CASES)('$group: $name', (testCase) => {
       // that lands on the wrong page puts a hint on a document someone is not
       // looking at, which no count assertion above would notice.
       expect(allRegions(pageFound).every((region) => region.pageIndex === pageIndex)).toBe(true);
-      if (testCase.comb) expect(pageFound.combs[0]).toMatchObject(testCase.comb);
+    });
+  });
+});
+
+// A row that declares `comb` pins the first comb run's shape on every page it reports.
+const COMB_CASES = ELEMENT_CASES.filter((testCase) => testCase.comb);
+
+describe('a comb row pins the shape of the comb it reports', () => {
+  it('has comb rows to run', () => {
+    expect(COMB_CASES.length).toBeGreaterThan(0);
+  });
+
+  it.each(COMB_CASES)('$group: $name', async (testCase) => {
+    const doc = await buildDocument(testCase.doc);
+    const found = await detectFormFields(doc, { textRuns: textRunsFor(doc, testCase.text) });
+    const expectedPages = testCase.perPage ?? [testCase.expect];
+    expectedPages.forEach((_expectation, pageIndex) => {
+      expect(onPage(found, pageIndex).combs[0]).toMatchObject(testCase.comb);
     });
   });
 });
@@ -118,20 +135,34 @@ describe('the cell detector scores within its published weights', () => {
   });
 });
 
+const COUNTED_DOCUMENTS = DOCUMENT_CASES.filter((documentCase) => documentCase.expect);
+const WIDGET_FREE_DOCUMENTS = DOCUMENT_CASES.filter((documentCase) => documentCase.widgetFree);
+
 describe('real documents', () => {
-  it.each(DOCUMENT_CASES)('$name', async (documentCase) => {
+  it('every document row pins a count or a widget-free page, and both kinds exist', () => {
+    expect(COUNTED_DOCUMENTS.length).toBeGreaterThan(0);
+    expect(WIDGET_FREE_DOCUMENTS.length).toBeGreaterThan(0);
+    expect(DOCUMENT_CASES.every((documentCase) => documentCase.expect || documentCase.widgetFree)).toBe(true);
+  });
+
+  it.each(COUNTED_DOCUMENTS)('$name', async (documentCase) => {
     const bytes = fs.readFileSync(path.join(repoRoot, ...documentCase.file));
     const doc = await PDFDocument.load(bytes, { ignoreEncryption: true });
     const found = onPage(await detectFormFields(doc, { textRuns: textRunsFor(doc) }), 0);
 
-    if (documentCase.expect) expect(countRegions(found)).toEqual(documentCase.expect);
-    if (documentCase.widgetFree) {
-      // The two scored flat forms carry no widget at all, which is what makes
-      // the widget pass a provable no-op on them - and therefore what lets the
-      // recall and precision numbers in docs/mobi-10-field-map-spike.md stand
-      // unchanged since the widget source was added.
-      expect(detectWidgetRegions(doc.getPage(0), 0)).toEqual({ combs: [], cells: [] });
-    }
+    expect(countRegions(found)).toEqual(documentCase.expect);
+  });
+
+  it.each(WIDGET_FREE_DOCUMENTS)('$name', async (documentCase) => {
+    const bytes = fs.readFileSync(path.join(repoRoot, ...documentCase.file));
+    const doc = await PDFDocument.load(bytes, { ignoreEncryption: true });
+    await detectFormFields(doc, { textRuns: textRunsFor(doc) });
+
+    // The two scored flat forms carry no widget at all, which is what makes
+    // the widget pass a provable no-op on them - and therefore what lets the
+    // recall and precision numbers in docs/mobi-10-field-map-spike.md stand
+    // unchanged since the widget source was added.
+    expect(detectWidgetRegions(doc.getPage(0), 0)).toEqual({ combs: [], cells: [] });
   });
 });
 

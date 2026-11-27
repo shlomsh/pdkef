@@ -30,13 +30,19 @@ const unevenPage = () =>
 describe('applyFilter', () => {
   it('document evens out uneven light: paper white, ink black', () => {
     const out = applyFilter(unevenPage(), 'document');
+    const bar: number[] = [];
+    const paper: number[] = [];
     for (let y = 0; y < H; y += 1) {
       for (let x = 0; x < W; x += 1) {
         const v = out.data[(y * W + x) * 4];
-        if (inBar(x, y)) expect(v, `bar ${x},${y}`).toBeLessThanOrEqual(60);
-        else if (!inBar(x, y, 3)) expect(v, `paper ${x},${y}`).toBeGreaterThanOrEqual(245);
+        if (inBar(x, y)) bar.push(v);
+        else if (!inBar(x, y, 3)) paper.push(v);
       }
     }
+    expect(bar.length, 'bar pixels').toBeGreaterThan(0);
+    expect(paper.length, 'paper pixels').toBeGreaterThan(0);
+    expect(bar.reduce((a, v) => Math.max(a, v), 0), 'lightest bar pixel').toBeLessThanOrEqual(60);
+    expect(paper.reduce((a, v) => Math.min(a, v), 255), 'dimmest paper pixel').toBeGreaterThanOrEqual(245);
   });
 
   it('document keeps a uniformly lit clean page white', () => {

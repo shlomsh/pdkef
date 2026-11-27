@@ -23,3 +23,12 @@ table, and some loop over the tool list (`e2e/tool-output-paths.spec.js:113`) an
 - A branch that is the point of the test (one tool of the list really differs) keeps a one-line disable
   saying so.
 - The rule at `error` in `.oxlintrc.json`, `npm run lint:landmines` clean.
+
+## Waves
+
+- Wave 1 (2026-11-27): the 62 sites in 36 unit and browser test files. Each assertion now runs every time: case
+  tables carry their expected values, `assert(...)` narrows a union instead of an `if`, loops run over filtered lists
+  that are first asserted non-empty, and callbacks record and assert afterwards. No disable lines. About half the
+  sites could skip silently before: Redact's whiteout handle count, a pdf case in Compress that asserted nothing, the
+  fullscreen chevron in Highlight, a Sign corpus null row that asserted nothing, and a Scan photo with no page found.
+  The rule is on at `error`; its `allow` map holds the 48 e2e sites in 19 specs, and only goes down.

@@ -56,7 +56,7 @@ describe('ScanPhoneTable', () => {
     const healthy = mount();
     const q = (s: string) => healthy.container.querySelector(s)!;
     const seq = ['h2', '[data-clear-all]', 'ul', '[data-hint]', '[data-card]', '[data-share]', '[data-quiet-row]', '[data-rating]'].map(q);
-    seq.forEach((el, i) => { if (i > 0) expect(before(seq[i - 1], el)).toBe(true); });
+    expect(seq.slice(1).map((el, i) => before(seq[i], el))).toEqual(Array(seq.length - 1).fill(true));
     expect(container.querySelector('[role="alert"]')).not.toBeNull();
     expect(before(container.querySelector('[role="alert"]')!, container.querySelector('h2')!)).toBe(true);
   });

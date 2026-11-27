@@ -84,10 +84,10 @@ describe('RedactBox touch behaviour', () => {
   });
 
   it.each([
-    ['whiteout', { id: 'w', type: 'whiteout', left: 10, top: 10, width: 30, height: 10, pageIndex: 0, color: '#ffffff' }, null],
+    ['whiteout', { id: 'w', type: 'whiteout', left: 10, top: 10, width: 30, height: 10, pageIndex: 0, color: '#ffffff' }, 6],
     ['blackout', { id: 'w', type: 'blackout', left: 10, top: 10, width: 30, height: 10, pageIndex: 0 }, 3],
     ['blur', { id: 'w', type: 'blur', left: 10, top: 10, width: 30, height: 10, pageIndex: 0, strength: 0.3 }, 3],
-  ] as [string, RedactBoxElement, number | null][])('a %s shows its toolbar and eight resizers only once selected', (type, whiteout, buttonCount) => {
+  ] as [string, RedactBoxElement, number][])('a %s shows its toolbar and eight resizers only once selected', (type, whiteout, buttonCount) => {
     const wrapper = document.createElement('div');
     const renderBox = (isSelected: boolean) => act(() => render(
       <RedactBox
@@ -110,7 +110,7 @@ describe('RedactBox touch behaviour', () => {
     expect(box.hasAttribute('data-editor-shape')).toBe(true);
     expect(box.querySelectorAll('[data-editor-resizer]')).toHaveLength(8);
     expect(box.querySelector('[data-editor-actions] button[title="Delete"]')).not.toBeNull();
-    if (buttonCount !== null) expect(box.querySelectorAll('[data-editor-actions] button')).toHaveLength(buttonCount);
+    expect(box.querySelectorAll('[data-editor-actions] button')).toHaveLength(buttonCount);
     expect(box.querySelector('[data-editor-actions] [data-editor-blur-strength-input]') !== null).toBe(type === 'blur');
   });
 

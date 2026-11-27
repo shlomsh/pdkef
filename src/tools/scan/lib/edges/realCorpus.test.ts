@@ -64,8 +64,10 @@ const score = (cases: KpiCase[]) => scoreDetector(cases, (img) => guessCorners(i
 /** The live camera's finder, scored on the same cases. */
 const scoreCamera = (cases: KpiCase[]) => scoreDetector(cases, (img) => detectPage(img).quad);
 const update = process.env.UPDATE_BASELINE === '1';
-const measured: Partial<Baseline> = {};
+const baseline = () => JSON.parse(readFileSync(BASELINE, 'utf8')) as Baseline;
 
+// UPDATE_BASELINE=1 is a maintenance run: the comparisons are skipped as tests and the last describe measures
+// the four tables and writes them. Without it the comparisons run and that describe is skipped.
 describe('page detection KPIs, real photos', () => {
   const { cases, problems } = loadReal();
 
@@ -73,34 +75,43 @@ describe('page detection KPIs, real photos', () => {
     expect(problems).toEqual([]);
   });
 
-  it('does not regress against the baseline', () => {
+  it.skipIf(update)('does not regress against the baseline', () => {
     const result = score(cases);
-    measured.real = result;
     console.log(`\nReal photos\n${formatKpiTable(result)}`);
-    if (!update) expect(regressions(result, (JSON.parse(readFileSync(BASELINE, 'utf8')) as Baseline).real)).toEqual([]);
+    expect(regressions(result, baseline().real)).toEqual([]);
   });
 
-  it('does not regress against the baseline, camera finder', () => {
+  it.skipIf(update)('does not regress against the baseline, camera finder', () => {
     const result = scoreCamera(cases);
-    measured.cameraReal = result;
     console.log(`\nReal photos, camera detectPage\n${formatKpiTable(result)}`);
-    if (!update) expect(regressions(result, (JSON.parse(readFileSync(BASELINE, 'utf8')) as Baseline).cameraReal)).toEqual([]);
+    expect(regressions(result, baseline().cameraReal)).toEqual([]);
   });
 });
 
 describe('page detection KPIs, synthetic corpus', () => {
-  it('does not regress against the baseline', () => {
+  it.skipIf(update)('does not regress against the baseline', () => {
     const result = score(syntheticCases());
-    measured.synthetic = result;
     console.log(`\nSynthetic scenes\n${formatKpiTable(result)}`);
-    if (!update) expect(regressions(result, (JSON.parse(readFileSync(BASELINE, 'utf8')) as Baseline).synthetic)).toEqual([]);
+    expect(regressions(result, baseline().synthetic)).toEqual([]);
   }, 30_000);
 
-  it('does not regress against the baseline, camera finder', () => {
+  it.skipIf(update)('does not regress against the baseline, camera finder', () => {
     const result = scoreCamera(syntheticCases());
-    measured.cameraSynthetic = result;
     console.log(`\nSynthetic scenes, camera detectPage\n${formatKpiTable(result)}`);
-    if (update) writeFileSync(BASELINE, `${JSON.stringify(measured, null, 2)}\n`);
-    else expect(regressions(result, (JSON.parse(readFileSync(BASELINE, 'utf8')) as Baseline).cameraSynthetic)).toEqual([]);
+    expect(regressions(result, baseline().cameraSynthetic)).toEqual([]);
   }, 30_000);
+});
+
+describe.runIf(update)('page detection KPIs, moving the baseline on purpose', () => {
+  it('measures the four tables and writes them to baseline.json', () => {
+    const { cases } = loadReal();
+    const measured: Baseline = {
+      real: score(cases),
+      cameraReal: scoreCamera(cases),
+      synthetic: score(syntheticCases()),
+      cameraSynthetic: scoreCamera(syntheticCases()),
+    };
+    console.log(`\nReal photos\n${formatKpiTable(measured.real)}\nSynthetic scenes\n${formatKpiTable(measured.synthetic)}`);
+    writeFileSync(BASELINE, `${JSON.stringify(measured, null, 2)}\n`);
+  });
 });

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { assert, describe, expect, it } from 'vitest';
 import { createPageGeometry } from '#editor/geometry/coords.ts';
 import { PRESET_FINDERS, termFinder } from '../find/finders.ts';
 import { buildPageText } from '../find/pageText.ts';
@@ -176,7 +176,8 @@ describe('checkSavedFile', () => {
       { kind: 'in-place', place: 'comment', pageIndex: 0, text: 'Jane Doe, second', placeIndex: 2 },
     ]);
     for (const finding of results[0].findings) {
-      if (finding.kind === 'in-place') expect(saved.places[finding.placeIndex].text).toBe(finding.text);
+      assert(finding.kind === 'in-place');
+      expect(saved.places[finding.placeIndex].text).toBe(finding.text);
     }
   });
 

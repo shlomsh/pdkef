@@ -40,6 +40,29 @@ const FORMS = Object.entries(baselines.forms).map(([name, spec]) => ({ name, ...
 const unionKinds = (baselineByKind, actualByKind) => [...new Set([...Object.keys(baselineByKind), ...Object.keys(actualByKind)])];
 
 const scored = new Map();
+const scoring = new Map();
+
+/** Scores a form once, however many describes below read it. */
+function scoreOnce(form) {
+  if (!scoring.has(form.name)) {
+    scoring.set(form.name, scoreForm({
+      pdf: path.join(repoRoot, form.pdf),
+      truth: path.join(repoRoot, form.truth),
+      // Case-agnostic: most forms score page 0 and leave this undefined, so scoreForm's own
+      // default applies. A form scored on a later page (FORM-16's ภ.ง.ด.90, page 3) says so in
+      // its own baselines.json row rather than needing a special case here.
+      pageIndex: form.pageIndex,
+    }));
+  }
+  return scoring.get(form.name);
+}
+
+/** A null baseline precision records "no candidates at all"; a number is a floor and a ceiling. */
+const SCORED_PRECISION_FORMS = FORMS.filter((form) => form.precision !== null);
+const NULL_PRECISION_FORMS = FORMS.filter((form) => form.precision === null);
+/** A null baseline `labels` records "no labelled truth to grade"; an object is graded. */
+const LABELLED_FORMS = FORMS.filter((form) => form.labels !== null);
+const UNLABELLED_FORMS = FORMS.filter((form) => form.labels === null);
 
 /**
  * QUAL-19: each form is scored in its own `beforeAll`, inside its own describe, not all ten in
@@ -50,14 +73,7 @@ const scored = new Map();
  */
 describe.each(FORMS)('$name', (form) => {
   beforeAll(async () => {
-    scored.set(form.name, await scoreForm({
-      pdf: path.join(repoRoot, form.pdf),
-      truth: path.join(repoRoot, form.truth),
-      // Case-agnostic: most forms score page 0 and leave this undefined, so scoreForm's own
-      // default applies. A form scored on a later page (FORM-16's ภ.ง.ด.90, page 3) says so in
-      // its own baselines.json row rather than needing a special case here.
-      pageIndex: form.pageIndex,
-    }));
+    scored.set(form.name, await scoreOnce(form));
     // Always visible, not only on failure: a passing run that silently improved
     // is the one you want to notice, because the baseline needs re-recording.
     // eslint-disable-next-line no-console
@@ -78,32 +94,6 @@ describe.each(FORMS)('$name', (form) => {
     const { recall } = scored.get(form.name);
     expect(recall, `recall rose above the recorded baseline for ${form.name} by more than SLACK - re-record the baseline`)
       .toBeLessThanOrEqual(form.recall + SLACK);
-  });
-
-  it('is at least as precise as it used to be', () => {
-    const { precision, candidates } = scored.get(form.name);
-    // A `null` baseline precision records that this form yields no candidates
-    // at all, which today only the scanned form does: its page carries no
-    // vector ink, so there is nothing to be precise about. Pin the zero
-    // exactly rather than skipping the row. A change that starts finding
-    // something on a scan is the best news this corpus could report, and it
-    // should fail here and be re-recorded, not pass unnoticed - which is the
-    // same rule as a number going up, applied to a number coming off zero.
-    if (form.precision === null) {
-      expect(candidates, `${form.name} now yields candidates where it recorded none - re-record the baseline`).toBe(0);
-      return;
-    }
-    expect(precision, `precision fell below the recorded baseline for ${form.name}`)
-      .toBeGreaterThanOrEqual(form.precision - SLACK);
-  });
-
-  it('has not gained precision beyond what is recorded, without a re-record', () => {
-    const { precision } = scored.get(form.name);
-    // A null baseline is already pinned exactly (both directions) by the
-    // null-candidates check above, so there is nothing further to ratchet here.
-    if (form.precision === null) return;
-    expect(precision, `precision rose above the recorded baseline for ${form.name} by more than SLACK - re-record the baseline`)
-      .toBeLessThanOrEqual(form.precision + SLACK);
   });
 
   it('holds its recall on every kind of field, not just overall', () => {
@@ -183,25 +173,6 @@ describe.each(FORMS)('$name', (form) => {
     expect(rose, `per-kind precision rose for ${form.name} - re-record the baseline`).toEqual([]);
   });
 
-  it('holds its label association, and records any gain (FORM-03)', () => {
-    // Label association is the third gate criterion beside recall and precision (85% on both Hebrew
-    // forms), and it fell from 83.2% to 58.2% on form 101 between 2026-09-24 and 2026-10-01 with no
-    // test to say so: a checkbox's own glyph stopped being excluded from its label when SNG-09
-    // shrank the region to the printed square. A form whose truth carries no labels records `labels: null`,
-    // pinned at zero graded pairs for the same reason a null precision pins zero candidates.
-    const { labels } = scored.get(form.name);
-    if (form.labels === null) {
-      expect(labels.evaluated, `${form.name} now grades label pairs where it recorded none - re-record the baseline`).toBe(0);
-      return;
-    }
-    expect(labels.rate, `label association fell below the recorded baseline for ${form.name}`)
-      .toBeGreaterThanOrEqual(form.labels.rate - SLACK);
-    expect(labels.rate, `label association rose above the recorded baseline for ${form.name} by more than SLACK - re-record the baseline`)
-      .toBeLessThanOrEqual(form.labels.rate + SLACK);
-    expect(labels.evaluated, `${form.name} graded label pairs moved`).toBe(form.labels.evaluated);
-    expect(labels.correct, `${form.name} correct labels moved`).toBe(form.labels.correct);
-  });
-
   it('scores a form that really has targets in it', () => {
     // Non-vacuity: an empty or unreadable truth file would make every
     // assertion above pass by having nothing to compare. Targets are the half
@@ -237,7 +208,95 @@ describe.each(FORMS)('$name', (form) => {
   });
 });
 
+/**
+ * The precision and label gates differ by kind of row: a form with a recorded number is held to it
+ * from both sides, a form recorded as `null` is pinned to nothing. Each kind has its own loop, so
+ * every assertion below runs for every row in it (the guard at the end says neither list is empty).
+ */
+describe.each(SCORED_PRECISION_FORMS)('$name', (form) => {
+  beforeAll(async () => {
+    scored.set(form.name, await scoreOnce(form));
+  });
+
+  it('is at least as precise as it used to be', () => {
+    const { precision } = scored.get(form.name);
+    expect(precision, `precision fell below the recorded baseline for ${form.name}`)
+      .toBeGreaterThanOrEqual(form.precision - SLACK);
+  });
+
+  it('has not gained precision beyond what is recorded, without a re-record', () => {
+    const { precision } = scored.get(form.name);
+    expect(precision, `precision rose above the recorded baseline for ${form.name} by more than SLACK - re-record the baseline`)
+      .toBeLessThanOrEqual(form.precision + SLACK);
+  });
+});
+
+describe.each(NULL_PRECISION_FORMS)('$name', (form) => {
+  beforeAll(async () => {
+    scored.set(form.name, await scoreOnce(form));
+  });
+
+  // A `null` baseline precision records that this form yields no candidates
+  // at all, which today only the scanned form does: its page carries no
+  // vector ink, so there is nothing to be precise about. Pin the zero
+  // exactly rather than skipping the row. A change that starts finding
+  // something on a scan is the best news this corpus could report, and it
+  // should fail here and be re-recorded, not pass unnoticed - which is the
+  // same rule as a number going up, applied to a number coming off zero.
+  it('is at least as precise as it used to be', () => {
+    const { candidates } = scored.get(form.name);
+    expect(candidates, `${form.name} now yields candidates where it recorded none - re-record the baseline`).toBe(0);
+  });
+
+  // A null baseline is already pinned exactly (both directions) by the
+  // null-candidates check above, so there is nothing further to ratchet here.
+  it('has not gained precision beyond what is recorded, without a re-record', () => {
+    const { candidates } = scored.get(form.name);
+    expect(candidates, `${form.name} now yields candidates where it recorded none - re-record the baseline`).toBe(0);
+  });
+});
+
+// Label association is the third gate criterion beside recall and precision (85% on both Hebrew
+// forms), and it fell from 83.2% to 58.2% on form 101 between 2026-09-24 and 2026-10-01 with no
+// test to say so: a checkbox's own glyph stopped being excluded from its label when SNG-09
+// shrank the region to the printed square. A form whose truth carries no labels records `labels: null`,
+// pinned at zero graded pairs for the same reason a null precision pins zero candidates.
+describe.each(LABELLED_FORMS)('$name', (form) => {
+  beforeAll(async () => {
+    scored.set(form.name, await scoreOnce(form));
+  });
+
+  it('holds its label association, and records any gain (FORM-03)', () => {
+    const { labels } = scored.get(form.name);
+    expect(labels.rate, `label association fell below the recorded baseline for ${form.name}`)
+      .toBeGreaterThanOrEqual(form.labels.rate - SLACK);
+    expect(labels.rate, `label association rose above the recorded baseline for ${form.name} by more than SLACK - re-record the baseline`)
+      .toBeLessThanOrEqual(form.labels.rate + SLACK);
+    expect(labels.evaluated, `${form.name} graded label pairs moved`).toBe(form.labels.evaluated);
+    expect(labels.correct, `${form.name} correct labels moved`).toBe(form.labels.correct);
+  });
+});
+
+describe.each(UNLABELLED_FORMS)('$name', (form) => {
+  beforeAll(async () => {
+    scored.set(form.name, await scoreOnce(form));
+  });
+
+  it('holds its label association, and records any gain (FORM-03)', () => {
+    const { labels } = scored.get(form.name);
+    expect(labels.evaluated, `${form.name} now grades label pairs where it recorded none - re-record the baseline`).toBe(0);
+  });
+});
+
 describe('the scored corpus as a whole', () => {
+  // A null row going away is good news (re-recorded with its first numbers), so only the scored lists must be non-empty.
+  it('scores some forms, and loses none to the split above', () => {
+    expect(SCORED_PRECISION_FORMS.length).toBeGreaterThan(0);
+    expect(SCORED_PRECISION_FORMS.length + NULL_PRECISION_FORMS.length).toBe(FORMS.length);
+    expect(LABELLED_FORMS.length).toBeGreaterThan(0);
+    expect(LABELLED_FORMS.length + UNLABELLED_FORMS.length).toBe(FORMS.length);
+  });
+
   it('covers more than one form, and more than one script', () => {
     expect(FORMS.length).toBeGreaterThanOrEqual(3);
     // Two Hebrew government forms and our own Latin practice form. A detector

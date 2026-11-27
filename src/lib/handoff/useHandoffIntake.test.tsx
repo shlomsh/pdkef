@@ -331,11 +331,9 @@ describe('useHandoffIntake', () => {
   });
 
   it.each([
-    ['/compress-image/', 'doc.pdf', 'application/pdf', false],
     ['/compress-image/', 'me.jpg', 'image/jpeg', true],
-    ['/compress/', 'me.jpg', 'image/jpeg', false],
     ['/compress/', 'doc.pdf', 'application/pdf', true],
-  ])('on %s asks the store only for a hand-off that fits the page: %s (%s) -> %s', async (path, fileName, fileType, fits) => {
+  ])('on %s asks the store only for a hand-off that fits the page: %s (%s) -> %s', async (path, fileName, fileType) => {
     history.pushState({}, '', path);
     await saveHandoff('compress', { fileName, fileType, fileBytes: bytes('%PDF-1.7 fits') });
     const [onFile, arrived] = arrivalSpy<[File, string?]>();
@@ -343,16 +341,27 @@ describe('useHandoffIntake', () => {
       render(<Harness tool="compress" onFile={onFile} />, container);
     });
     expect(peekHandoff).toHaveBeenCalledWith('compress', expect.any(Function));
-    if (fits) {
-      await act(async () => { await arrived; });
-      expect(onFile.calls[0][0].name).toBe(fileName);
-    } else {
-      await peeked();
-      await drain();
-      // Left alone: the page it was meant for will still find it.
-      expect(onFile.calls).toHaveLength(0);
-      expect((await peekHandoff('compress'))?.fileName).toBe(fileName);
-    }
+    await act(async () => { await arrived; });
+    expect(onFile.calls[0][0].name).toBe(fileName);
+    history.pushState({}, '', '/');
+  });
+
+  it.each([
+    ['/compress-image/', 'doc.pdf', 'application/pdf', false],
+    ['/compress/', 'me.jpg', 'image/jpeg', false],
+  ])('on %s asks the store only for a hand-off that fits the page: %s (%s) -> %s', async (path, fileName, fileType) => {
+    history.pushState({}, '', path);
+    await saveHandoff('compress', { fileName, fileType, fileBytes: bytes('%PDF-1.7 fits') });
+    const [onFile] = arrivalSpy<[File, string?]>();
+    await act(async () => {
+      render(<Harness tool="compress" onFile={onFile} />, container);
+    });
+    expect(peekHandoff).toHaveBeenCalledWith('compress', expect.any(Function));
+    await peeked();
+    await drain();
+    // Left alone: the page it was meant for will still find it.
+    expect(onFile.calls).toHaveLength(0);
+    expect((await peekHandoff('compress'))?.fileName).toBe(fileName);
     history.pushState({}, '', '/');
   });
 

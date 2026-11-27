@@ -29,6 +29,6 @@ it('omits visit without storage', async () => {
   expect(rec.calls).toHaveLength(1);
   // Page views carry `ready` off the real clock, as a time bucket; this test is about visit, so it is then set aside.
   const { ready, ...properties } = (await rec.bodies()).map((b) => (b as { properties: Record<string, unknown> }).properties)[0];
-  if (ready !== undefined) expect(TIME_BUCKETS).toContain(ready);
+  expect(TIME_BUCKETS).toContain(ready);
   expect(properties).toEqual({ tool: 'sign', first: true });
 });

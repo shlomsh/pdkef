@@ -1318,15 +1318,17 @@ describe('SignToolbar Component', () => {
       const textSpan = query(btn, `.${styles.label}`);
       expect(textSpan).not.toBeNull();
       expect(textSpan.textContent.trim().length).toBeGreaterThan(0);
-      
-      // Ensure the button is a direct child of the toolbar to avoid flexbox wrapper issues.
-      if (!btn.closest('[data-editor-signature-popover]')) {
-        const parentClassList = required(btn.parentElement, 'button parent').classList;
-        expect(
-          parentClassList.contains(styles.toolbar) ||
-          parentClassList.contains(styles.dropdown)
-        ).toBe(true);
-      }
+    });
+
+    // Ensure the button is a direct child of the toolbar to avoid flexbox wrapper issues.
+    const toolbarButtons = Array.from(buttons).filter((btn) => !btn.closest('[data-editor-signature-popover]'));
+    expect(toolbarButtons.length).toBeGreaterThan(0);
+    toolbarButtons.forEach(btn => {
+      const parentClassList = required(btn.parentElement, 'button parent').classList;
+      expect(
+        parentClassList.contains(styles.toolbar) ||
+        parentClassList.contains(styles.dropdown)
+      ).toBe(true);
     });
   });
 

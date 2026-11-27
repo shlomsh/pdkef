@@ -345,14 +345,15 @@ describe('importStandardAnnotations', () => {
 describe('export then import: the round trip', () => {
   const base: Omit<HighlightElement, 'id'> = { type: 'highlight', pageIndex: 0, left: 10, top: 20, width: 50, height: 10, color: '#FFF34D',
     bands: [{ left: 0, top: 0, width: 100, height: 45 }, { left: 0, top: 55, width: 60, height: 45 }] };
-  const cases: [string, HighlightElement, string | undefined][] = [
-    ['a plain highlight', { ...base, id: 'rt-plain' }, undefined],
-    ['a 50% highlight', { ...base, id: 'rt-half', opacity: 0.5 }, undefined],
-    ['an underline', { ...base, id: 'rt-under', style: 'underline' }, undefined],
-    ['an underline with a comment', { ...base, id: 'rt-under-c', style: 'underline', opacity: 0.7 }, 'A note'],
+  const cases: [string, HighlightElement, string | undefined, unknown[]][] = [
+    ['a plain highlight', { ...base, id: 'rt-plain' }, undefined, []],
+    ['a 50% highlight', { ...base, id: 'rt-half', opacity: 0.5 }, undefined, []],
+    ['an underline', { ...base, id: 'rt-under', style: 'underline' }, undefined, []],
+    ['an underline with a comment', { ...base, id: 'rt-under-c', style: 'underline', opacity: 0.7 }, 'A note',
+      [{ comment: 'A note', anchor: { kind: 'element', elementId: 'rt-under-c' } }]],
   ];
 
-  it.each(cases)('gives back equal elements for %s', async (_name, element, comment) => {
+  it.each(cases)('gives back equal elements for %s', async (_name, element, comment, trailing) => {
     const { serializeHighlight } = await import('../registry/highlightPdf.ts');
     const doc = await PDFDocument.create();
     const pdfPage = doc.addPage([400, 600]);
@@ -364,8 +365,8 @@ describe('export then import: the round trip', () => {
     expect(out.elements.map((e) => e.type)).toEqual(comment ? ['highlight', 'comment'] : ['highlight']);
     const [back] = out.elements as HighlightElement[];
     expect(back).toMatchObject({ id: element.id, type: 'highlight', pageIndex: 0, color: element.color });
-    if (element.style) expect(back.style).toBe(element.style);
-    if (element.opacity) expect(back.opacity).toBe(element.opacity);
+    expect(back.style).toBe(element.style);
+    expect(back.opacity).toBe(element.opacity);
     expect('style' in back).toBe(element.style !== undefined);
     expect('opacity' in back).toBe(element.opacity !== undefined);
     expect(back.left).toBeCloseTo(10, 1);
@@ -374,6 +375,6 @@ describe('export then import: the round trip', () => {
     expect(back.height).toBeCloseTo(10, 1);
     expect(back.bands).toHaveLength(2);
     back.bands.forEach((b, i) => (['left', 'top', 'width', 'height'] as const).forEach((k) => expect(b[k]).toBeCloseTo(element.bands[i][k], 1)));
-    if (comment) expect(out.elements[1]).toMatchObject({ comment, anchor: { kind: 'element', elementId: element.id } });
+    expect(out.elements.slice(1)).toMatchObject(trailing);
   });
 });

@@ -31,6 +31,8 @@ async function loadFont(family) {
   return { embedder: { font: cache.get(file) } };
 }
 
+const ARABIC_MISSING = ['م', 'ر', 'ح', 'ب', 'ا'];
+
 const text = (over) => ({ type: 'text', id: 'a', pageIndex: 0, fontFamily: 'Arimo', text: '', ...over });
 
 describe('editing-time font support', () => {
@@ -92,16 +94,18 @@ describe('findUnrepresentableCharacters', () => {
     expect(found).toEqual({ characters: [], pageNumbers: [], elementCharacters: {} });
   });
 
-  it.each(WYSIWYG_STRING_CASES.map(({ id, text, support }) => [id, text, support]))(
+  it.each(WYSIWYG_STRING_CASES.map(({ id, text, support }) => [
+    id,
+    text,
+    // The row carries the whole expected result: the Arabic run is the one thing no bundled font draws beside Hebrew.
+    support === 'incompatible'
+      ? { characters: ARABIC_MISSING, pageNumbers: [1], elementCharacters: { a: ARABIC_MISSING } }
+      : { characters: [], pageNumbers: [], elementCharacters: {} },
+  ]))(
     '%s: agrees with the real embedded font bytes for the supplied WYSIWYG string',
-    async (_id, value, expectedSupport) => {
+    async (_id, value, expected) => {
       const found = await findUnrepresentableCharacters([text({ text: value })], loadFont);
-      if (expectedSupport === 'incompatible') {
-        expect(found.characters).toEqual(['م', 'ر', 'ح', 'ب', 'ا']);
-        expect(found.elementCharacters).toEqual({ a: ['م', 'ر', 'ح', 'ب', 'ا'] });
-      } else {
-        expect(found).toEqual({ characters: [], pageNumbers: [], elementCharacters: {} });
-      }
+      expect(found).toEqual(expected);
     },
   );
 

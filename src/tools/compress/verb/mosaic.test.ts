@@ -32,11 +32,11 @@ describe('mosaicRuns', () => {
 
   it('never leaves two adjacent runs of one tone in a row', () => {
     const all = flat(32, 24);
-    for (let i = 1; i < all.length; i++) {
-      const p = all[i - 1];
-      const s = all[i];
-      if (p.y === s.y && p.x + p.w === s.x) expect(p.tone).not.toBe(s.tone);
-    }
+    const adjacent = all.slice(1)
+      .map((s, i) => [all[i], s] as const)
+      .filter(([p, s]) => p.y === s.y && p.x + p.w === s.x);
+    expect(adjacent.length).toBeGreaterThan(0);
+    for (const [p, s] of adjacent) expect(p.tone).not.toBe(s.tone);
   });
 
   it.each([

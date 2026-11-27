@@ -14,7 +14,8 @@ describe('cutOff on the real photos, pages wholly in view', () => {
     it(`${name}: not cut off`, () => {
       const image = parsePgm(new Uint8Array(readFileSync(new URL(`${name}.pgm`, dir))));
       const obs = observeFrame(image, 0, null);
-      if (obs.quad) expect(obs.cutOff).toBe(false);
+      expect(obs.quad, 'a page is found').not.toBeNull();
+      expect(obs.cutOff).toBe(false);
     });
   }
 });

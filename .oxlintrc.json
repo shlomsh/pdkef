@@ -107,6 +107,32 @@
     ],
     "landmines/no-elapsed-time-bound": "error",
     "landmines/no-silent-catch": "error",
+    "landmines/no-conditional-expect": [
+      "error",
+      {
+        "allow": {
+          "e2e/app-bar-crumb.spec.js": 2,
+          "e2e/cross-tool/page-grid-parity.spec.js": 1,
+          "e2e/demo/workspace-flow.spec.js": 2,
+          "e2e/export/export-render-guard.spec.js": 1,
+          "e2e/home/launcher-picker-pinned.spec.js": 1,
+          "e2e/home/scrollable-hero.spec.js": 1,
+          "e2e/sign/fixtures/shapingGuardHarness.js": 3,
+          "e2e/stub-requests.spec.js": 1,
+          "e2e/tool-hero-first-screen.spec.js": 4,
+          "e2e/tool-layout.spec.js": 9,
+          "e2e/tool-output-paths.spec.js": 2,
+          "e2e/tool-toolbars/toolbar-touch-targets.spec.js": 2,
+          "src/tools/highlight/e2e/mark-toolbar.spec.js": 1,
+          "src/tools/merge/e2e/merge-direction-a.spec.js": 1,
+          "src/tools/merge/e2e/merge-saved-work-restore-acceptance.spec.js": 9,
+          "src/tools/redact/e2e/box-toolbar-fits.spec.js": 2,
+          "src/tools/redact/e2e/redact-saved-work-restore-acceptance.spec.js": 2,
+          "src/tools/sign/e2e/fill-mode-geometry.spec.js": 2,
+          "src/tools/sign/e2e/sign-saved-work-restore-acceptance.spec.js": 2
+        }
+      }
+    ],
     "landmines/declared-test-inputs": "off",
     "no-restricted-imports": [
       "error",

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { assert, describe, expect, it } from 'vitest';
 import { hatchOps } from './hatchStroke.ts';
 import { HATCH_GAP, hatchPathD } from './hatchInk.ts';
 import { strokeSeed, svgPath, type SketchRect } from './sketchStroke.ts';
@@ -51,11 +51,13 @@ describe('READ-14: hatchOps', () => {
 
   it('never leaves a speck: no stroke is shorter than a point', () => {
     const ops = hatchOps(one, seed);
+    expect(ops.filter((op) => op[0] === 'M').length).toBeGreaterThan(0);
     ops.forEach((op, i) => {
       if (op[0] !== 'M') return;
       const c = ops[i + 1];
       expect(c[0]).toBe('C');
-      if (c[0] === 'C') expect(Math.hypot(c[5] - op[1], c[6] - op[2])).toBeGreaterThan(1);
+      assert(c[0] === 'C');
+      expect(Math.hypot(c[5] - op[1], c[6] - op[2])).toBeGreaterThan(1);
     });
   });
 

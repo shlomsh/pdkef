@@ -67,11 +67,7 @@ function setup(fileName = 'photo.png', { gateOpen = true } = {}) {
 describe('superseded', () => {
   it('throws an abort so usePreparedOutput drops the run quietly', () => {
     expect(() => superseded()).toThrow();
-    try {
-      superseded();
-    } catch (err) {
-      expect((err as Error).name).toBe('AbortError');
-    }
+    expect(() => superseded()).toThrow(expect.objectContaining({ name: 'AbortError' }));
   });
 });
 

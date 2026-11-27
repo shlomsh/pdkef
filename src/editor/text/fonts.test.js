@@ -144,11 +144,9 @@ describe('resolveFontFamily across every script the catalogue covers', () => {
   });
 
   it.each(rows)('%s: leaves a font that already covers the probe alone', (_name, probe) => {
-    for (const family of [...TEXT_FONTS, ...HANDWRITING_FONTS]) {
-      if (covers(family, 'normal', 'normal', probe)) {
-        expect(resolveFontFamily(family, probe)).toBe(family);
-      }
-    }
+    const covering = [...TEXT_FONTS, ...HANDWRITING_FONTS].filter((family) => covers(family, 'normal', 'normal', probe));
+    expect(covering.length).toBeGreaterThan(0);
+    for (const family of covering) expect(resolveFontFamily(family, probe)).toBe(family);
   });
 
   // The cases that used to hit a wall at download time. Each is a real user
