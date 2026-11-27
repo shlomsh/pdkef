@@ -24,7 +24,7 @@ const ADVICE = new Set(['duplicate', 'fit', 'closer', 'contrast', 'flatter']);
 function flyToStack(dialog: HTMLElement, url: string, quad: Quad | null, videoSize: { width: number; height: number }, stackImg: () => HTMLImageElement | null, stop: MutableRef<() => void>) {
   const photo = new Image();
   photo.src = url;
-  // expected: a snapshot that will not decode only skips the flight; the page itself is already taken
+  // oxlint-disable-next-line landmines/no-silent-catch -- a snapshot that will not decode only skips the flight; the page itself is already taken
   photo.decode().then(() => {
     const target = stackImg();
     if (!target || !dialog.isConnected) return;

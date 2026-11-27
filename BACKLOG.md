@@ -331,7 +331,7 @@ One landmines rule at a time: fix its sites, turn it on in CI. Where a rule miss
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| LAND-07 | P2 | [LAND-07](backlog/tasks/LAND-07.md) · Expected values live in the case table, wall-clock bounds are deliberate, silent catches say why |  |
+| LAND-07 | P2 | [LAND-07](backlog/tasks/LAND-07.md) · Expected values live in the case table, wall-clock bounds are deliberate, silent catches say why | In progress |
 | LAND-05 | P3 | [LAND-05](backlog/tasks/LAND-05.md) · Tests live beside what they test | In progress |
 
 ### Then, in order

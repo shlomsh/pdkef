@@ -36,7 +36,7 @@ export function latestOnly<T>(apply: (value: T) => Promise<unknown>): (value: T)
   let waiting: { value: T } | null = null;
   const run = (value: T) => {
     busy = true;
-    // expected: a camera that refuses a zoom keeps the one it has, and the next value still goes
+    // oxlint-disable-next-line landmines/no-silent-catch -- a camera that refuses a zoom keeps the one it has, and the next value still goes
     apply(value).catch(() => {}).then(() => {
       busy = false;
       const next = waiting;

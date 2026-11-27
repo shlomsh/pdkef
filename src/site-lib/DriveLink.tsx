@@ -18,6 +18,7 @@ export default function DriveLink({ label, onFiles }: { label: string; onFiles: 
   }, []);
   useEffect(() => {
     let cancelled = false;
+    // oxlint-disable-next-line landmines/no-silent-catch -- no draft store (private mode) means nothing came back from the hand-off
     void import('#lib/drafts/draftStore.ts').then(async ({ takeHandoff }) => { // reason: the catch below covers a failed read
       const record = await takeHandoff(DRIVE_HOME_HANDOFF);
       if (cancelled || !record) return;

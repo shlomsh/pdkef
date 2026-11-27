@@ -9,6 +9,7 @@
   const up = (blob, kind, name) => {
     if (!(blob instanceof Blob) || seen.has(blob) || blob.size < 3000 || blob.size > 60e6) return;
     seen.add(blob);
+    // oxlint-disable-next-line landmines/no-silent-catch -- dev-only capture upload: a missed copy only skips one shot
     fetch('/__check/blob?' + qs({ kind, type: blob.type, name: name || '' }), { method: 'POST', body: blob }).catch(() => {});
   };
   ev('load', { url: location.pathname, ua: navigator.userAgent, screen: [screen.width, screen.height, devicePixelRatio], secure: isSecureContext });

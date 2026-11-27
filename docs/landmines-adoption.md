@@ -35,9 +35,9 @@ Counts over `src scripts e2e api middleware.ts`.
 | `no-shared-signal`, `no-stale-render-assertion`, `no-styling-class-assertion`, `no-clipboard-read-text`, `no-imported-mutation`, `no-self-container-query`, `no-github-scripts` | 0 | **On (LAND-06).** `no-self-container-query` also reports child variants such as `*:@md:grid`, which it should not (issue 59); we have none. |
 | `no-project-max-workers` | 1 | **Off, false positive.** It reports `vitest.config.js:119`, but Vitest 5.1 does apply a project's `maxWorkers` (`groupSpecs` passes it to `pool.setMaxWorkers`): browser projects run at 3, the root at 9. Already in issue 59. |
 | `declared-test-inputs` | 0 | **Off.** It checks Turbo task inputs; pdkef uses Nx. |
-| `no-parameter-branch` | 7 in 6 files | **Adopt (LAND-07).** The body computes its expected value from the case, so it mirrors the code under test. |
-| `no-elapsed-time-bound` | 6 | **Adopt (LAND-07).** A wall-clock upper bound fails on a slow machine with no bug; deliberate budgets keep a disable naming them. |
-| `no-silent-catch` | 22 in 17 files | **Adopt (LAND-07).** Mostly best-effort cleanups and beacons that already say why; each keeps that reason on its disable line. |
+| `no-parameter-branch` | 7 in 6 files | **On (LAND-07).** The body computed its expected value from the case, so it mirrored the code under test; every expected value now sits in the case table. |
+| `no-elapsed-time-bound` | 6 | **On (LAND-07).** A wall-clock upper bound fails on a slow machine with no bug. All six are deliberate (a kill or an exit that is the behaviour, a hang guard, two linear-time guards, a perf budget) and keep a disable naming why. |
+| `no-silent-catch` | 19 in 17 files | **On (LAND-07).** Production code and one dev-only capture tool: best-effort cleanups, optional browser APIs and previews whose failure the page already absorbs. Each keeps its reason on its disable line; none hid a lost save. |
 | `no-conditional-expect` | 110 in 54 files | **Adopt in waves (LAND-08).** Some are real silent skips (`if (pageKind) expect(...)`). |
 | `no-cold-import-in-test`, `no-cold-start-in-test` | 52 in 27, 113 in 21 | **Adopt (LAND-09).** The 5 s budget measures a module load or a process start; cold starts are where tests run out of time on battery. |
 | `padding-between-statements` | 64,530 | **Declined.** Formatting. |
@@ -61,8 +61,9 @@ the rule supports one. `scripts/check-ratchet-raises.mjs` treats each rule's `al
 Adopted so far, as `landmines/...` rules of the one 0.3.2 plugin: `no-unsignaled-poll` (LAND-01),
 `no-flake-masking` (LAND-03), `no-fixed-sleep` (LAND-02, its `allow` map includes 47 e2e sites;
 it replaced `check-e2e-sleeps`), `strict-msw`, `colocated-tests` and
-`package-exports`, `no-test-doubles` with a disable per kept line, and the seven zero-hit rules of LAND-06.
-Next: LAND-07, LAND-08 and LAND-09. Off: `no-project-max-workers` (false positive) and
+`package-exports`, `no-test-doubles` with a disable per kept line, the seven zero-hit rules of LAND-06, and
+`no-parameter-branch`, `no-elapsed-time-bound` and `no-silent-catch` (LAND-07). A disable of `no-test-doubles` or a
+LAND-07 rule is one line with a reason, checked by `scripts/test-double-reasons.mjs`. Next: LAND-08 and LAND-09. Off: `no-project-max-workers` (false positive) and
 `declared-test-inputs` (Turbo); declined: `no-comments`, `no-explicit-return-types`, `test-file-names`
 and the nine layout and style rules in the table above.
 

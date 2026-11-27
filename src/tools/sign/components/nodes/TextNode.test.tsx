@@ -208,9 +208,9 @@ describe('TextNode component', () => {
     expect(renderNode('27/05/2008').dir).toBe('ltr');
   });
 
-  it.each(wysiwygStringCases.map(({ id, text, direction, family, support }) => [id, text, direction, family, support] as const))(
+  it.each(wysiwygStringCases.map(({ id, text, direction, family, support }) => [id, text, direction, family, support === 'incompatible' ? 'true' : null] as const))(
     '%s: renders the supplied string with editor/export direction and font agreement',
-    (_id, text, direction, family, support) => {
+    (_id, text, direction, family, ariaInvalid) => {
       host = mount(
         <TextNode
           element={{ type: 'text', text, fontFamily: 'Arimo', fontSize: 16 }}
@@ -231,7 +231,7 @@ describe('TextNode component', () => {
       expect(measure.dir).toBe(direction);
       expect(input.style.fontFamily.replace(/"/g, '')).toBe(family);
       expect(measure.style.fontFamily.replace(/"/g, '')).toBe(family);
-      expect(input.getAttribute('aria-invalid')).toBe(support === 'incompatible' ? 'true' : null);
+      expect(input.getAttribute('aria-invalid')).toBe(ariaInvalid);
     },
   );
 

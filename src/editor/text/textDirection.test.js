@@ -39,12 +39,12 @@ describe('sign text direction helpers', () => {
     expect(getEffectiveTextDirection({ text: '\u08A0', textDirection: 'ltr' })).toBe('rtl');
   });
 
-  it.each(WYSIWYG_STRING_CASES.map(({ id, text, direction }) => [id, text, direction]))(
+  it.each(WYSIWYG_STRING_CASES.map(({ id, text, direction }) => [id, text, direction, direction === 'rtl' ? 'ltr' : 'rtl']))(
     '%s: derives the expected first-strong direction from the supplied WYSIWYG string',
-    (_id, text, direction) => {
+    (_id, text, direction, oppositeDirection) => {
       expect(detectTextDirection(text)).toBe(direction);
       // Persisted direction is deliberately ignored; authored text wins.
-      expect(getEffectiveTextDirection({ text, textDirection: direction === 'rtl' ? 'ltr' : 'rtl' })).toBe(direction);
+      expect(getEffectiveTextDirection({ text, textDirection: oppositeDirection })).toBe(direction);
     },
   );
 });

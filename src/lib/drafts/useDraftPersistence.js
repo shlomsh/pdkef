@@ -193,13 +193,12 @@ export function useDraftPersistence({
   useEffect(() => {
     previewRef.current = null;
     if (!enabled || !file) return;
-    // Re-fires on a restored draft too, since `file` is a fresh File rebuilt
-    // from the record either way (see useEditorDraftPersistence's fileFrom) -
-    // one redundant rasterization of a page the record may already have a
-    // preview for. Deduping would mean threading "this file came from a
-    // restore" through this hook's params just to save one decode; not worth
-    // it against the restore path staying this thin.
+    // Re-fires on a restored draft too, since `file` is a fresh File rebuilt from the record either way
+    // (see useEditorDraftPersistence's fileFrom) - one redundant rasterization of a page the record may
+    // already have a preview for. Deduping would mean threading "this file came from a restore" through
+    // this hook's params just to save one decode; not worth it against the restore path staying this thin.
     let cancelled = false;
+    // oxlint-disable-next-line landmines/no-silent-catch -- the preview is decoration, a PDF pdf.js refuses must not take the draft down
     import('../pdf/thumbnails.js')
       .then(({ renderDraftPreview }) => renderDraftPreview(file))
       .then((dataUrl) => {

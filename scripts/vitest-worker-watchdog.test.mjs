@@ -98,6 +98,7 @@ describe('vitest worker watchdog', () => {
     const started = Date.now();
     const ended = await run('', NEVER_STALLS);
     expect(ended.code).toBe(0);
+    // oxlint-disable-next-line landmines/no-elapsed-time-bound -- the bound is the behaviour: a worker kept alive never exits
     expect(Date.now() - started).toBeLessThan(5000);
   }, 15_000);
 });

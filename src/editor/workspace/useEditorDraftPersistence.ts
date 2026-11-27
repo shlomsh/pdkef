@@ -147,7 +147,7 @@ export function useEditorDraftPersistence<TElement extends HistoryElement>({
         // work (the source PDF and any other tool's work remain in recents),
         // exactly as a failed restored PDF load does through clearDraft.
         clearDraftHintAttribute();
-        // expected: best-effort cleanup of malformed draft work
+        // oxlint-disable-next-line landmines/no-silent-catch -- best-effort cleanup of malformed draft work
         void deleteDraft(tool).catch(() => {});
         return;
       }

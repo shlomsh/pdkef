@@ -454,7 +454,7 @@ function requestStoragePersistence() {
   if (persistenceRequested) return;
   persistenceRequested = true;
   try {
-    // expected: optional browser API, false is normal
+    // oxlint-disable-next-line landmines/no-silent-catch -- optional browser API, false is normal
     navigator?.storage?.persist?.().catch(() => {});
   } catch {
     // expected: No Storage API, or a browser that throws on it. Nothing to do: the

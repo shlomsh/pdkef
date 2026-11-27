@@ -65,6 +65,7 @@ export default function FilePreview({ file }: FilePreviewProps) {
 
     if (kind === 'pdf') {
       let cancelled = false;
+      // oxlint-disable-next-line landmines/no-silent-catch -- a preview is a nicety, the file glyph stays when it fails
       renderThumbnail(file, { width: PDF_PREVIEW_WIDTH })
         .then((dataUrl) => {
           if (!cancelled) setPreviewSrc(dataUrl);

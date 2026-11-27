@@ -24,7 +24,7 @@ export default function StartScanButton({ onFiles, onStart }: { onFiles: (files:
   };
   // Warm the chunk while the finger is down; a failed load surfaces when the viewfinder is needed.
   const warm = () => {
-    // expected: only a warm-up; a load that fails is reported when the camera opens (ScanCamera)
+    // oxlint-disable-next-line landmines/no-silent-catch -- only a warm-up; a load that fails is reported when the camera opens (ScanCamera)
     if (canUseCamera()) loadViewfinder().catch(() => {});
   };
   return (

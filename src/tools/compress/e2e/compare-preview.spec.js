@@ -66,6 +66,7 @@ test.describe('compress tool - before/after preview', () => {
     // hit a tight budget. Two page-1 previews rendering in single-digit
     // seconds under 4x throttling is the affordability bar CLAUDE.md's
     // mobile-cost constraint asked for.
+    // oxlint-disable-next-line landmines/no-elapsed-time-bound -- mobile-cost budget, runs alone in PERF_BUDGETS
     expect(elapsedMs).toBeLessThan(8_000);
 
     // Drag the handle and confirm it actually moved - proves the gesture

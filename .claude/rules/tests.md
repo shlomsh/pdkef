@@ -38,7 +38,8 @@ map in `.oxlintrc.json` (exact per-file counts): a new one fails, and `test:ratc
 added entry. A rule that misses or misfires on our code is fixed upstream, never with a local guard. The one
 file-level disable is `colocated-tests`, a line naming the test's subject. `no-test-doubles` is on: a double
 that stays has its own `// oxlint-disable-next-line landmines/no-test-doubles -- Forced: <why>` line, checked by
-`scripts/test-double-reasons.mjs`.
+`scripts/test-double-reasons.mjs`, which holds `no-parameter-branch`, `no-elapsed-time-bound` and `no-silent-catch`
+(LAND-07) to one line with a reason too.
 
 A `File` or `Blob` equals only itself in an assertion (`src/test/support/fileEquality.ts`, registered in `setup.js`); to check a copy, compare its name,
 type, size or bytes.

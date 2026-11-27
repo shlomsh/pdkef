@@ -54,7 +54,7 @@ export function useInstallPrompt(
   const requestInstall = useCallback(() => {
     const prompt = installPrompt;
     dispatch({ type: 'INSTALL_PROMPT_USED' });
-    // expected: the install prompt is an optional browser API and the person may dismiss it
+    // oxlint-disable-next-line landmines/no-silent-catch -- the install prompt is an optional browser API and the person may dismiss it
     prompt?.prompt().catch(() => {});
   }, [installPrompt, dispatch]);
 

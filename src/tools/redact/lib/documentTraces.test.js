@@ -306,6 +306,7 @@ describe('removeXmpThumbnails', () => {
     const out = removeXmpThumbnails(packet);
     const ms = performance.now() - t0;
     console.log(`removeXmpThumbnails 50,000 unclosed: ${Math.round(ms)}ms`);
+    // oxlint-disable-next-line landmines/no-elapsed-time-bound -- linear-time guard on 50,000 unclosed starts; there is no work counter to assert on
     expect(ms).toBeLessThan(500);
     expect(out).toBe(packet);
   });

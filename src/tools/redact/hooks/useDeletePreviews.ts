@@ -64,7 +64,7 @@ function spansKey(spans: DeleteSpan[]): string {
 // Destroying it also ends any parse or render still in flight on that document, and marks the
 // task's own promise handled, so nothing surfaces as an unhandled rejection.
 function destroyPreview(proxy: PDFDocumentProxy | undefined) {
-  // expected: best-effort cleanup of a preview pdf.js doc
+  // oxlint-disable-next-line landmines/no-silent-catch -- best-effort cleanup of a preview pdf.js doc
   void proxy?.loadingTask.destroy().catch(() => {});
 }
 

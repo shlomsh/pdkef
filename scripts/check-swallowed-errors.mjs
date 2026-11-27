@@ -12,7 +12,9 @@ import ts from 'typescript';
 //   (b) calls no `reportError` / `report*Error` function outside a nested
 //       function definition, and
 //   (c) carries no `// expected: <why>` comment inside it or on the line
-//       directly above the `catch` keyword / `.catch(` / `.then(` call.
+//       directly above the `catch` keyword / `.catch(` / `.then(` call. On that
+//       line above, `// oxlint-disable-next-line landmines/no-silent-catch -- <why losing it is fine>`
+//       counts as the same comment (LAND-07): one reason, in landmines' syntax.
 // A named handler (identifier or member expression, not an inline function) is
 // fine only if its name starts with `report` and ends with `Error`, or the line
 // above carries `// expected:`.
@@ -24,7 +26,7 @@ import ts from 'typescript';
 const __filename = fileURLToPath(import.meta.url);
 const root = path.join(path.dirname(__filename), '..');
 
-const EXPECTED_G = /\/\/\s*expected:([^\n]*)/g;
+const EXPECTED_G = /\/\/\s*(?:expected:|oxlint-disable-next-line landmines\/no-silent-catch --)([^\n]*)/g;
 const MIN_REASON_WORDS = 4;
 /** True when `text` holds a `// expected:` comment whose reason has enough real words. */
 function hasReason(text) {

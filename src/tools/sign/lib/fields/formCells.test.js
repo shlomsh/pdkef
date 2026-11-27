@@ -499,6 +499,7 @@ describe('rows are scoped per column', () => {
     };
     const started = performance.now();
     const cells = detectCellCandidates(hatch, bigPage, 0, []);
+    // oxlint-disable-next-line landmines/no-elapsed-time-bound -- linear-time guard on a 636 by 41 hatch; there is no work counter to assert on
     expect(performance.now() - started).toBeLessThan(500);
     expect(cells).toEqual([]);
   });

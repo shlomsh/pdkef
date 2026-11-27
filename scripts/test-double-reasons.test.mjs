@@ -23,6 +23,20 @@ describe('test double reasons', () => {
     ]);
   });
 
+  it('holds the LAND-07 rules to one line with a reason too', () => {
+    expect(reasonProblems('a.ts', [
+      '// oxlint-disable-next-line landmines/no-silent-catch -- best-effort cleanup, the preview is gone either way',
+      '// oxlint-disable-next-line landmines/no-elapsed-time-bound -- mobile-cost budget, runs alone in PERF_BUDGETS',
+      '/* oxlint-disable landmines/no-parameter-branch */',
+      '// oxlint-disable-next-line landmines/no-silent-catch',
+      '// oxlint-disable-next-line landmines/no-elapsed-time-bound -- slow',
+    ].join('\n'))).toEqual([
+      'a.ts:3: disable the rule on one line, with oxlint-disable-next-line',
+      'a.ts:4: give the reason as "-- <why losing it is fine>"',
+      'a.ts:5: give the reason as "-- <why the bound is deliberate>"',
+    ]);
+  });
+
   it('finds none in the repository', () => {
     expect(repoReasonProblems(fileURLToPath(new URL('..', import.meta.url)))).toEqual([]);
   });

@@ -193,6 +193,7 @@ interface AppUpdateDeps {
 function reportRecordedWorkerFailure(injected: AppUpdateDeps['caches']): void {
   const cacheStorage = injected ?? globalThis.caches;
   if (!cacheStorage) return;
+  // oxlint-disable-next-line landmines/no-silent-catch -- best-effort install report, never reaches the page
   void import('./swInstallReport.ts')
     .then((r) => r.reportSwInstallFailures({ caches: cacheStorage, send: (e) => reportMaintenanceEvent(e, beaconMaintenanceTransport) }))
     .catch(() => {

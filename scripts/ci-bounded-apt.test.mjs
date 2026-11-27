@@ -140,6 +140,7 @@ describe.runIf(process.platform === 'linux')('ci-bounded-apt.sh behaviour (GNU t
     const f = counter();
     const t0 = Date.now();
     const r = run(['1', '1', 'bash', '-c', `printf x >> ${f}; sleep 5`]);
+    // oxlint-disable-next-line landmines/no-elapsed-time-bound -- the bound is the behaviour: unkilled, the two 5 s attempts take 10 s
     expect(Date.now() - t0).toBeLessThan(10000);
     expect(r.status).not.toBe(0);
     expect(count(f)).toBe(2);

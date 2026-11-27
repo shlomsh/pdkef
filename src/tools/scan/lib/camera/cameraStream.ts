@@ -18,7 +18,7 @@ export function attachStream(el: HTMLVideoElement | null, stream: MediaStream | 
   el.srcObject = stream;
   el.muted = true;
   el.playsInline = true;
-  // expected: a muted inline video that will not autoplay still delivers frames to the grab
+  // oxlint-disable-next-line landmines/no-silent-catch -- a muted inline video that will not autoplay still delivers frames to the grab
   el.play().catch(() => {});
 }
 
@@ -40,7 +40,7 @@ export function cameraPacer(track: () => MediaStreamTrack | undefined, onTooSlow
       if (step.verdict === 'tooSlow') onTooSlow();
       if (step.verdict !== 'stepDown') return;
       const running = track();
-      // expected: a track that refuses the smaller size keeps its own, and the next window judges that
+      // oxlint-disable-next-line landmines/no-silent-catch -- a track that refuses the smaller size keeps its own, and the next window judges that
       running?.applyConstraints({ ...running.getConstraints(), ...CAMERA_SIZES[state.size] }).catch(() => {});
     },
   };

@@ -90,15 +90,15 @@ describe('coords.js', () => {
       },
     };
 
-    it.each([0, 90, 180, 270])('maps every viewport corner through crop + %s-degree rotation', (rotation) => {
+    it.each([[0, 200, 300], [90, 300, 200], [180, 200, 300], [270, 300, 200]])('maps every viewport corner through crop + %s-degree rotation', (rotation, width, height) => {
       const geometry = createPageGeometry({ cropBox, rotation });
       const corners = expectedCorners[rotation];
       expect(pagePercentToPdfPoint({ x: 0, y: 0 }, geometry)).toEqual(corners.topLeft);
       expect(pagePercentToPdfPoint({ x: 100, y: 0 }, geometry)).toEqual(corners.topRight);
       expect(pagePercentToPdfPoint({ x: 100, y: 100 }, geometry)).toEqual(corners.bottomRight);
       expect(pagePercentToPdfPoint({ x: 0, y: 100 }, geometry)).toEqual(corners.bottomLeft);
-      expect(geometry.width).toBe(rotation % 180 === 0 ? 200 : 300);
-      expect(geometry.height).toBe(rotation % 180 === 0 ? 300 : 200);
+      expect(geometry.width).toBe(width);
+      expect(geometry.height).toBe(height);
     });
 
     it.each([0, 90, 180, 270])('keeps forward and inverse transforms exact at %s degrees', (rotation) => {

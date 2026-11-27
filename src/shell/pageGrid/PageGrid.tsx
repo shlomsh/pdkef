@@ -295,7 +295,7 @@ export default function PageGrid({
     const held = sources.current.get(fileId);
     if (held) {
       held.controller.abort();
-      // expected: best-effort cleanup of a released pdf.js source
+      // oxlint-disable-next-line landmines/no-silent-catch -- best-effort cleanup of a released pdf.js source
       Promise.resolve(held.source).then((s) => s?.destroy()).catch(() => {});
       sources.current.delete(fileId);
     }

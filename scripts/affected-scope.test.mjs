@@ -1105,12 +1105,12 @@ describe('ci.yml gates product e2e on product_e2e (QUAL-32, QUAL-42)', () => {
     expect(jobIf).toContain("needs.plan.result == 'success'");
   });
 
-  it.each(['e2e', 'e2e-webkit'])('%s: reads its paths from plan and has no scope or build step of its own', (name) => {
+  it.each([['e2e', 1], ['e2e-webkit', 2]])('%s: reads its paths from plan and has no scope or build step of its own', (name, minPlaywrightSteps) => {
     const job = jobText(name);
     const all = steps(job);
     expect(all.some((s) => /^name: (Build|Resolve affected scope)\n/.test(s))).toBe(false);
     const playwright = all.filter((s) => /playwright test --project=(chromium|webkit|perf)/.test(s));
-    expect(playwright.length).toBeGreaterThanOrEqual(name === 'e2e' ? 1 : 2);
+    expect(playwright.length).toBeGreaterThanOrEqual(minPlaywrightSteps);
     for (const s of playwright) expect(s).toContain('needs.plan.outputs.e2e_paths');
   });
 

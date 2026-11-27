@@ -75,7 +75,7 @@ export async function openPdfSheetReader(pdf: File, signal?: AbortSignal): Promi
       }
     },
     close() {
-      // expected: a document already gone has nothing left to release
+      // oxlint-disable-next-line landmines/no-silent-catch -- a document already gone has nothing left to release
       task.destroy().catch(() => {});
     },
   };

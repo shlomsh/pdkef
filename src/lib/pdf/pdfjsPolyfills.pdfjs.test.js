@@ -129,6 +129,7 @@ describe.each(ROWS)('pdf.js without %s', (label, owner, key, failure) => {
     installPdfjsPolyfills();
     const started = performance.now();
     expect(await openAndRender()).toMatchObject({ pages: 3, ops: expect.any(Number) });
+    // oxlint-disable-next-line landmines/no-elapsed-time-bound -- hang guard: a cold open and paint takes 0.1-0.4 s, see RENDERS_WITHIN_MS
     expect(performance.now() - started).toBeLessThan(RENDERS_WITHIN_MS);
   });
 });

@@ -108,6 +108,7 @@ export function whenEngaged(deps: EngagedDeps = browserEngagedDeps()): Promise<v
     if (synchronous) return finish();
 
     const lookup = safely(() => deps.serviceWorker?.getRegistration?.(), undefined);
+    // oxlint-disable-next-line landmines/no-silent-catch -- a browser that refuses workers, the install events decide instead
     Promise.resolve(lookup).then((registration) => {
       if (registration) finish();
     }, () => {
@@ -150,6 +151,7 @@ export function cacheHomeForInstalledApp(deps: CacheHomeDeps): void {
   const ask = () => {
     if (asked) return;
     asked = true;
+    // oxlint-disable-next-line landmines/no-silent-catch -- no worker here, the home page just stays uncached
     Promise.resolve(deps.ready)
       .then((registration) => registration.active?.postMessage({ type: CACHE_HOME_MESSAGE }))
       .catch(() => {

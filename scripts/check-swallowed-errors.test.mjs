@@ -25,6 +25,10 @@ describe('findSwallowed', () => {
     expect(n("p.catch((e) => reportStoreError('drafts', e, 'x'))")).toBe(0));
   it('accepts // expected: above a .catch call', () =>
     expect(n('// expected: best effort and nothing depends on it\np.catch(() => {})')).toBe(0));
+  it('accepts a landmines no-silent-catch disable with its reason above a .catch call (LAND-07)', () =>
+    expect(n('// oxlint-disable-next-line landmines/no-silent-catch -- best effort and nothing depends on it\np.catch(() => {})')).toBe(0));
+  it('still wants a real reason on that disable', () =>
+    expect(n('// oxlint-disable-next-line landmines/no-silent-catch -- ditto\np.catch(() => {})')).toBe(1));
   it('reports the 1-based line', () => expect(findSwallowed('a()\ntry {} catch {}')).toEqual([2]));
   it('flags a function as the second argument of .then', () => expect(n('p.then(ok, () => {})')).toBe(1));
   it('accepts // expected: above a .then handler', () =>
