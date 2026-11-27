@@ -96,14 +96,7 @@
     "landmines/no-imported-mutation": "error",
     "landmines/no-self-container-query": "error",
     "landmines/no-github-scripts": "error",
-    "landmines/no-parameter-branch": [
-      "error",
-      {
-        "allow": {
-          "src/tools/edit-pages/PdfEditPagesTool.open.test.tsx": 1
-        }
-      }
-    ],
+    "landmines/no-parameter-branch": "error",
     "landmines/no-elapsed-time-bound": "error",
     "landmines/no-silent-catch": "error",
     "landmines/no-cold-import-in-test": "error",

@@ -1,10 +1,9 @@
 ---
 id: "LAND-07"
 title: "Expected values live in the case table, wall-clock bounds are deliberate, silent catches say why"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "honest-tests"
-horizon: "now"
 depends_on: ["LAND-06"]
 ---
 
@@ -40,9 +39,9 @@ The three rules are on at `error`.
 - `no-parameter-branch`: five sites rewritten, each expected value in its case table; four rewrites seen
   failing with one table value changed. `textDirection.test.js` moved an input, not an expected value, so
   nothing there to mutate. `importAnnotations.test.ts` followed once LAND-08 wave 1 landed (its expected types
-  are a table column, seen failing with one changed). One site waits in the rule's `allow` map, in a file
-  other work holds: `src/tools/edit-pages/PdfEditPagesTool.open.test.tsx`. Once it is free, it is fixed the
-  same way and the map goes.
+  are a table column, seen failing with one changed). The last site, `src/tools/edit-pages/PdfEditPagesTool.open.test.tsx`,
+  followed once DEBT-80 left it (its unlock kind is a table column, seen failing with one changed), and the
+  rule's `allow` map is gone.
 - `no-elapsed-time-bound`: all six are deliberate and keep a disable naming why.
 - `no-silent-catch`: 19 sites, production code and one dev-only capture tool, each with a disable line giving the reason the code
   already gave; no behaviour changed, none hid a lost save. `test:swallowed-errors` (DEBT-27) asked the same

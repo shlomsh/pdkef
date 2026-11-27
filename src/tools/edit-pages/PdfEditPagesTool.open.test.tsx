@@ -32,13 +32,13 @@ describe('PdfEditPagesTool opening a file', () => {
 
   describe('a protected PDF', () => {
     it.each([
-      ['needs-password', 'This PDF has a password'],
-      ['owner-only', 'This PDF is protected'],
-    ] as const)('%s shows the unlock state with its kind and no page grid, and builds nothing', async (name, title) => {
+      ['needs-password', 'needs-password', 'This PDF has a password'],
+      ['owner-only', 'owner-restricted', 'This PDF is protected'],
+    ] as const)('%s shows the unlock state with its kind and no page grid, and builds nothing', async (name, unlockKind, title) => {
       await s.load(encryptedFixture(name));
       await s.drain();
 
-      expect(s.needsUnlock()?.getAttribute('data-needs-unlock')).toBe(name === 'needs-password' ? 'needs-password' : 'owner-restricted');
+      expect(s.needsUnlock()?.getAttribute('data-needs-unlock')).toBe(unlockKind);
       expect(s.text()).toContain(title);
       expect(s.text()).toContain('edit it');
       expect(s.button('Unlock it')).toBeDefined();
