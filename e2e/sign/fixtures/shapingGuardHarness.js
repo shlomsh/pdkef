@@ -722,13 +722,13 @@ export function createShapingGuardTest({
         // silently calibrate off a handful of samples, or - at zero - divide
         // by nothing meaningful. Fail explicitly instead of computing a
         // tolerance that looks real but isn't backed by enough evidence.
-        // oxlint-disable-next-line landmines/no-conditional-expect -- autoCalibrate is this guard's own mode, fixed per font; 14 guards run this side and 8 hand-picked ones the other
+        // oxlint-disable-next-line landmines/no-conditional-expect -- autoCalibrate is this guard's own mode, fixed per font; 11 guard specs run this side and 8 hand-picked specs the other
         expect(result.nonSubstitutingCount, `${scriptName}/${candidateName}: only ${result.nonSubstitutingCount} of ${corpus.length} corpus strings shape with no substitution (need >= ${minNonSubstitutingCount} to calibrate a noise floor). Extend the corpus with strings that provably don't substitute in this font, or supply a hand-picked calibrationSet instead.`).toBeGreaterThanOrEqual(minNonSubstitutingCount);
         // Zero substituting strings means this run tested nothing - every
         // corpus string shaped identically to a plain cmap lookup, so there
         // was no case where fontkit and the browser could have disagreed on
         // a letterform. That is a fact worth knowing, not a pass.
-        // oxlint-disable-next-line landmines/no-conditional-expect -- autoCalibrate is this guard's own mode, fixed per font; 14 guards run this side and 8 hand-picked ones the other
+        // oxlint-disable-next-line landmines/no-conditional-expect -- autoCalibrate is this guard's own mode, fixed per font; 11 guard specs run this side and 8 hand-picked specs the other
         expect(result.substitutingCount, `${scriptName}/${candidateName}: 0 of ${corpus.length} corpus strings trigger any contextual substitution in fontkit, so this guard has nothing to test for this face - it is not proof of agreement. Extend the corpus with strings known to trigger this face's calt/liga features, or drop this face from the guard with that reasoning recorded.`).toBeGreaterThan(0);
       }
 
