@@ -100,7 +100,6 @@
       "error",
       {
         "allow": {
-          "src/editor/comments/importAnnotations.test.ts": 1,
           "src/tools/edit-pages/PdfEditPagesTool.open.test.tsx": 1
         }
       }

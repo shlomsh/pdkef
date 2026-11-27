@@ -345,15 +345,15 @@ describe('importStandardAnnotations', () => {
 describe('export then import: the round trip', () => {
   const base: Omit<HighlightElement, 'id'> = { type: 'highlight', pageIndex: 0, left: 10, top: 20, width: 50, height: 10, color: '#FFF34D',
     bands: [{ left: 0, top: 0, width: 100, height: 45 }, { left: 0, top: 55, width: 60, height: 45 }] };
-  const cases: [string, HighlightElement, string | undefined, unknown[]][] = [
-    ['a plain highlight', { ...base, id: 'rt-plain' }, undefined, []],
-    ['a 50% highlight', { ...base, id: 'rt-half', opacity: 0.5 }, undefined, []],
-    ['an underline', { ...base, id: 'rt-under', style: 'underline' }, undefined, []],
-    ['an underline with a comment', { ...base, id: 'rt-under-c', style: 'underline', opacity: 0.7 }, 'A note',
+  const cases: [string, HighlightElement, string | undefined, string[], unknown[]][] = [
+    ['a plain highlight', { ...base, id: 'rt-plain' }, undefined, ['highlight'], []],
+    ['a 50% highlight', { ...base, id: 'rt-half', opacity: 0.5 }, undefined, ['highlight'], []],
+    ['an underline', { ...base, id: 'rt-under', style: 'underline' }, undefined, ['highlight'], []],
+    ['an underline with a comment', { ...base, id: 'rt-under-c', style: 'underline', opacity: 0.7 }, 'A note', ['highlight', 'comment'],
       [{ comment: 'A note', anchor: { kind: 'element', elementId: 'rt-under-c' } }]],
   ];
 
-  it.each(cases)('gives back equal elements for %s', async (_name, element, comment, trailing) => {
+  it.each(cases)('gives back equal elements for %s', async (_name, element, comment, types, trailing) => {
     const { serializeHighlight } = await import('../registry/highlightPdf.ts');
     const doc = await PDFDocument.create();
     const pdfPage = doc.addPage([400, 600]);
@@ -362,7 +362,7 @@ describe('export then import: the round trip', () => {
       ...(comment ? { comment: { text: comment, commentedAt: Date.UTC(2026, 0, 2, 3, 4, 5) } } : {}),
     } as any);
     const out = await importStandardAnnotations(toBuffer(await doc.save()));
-    expect(out.elements.map((e) => e.type)).toEqual(comment ? ['highlight', 'comment'] : ['highlight']);
+    expect(out.elements.map((e) => e.type)).toEqual(types);
     const [back] = out.elements as HighlightElement[];
     expect(back).toMatchObject({ id: element.id, type: 'highlight', pageIndex: 0, color: element.color });
     expect(back.style).toBe(element.style);
