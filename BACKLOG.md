@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 185 live: 80 up next, 24 then, 26 waiting, 55 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 186 live: 80 up next, 25 then, 26 waiting, 55 parked.
 
 ## Redact: finish removal
 
@@ -339,6 +339,7 @@ One landmines rule at a time: fix its sites, turn it on in CI. Where a rule miss
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
+| DEBT-81 | P3 | [DEBT-81](backlog/tasks/DEBT-81.md) · Merge's M08 Download test hung once on CI, past its 5 s budget |  |
 | LAND-09 | P3 | [LAND-09](backlog/tasks/LAND-09.md) · A test's time budget measures the test, not a cold start |  |
 
 ### Parked
