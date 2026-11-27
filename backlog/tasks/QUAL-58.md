@@ -38,3 +38,7 @@ A general drain in the shared setup (e7e916d3b) hung six DOM test files on CI an
   is the on-demand form.
 - **Fix:** the test awaits `s.drain()` after the click, inside `act`, so the render settles in the test. No shared
   setup change, no sleep; the file passed 10 runs in a row.
+- **Again, 2026-11-27:** branch CI run 46037726619 (shard 1/4) failed the same way from
+  `src/tools/to-image/PdfToImageTool.files.test.tsx`. Its last test, 'shows the Hebrew protected-file copy', ended
+  with one 35 ms timer pending (3 of 3 runs, same counting copy); its English twin already awaits `s.drain()` after
+  the NeedsUnlock screen shows. The Hebrew test does too now: 0 pending in 3 of 3, and the file passed 10 runs in a row.

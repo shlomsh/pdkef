@@ -86,6 +86,7 @@ describe('PdfToImageTool files', () => {
       s.mount(hebrew);
       await s.pick(encryptedFixture('needs-password', 'locked.pdf'));
       await waitUntil(() => expect(s.text()).toContain(hebrewToImageMessages.protectedUnlockIt));
+      await s.drain();
       expect(s.text()).toContain(hebrewToImageMessages.protectedNeedsPasswordTitle);
       expect(s.text()).not.toContain('This PDF');
     });
