@@ -26,5 +26,6 @@ Shlomi's word) has the same 34 rules as 0.3.2. Two of ours see more:
   LAND-03's are.
 - `scripts/check-ratchet-raises.mjs` accepts a new or higher `allow` count only for a file the base had and the
   change leaves untouched: no code change can add a finding to a file it does not edit, so only a rule that now sees
-  more can raise one. A count for an edited or new file still fails.
+  more can raise one. A count for an edited or new file still fails, and a padded count fails `lint:landmines` itself (landmines
+  reports an allow count above the file's real one), so the exception can only match what the rule finds.
 - `lint:landmines` is clean on 0.4.0.

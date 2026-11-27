@@ -68,6 +68,8 @@ export function raisesSince(base, { cwd = process.cwd() } = {}) {
 
 // A file the base had and this change leaves as it was cannot have gained a finding of its own: a higher
 // count there means the rule now sees more (a landmines upgrade), so its new allowance is the baseline.
+// Padding one leaves no headroom: landmines reports an allow count above the file's real count, so
+// `lint:landmines` holds every count exact and this exception can only ever match what the rule finds.
 function untouchedSince(cwd, base) {
   let changed;
   try {
